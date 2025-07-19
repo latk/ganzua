@@ -1,0 +1,83 @@
+[project]
+name = "lockinator"
+version = "0.1.0"
+description = "manage dependency lockfiles"
+readme = "README.md"
+authors = [
+    { name = "Lukas Atkinson" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.11.7",
+    "typer>=0.16.0",
+]
+
+[project.scripts]
+lockinator = "lockinator.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "inline-snapshot>=0.24.0",
+    "mypy>=1.17.0",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.12.4",
+]
+
+[tool.uv.workspace]
+exclude = ["tests/*"]
+
+[tool.ruff.lint]
+select = [
+  "ANN",  # type annotations
+  "ARG",  # unused arguments
+  "B",  # bugbear
+  "C4",  # comprehensions
+  "C90",  # mccabe complexity
+  "D",  # pydocstyle
+  "E",  # pycodestyle
+  "F",  # pyflakes
+  "G",  # logging
+  "I",  # isort
+  "LOG",  # logging
+  "N", # naming
+  "PERF",
+  "PLC",  # pylint conventions
+  "PLE",  # pylint errors
+  "PLR",  # pylint refactor
+  "PT", # pytest
+  "PTH",  # use pathlib
+  "RET",  # return and control flow
+  "RUF100",  # unused-noqa
+  "S",  # bandit
+  "SIM",  # simplify
+]
+ignore = [
+  "D104",  # undocumented-public-package
+]
+pydocstyle.convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# tests may use asserts and do not need docstrings
+"tests/**.py" = ["D100"]
+"tests/test_**.py" = ["S101", "D103"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.pytest.ini_options]
+addopts = [
+  "--import-mode=importlib",
+  "--doctest-modules",
+  "--cov-fail-under=100",
+]
+testpaths = ["src", "tests"]
+
+[tool.coverage]
+run.source_dirs = ["src", "tests"]
+run.branch = true
+report.show_missing = true
