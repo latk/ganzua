@@ -1,5 +1,7 @@
 import typing as t
 
+import pydantic
+
 from ._lockfile import Lockfile
 
 
@@ -9,6 +11,8 @@ class DiffEntry(t.TypedDict):
 
 
 type Diff = dict[str, DiffEntry]
+
+DIFF_SCHEMA = pydantic.TypeAdapter[Diff](Diff)
 
 
 def diff(old: Lockfile, new: Lockfile) -> Diff:

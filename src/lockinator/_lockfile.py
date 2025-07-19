@@ -16,6 +16,9 @@ class LockedPackage(t.TypedDict):
     version: str
 
 
+LOCKFILE_SCHEMA = pydantic.TypeAdapter[Lockfile](Lockfile)
+
+
 def lockfile_from(path: PathLike) -> Lockfile:
     if path.name.endswith("uv.lock"):
         with error_context(f"while parsing {path}"):

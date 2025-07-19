@@ -6,7 +6,7 @@ set positional-arguments
 qa *args: sync lint types (test args)
 
 # install dependencies if necessary
-sync:
+@sync:
   #!/bin/sh
   uv sync
 
