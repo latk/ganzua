@@ -1,4 +1,5 @@
 import json
+import pathlib
 import typing as t
 
 import click.testing
@@ -40,6 +41,44 @@ def test_diff() -> None:
             "typing-extensions": {"old": "3.10.0.2", "new": "4.14.1"},
         }
     )
+
+
+def test_update_constraints(tmp_path: pathlib.Path) -> None:
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(resources.OLD_UV_PYPROJECT.read_bytes())
+
+    result = _run(
+        ["update-constraints", str(resources.NEW_UV_LOCKFILE), str(pyproject)]
+    )
+    assert result.exit_code == 0
+    assert result.stdout == ""
+
+    assert pyproject.read_text() == snapshot(
+        """\
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "typing-extensions>=4,<5",
+]
+"""
+    )
+
+
+def test_update_constraints_noop(tmp_path: pathlib.Path) -> None:
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(resources.NEW_UV_PYPROJECT.read_bytes())
+
+    result = _run(
+        ["update-constraints", str(resources.NEW_UV_LOCKFILE), str(pyproject)]
+    )
+    assert result.exit_code == 0
+    assert result.stdout == ""
+
+    assert pyproject.read_text() == resources.NEW_UV_PYPROJECT.read_text()
 
 
 @pytest.mark.parametrize("command", ["inspect", "diff"])

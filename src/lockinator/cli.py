@@ -7,9 +7,11 @@ import typing as t
 
 import pydantic
 import rich
+import tomlkit
 import typer
 
 import lockinator
+from lockinator._utils import error_context
 
 app = typer.Typer()
 
@@ -56,6 +58,30 @@ def diff(old: pathlib.Path, new: pathlib.Path) -> _Jsonish:
         lockinator.lockfile_from(old),
         lockinator.lockfile_from(new),
     )
+
+
+@app.command()
+def update_constraints(lockfile: pathlib.Path, pyproject: pathlib.Path) -> None:
+    """Update pyproject.toml dependency constraints to match the lockfile.
+
+    Of course, the lockfile should always be a valid solution for the constraints.
+    But this tool will increment the constraints to match the current locked version.s
+    Often, constraints are somewhat relaxed.
+    This tool will try to be as granular as the original constraint.
+    For example, given the old constraint `foo>=3.5` and the new version `4.7.2`,
+    the constraint would be updated to `foo>=4.7`.
+
+    Currently only supports PEP-621 pyproject.toml files, but no legacy Poetry.
+    """
+    locked = lockinator.lockfile_from(lockfile)
+    with error_context(f"while parsing {pyproject}"):
+        old_contents = pyproject.read_text()
+        doc = tomlkit.parse(old_contents)
+
+    lockinator.update_pyproject(doc, locked)
+
+    new_contents = doc.as_string()
+    pyproject.write_text(new_contents)
 
 
 @app.command()
