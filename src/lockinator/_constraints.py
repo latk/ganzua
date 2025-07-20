@@ -25,6 +25,16 @@ def update_requirement(req: Requirement, lockfile: Lockfile) -> Requirement:
     return updated
 
 
+def unconstrain_requirement(req: Requirement) -> Requirement:
+    """Remove any constraints from the requirement."""
+    if not req.specifier:
+        return req
+
+    updated = copy.copy(req)
+    updated.specifier = SpecifierSet()
+    return updated
+
+
 def _update_specifier_set(spec: SpecifierSet, target: Version) -> SpecifierSet:
     """Update a specifier set to match the target version."""
     # TODO fall back to lower bound

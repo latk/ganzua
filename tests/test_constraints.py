@@ -3,7 +3,7 @@
 from packaging.requirements import Requirement
 
 from lockinator import Lockfile
-from lockinator._constraints import update_requirement
+from lockinator._constraints import unconstrain_requirement, update_requirement
 
 _LOCKFILE: Lockfile = {
     "foo": {"version": "7.1.2"},
@@ -14,6 +14,13 @@ _LOCKFILE: Lockfile = {
 def _assert_updated_req(input: str, expected: str) -> None:
     __tracebackhide__ = True  # better Pytest errors
     updated = update_requirement(Requirement(input), _LOCKFILE)
+    # compare normalized form
+    assert str(Requirement(str(updated))) == str(Requirement(expected))
+
+
+def _assert_unconstrained_req(input: str, expected: str) -> None:
+    __tracebackhide__ = True
+    updated = unconstrain_requirement(Requirement(input))
     # compare normalized form
     assert str(Requirement(str(updated))) == str(Requirement(expected))
 
@@ -110,3 +117,8 @@ def test_update_requirement_exclusive_bounds() -> None:
 def test_update_requirement_arbitrary_equality() -> None:
     _assert_updated_req("foo ===4.3.2", "foo")
     _assert_updated_req("foo ===7.1.2", "foo===7.1.2")
+
+
+def test_unconstrain_requirement() -> None:
+    _assert_unconstrained_req("foo", "foo")
+    _assert_unconstrained_req("foo >4,<=5,!=4.3.7", "foo")

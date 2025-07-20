@@ -1,38 +1,60 @@
+import typing as t
+
 import tomlkit
 import tomlkit.items
 from packaging.requirements import Requirement
 from tomlkit.container import Container as _TomlContainer
 from tomlkit.exceptions import NonExistentKey
 
-from ._constraints import update_requirement
+from ._constraints import unconstrain_requirement, update_requirement
 from ._lockfile import Lockfile
+
+type _RequirementsCallback = t.Callable[[Requirement], Requirement]
 
 
 def update_pyproject(doc: tomlkit.TOMLDocument, lockfile: Lockfile) -> None:
     # TODO skip path dependencies?
     # TODO support Poetry-specific fields
     # TODO check if there are uv-specific fields
-    project = _toml_get_table(doc, "project")
+    # TODO support build dependencies?
 
-    _update_requirements_array(_toml_get_array(project, "dependencies"), lockfile)
+    def update_with_locked_version(req: Requirement) -> Requirement:
+        return update_requirement(req, lockfile)
+
+    _update_all_requirements(doc, update_with_locked_version)
+
+
+def unconstrain_pyproject(doc: tomlkit.TOMLDocument) -> None:
+    _update_all_requirements(doc, unconstrain_requirement)
+
+
+def _update_all_requirements(
+    pyproject: tomlkit.TOMLDocument, callback: _RequirementsCallback
+) -> None:
+    """Apply the callback to each requirement specifier in the pyproject.toml file."""
+    project = _toml_get_table(pyproject, "project")
+
+    _update_requirements_array(_toml_get_array(project, "dependencies"), callback)
 
     optional_dependencies = _toml_get_table(project, "optional-dependencies")
     for extra in optional_dependencies:
         _update_requirements_array(
-            _toml_get_array(optional_dependencies, extra), lockfile
+            _toml_get_array(optional_dependencies, extra), callback
         )
 
-    dependency_groups = _toml_get_table(doc, "dependency-groups")
+    dependency_groups = _toml_get_table(pyproject, "dependency-groups")
     for group in dependency_groups:
-        _update_requirements_array(_toml_get_array(dependency_groups, group), lockfile)
+        _update_requirements_array(_toml_get_array(dependency_groups, group), callback)
 
 
-def _update_requirements_array(reqs: tomlkit.items.Array, lockfile: Lockfile) -> None:
+def _update_requirements_array(
+    reqs: tomlkit.items.Array, callback: _RequirementsCallback
+) -> None:
     for i, old in enumerate(list(reqs)):
         if not isinstance(old, str):
             continue
         old_req = Requirement(old)
-        new_req = update_requirement(old_req, lockfile)
+        new_req = callback(old_req)
         if old_req != new_req:
             reqs[i] = str(new_req)
 

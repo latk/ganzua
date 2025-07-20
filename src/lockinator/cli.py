@@ -1,5 +1,11 @@
 """The lockinator command-line interface."""
 
+# Linter exceptions:
+# * Command help is reflowed unless `\b` is present.
+#   Thus, we must allow escapes in docstrings.
+#   ruff: noqa: D301
+
+import contextlib
 import enum
 import functools
 import pathlib
@@ -13,7 +19,7 @@ import typer
 import lockinator
 from lockinator._utils import error_context
 
-app = typer.Typer()
+app = typer.Typer(rich_markup_mode="markdown")
 
 type _Jsonish = t.Mapping[str, t.Any]
 
@@ -65,23 +71,54 @@ def update_constraints(lockfile: pathlib.Path, pyproject: pathlib.Path) -> None:
     """Update pyproject.toml dependency constraints to match the lockfile.
 
     Of course, the lockfile should always be a valid solution for the constraints.
-    But this tool will increment the constraints to match the current locked version.s
+    But this tool will increment the constraints to match the current locked versions.
     Often, constraints are somewhat relaxed.
     This tool will try to be as granular as the original constraint.
     For example, given the old constraint `foo>=3.5` and the new version `4.7.2`,
     the constraint would be updated to `foo>=4.7`.
 
+
+
     Currently only supports PEP-621 pyproject.toml files, but no legacy Poetry.
     """
     locked = lockinator.lockfile_from(lockfile)
-    with error_context(f"while parsing {pyproject}"):
-        old_contents = pyproject.read_text()
+    with _toml_edit_scope(pyproject) as doc:
+        lockinator.update_pyproject(doc, locked)
+
+
+@app.command()
+def remove_constraints(pyproject: pathlib.Path) -> None:
+    """Remove any dependency version constraints from the `pyproject.toml`.
+
+    This can be useful for allowing uv/Poetry to update to the most recent versions,
+    ignoring the previous constraints. Approximate recipe:
+
+    \b
+    ```bash
+    cp pyproject.toml pyproject.toml.bak
+    lockinator remove-constraints pyproject.toml
+    uv lock --upgrade  # perform the upgrade
+    mv pyproject.toml.bak pyproject.toml  # restore old constraints
+    lockinator update-constraints uv.lock pyproject.toml
+    uv lock
+    ```
+    """
+    with _toml_edit_scope(pyproject) as doc:
+        lockinator.unconstrain_pyproject(doc)
+
+
+@contextlib.contextmanager
+def _toml_edit_scope(path: pathlib.Path) -> t.Iterator[tomlkit.TOMLDocument]:
+    """Load the TOML file and write it back afterwards."""
+    with error_context(f"while parsing {path}"):
+        old_contents = path.read_text()
         doc = tomlkit.parse(old_contents)
 
-    lockinator.update_pyproject(doc, locked)
+    yield doc
 
     new_contents = doc.as_string()
-    pyproject.write_text(new_contents)
+    if new_contents != old_contents:
+        path.write_text(new_contents)
 
 
 @app.command()

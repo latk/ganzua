@@ -81,6 +81,28 @@ def test_update_constraints_noop(tmp_path: pathlib.Path) -> None:
     assert pyproject.read_text() == resources.NEW_UV_PYPROJECT.read_text()
 
 
+def test_remove_constraints(tmp_path: pathlib.Path) -> None:
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(resources.NEW_UV_PYPROJECT.read_bytes())
+
+    result = _run(["remove-constraints", str(pyproject)])
+    assert result.exit_code == 0
+    assert result.stdout == ""
+
+    assert pyproject.read_text() == snapshot("""\
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "annotated-types",
+    "typing-extensions",
+]
+""")
+
+
 @pytest.mark.parametrize("command", ["inspect", "diff"])
 def test_schema(command: str) -> None:
     """Can output a JSON schema for a given command."""
