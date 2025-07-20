@@ -1,0 +1,103 @@
+import copy
+
+from packaging.requirements import Requirement
+from packaging.specifiers import Specifier, SpecifierSet
+from packaging.utils import canonicalize_version
+from packaging.version import Version
+
+from ._lockfile import Lockfile
+
+
+def update_requirement(req: Requirement, lockfile: Lockfile) -> Requirement:
+    """Update a requirement constraint to match the locked version."""
+    target = lockfile.get(req.name)
+    if not target:
+        return req
+    target_version = Version(target["version"])
+    updated_specifier = _update_specifier_set(req.specifier, target_version)
+    if req.specifier == updated_specifier:
+        return req
+    updated = copy.copy(req)
+    updated.specifier = updated_specifier
+    return updated
+
+
+def _update_specifier_set(spec: SpecifierSet, target: Version) -> SpecifierSet:
+    """Update a specifier set to match the target version."""
+    # TODO fall back to lower bound
+    updated_spec = SpecifierSet(
+        updated for s in spec if (updated := _update_specifier(s, target))
+    )
+    if _is_semver_idiom(spec) and not spec.contains(target):
+        updated_spec = SpecifierSet(
+            [
+                *updated_spec,
+                Specifier(f"<{target.major + 1}"),
+            ]
+        )
+    return updated_spec
+
+
+def _update_specifier(  # noqa: PLR0911  # too-many-return-statements
+    spec: Specifier, target: Version
+) -> Specifier | None:
+    """Upgrade the specifier to the target version, matching granularity.
+
+    If the target doesn't match, return `None`.
+
+    The semantics of version specifiers are explained in:
+    <https://packaging.python.org/en/latest/specifications/version-specifiers/>
+    """
+    match spec.operator:
+        case "!=" | "<" | ">" | "<=" | "===":
+            # Can't reliably change these constraints.
+            # Return them if they are still valid, else discard.
+            if spec.contains(target):
+                return spec
+            return None
+
+        case "==" if spec.version.endswith(".*"):  # prefix match
+            current_prefix = spec.version.removesuffix(".*")
+            target_prefix = _granularity_matched_version(
+                target, template=Version(current_prefix)
+            )
+            if target_prefix == current_prefix:
+                return spec
+            return Specifier(f"{spec.operator}{target_prefix}.*")
+
+        case "==":  # exact match
+            if canonicalize_version(target) == canonicalize_version(spec.version):
+                return spec  # no change needed
+            return Specifier(f"=={target}")
+
+        case "~=" | ">=":
+            current = Version(spec.version)
+            if canonicalize_version(target) == canonicalize_version(current):
+                return spec  # no change needed
+            truncated_target = _granularity_matched_version(target, template=current)
+            return Specifier(f"{spec.operator}{truncated_target}")
+
+        case other:  # pragma: no cover
+            raise ValueError(f"unknown specifier operator {other!r}")
+
+
+def _granularity_matched_version(version: Version, *, template: Version) -> str:
+    # TODO support epoch
+    # TODO support granularity matching incl pre/post/dev
+    granularity = len(template.base_version.split("."))
+    return ".".join(version.base_version.split(".")[:granularity])
+
+
+def _is_semver_idiom(spec: SpecifierSet) -> bool:
+    """Check for patterns like `>=2.1,<3`.
+
+    We need this to potentially restore an invalidated upper bound.
+    The other semver idiom looks like `>=2.1,==2.*`, which works directly.
+    """
+    lower = [Version(s.version) for s in spec if s.operator == ">="]
+    upper = [Version(s.version) for s in spec if s.operator == "<"]
+    match lower, upper:
+        case [lo], [hi] if lo < hi and lo.major < hi.major:
+            return True
+        case _:
+            return False
