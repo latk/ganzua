@@ -1,4 +1,5 @@
 import copy
+import typing as t
 
 from packaging.requirements import Requirement
 from packaging.specifiers import Specifier, SpecifierSet
@@ -13,12 +14,14 @@ def update_requirement(req: Requirement, lockfile: Lockfile) -> Requirement:
     target = lockfile.get(req.name)
     if not target:
         return req
+
     target_version = Version(target["version"])
     updated_specifier = _update_specifier_set(req.specifier, target_version)
     if req.specifier == updated_specifier:
         return req
+
     updated = copy.copy(req)
-    updated.specifier = updated_specifier
+    updated.specifier = _PrettySpecifierSet(updated_specifier)
     return updated
 
 
@@ -101,3 +104,41 @@ def _is_semver_idiom(spec: SpecifierSet) -> bool:
             return True
         case _:
             return False
+
+
+class _PrettySpecifierSet(SpecifierSet):
+    """Override a SpecifierSet to emit specifiers in a prettier order.
+
+    >>> str(_PrettySpecifierSet("<5,>=4"))
+    '>=4,<5'
+    """
+
+    @t.override
+    def __iter__(self) -> t.Iterator[Specifier]:
+        # cf https://github.com/pypa/packaging/blob/0055d4b8ff353455f0617690e609bc68a1f9ade2/src/packaging/specifiers.py#L852
+        return iter(sorted(super().__iter__(), key=_specifier_sort_key))
+
+    @t.override
+    def __str__(self) -> str:
+        # cf https://github.com/pypa/packaging/blob/0055d4b8ff353455f0617690e609bc68a1f9ade2/src/packaging/specifiers.py#L775
+        return ",".join(str(s) for s in self)
+
+
+_SPECIFIER_OPERATOR_RANK: t.Final = (">", ">=", "~=", "==", "<=", "<", "!=", "===")
+
+
+def _specifier_sort_key(spec: Specifier) -> tuple[int, str]:
+    """Determine a total order over specifiers, instead of relying on unspecified hash.
+
+    >>> _specifier_sort_key(Specifier(">=4"))
+    (1, '4')
+    >>> _specifier_sort_key(Specifier("<5"))
+    (5, '5')
+    >>> _specifier_sort_key(Specifier(">=4")) < _specifier_sort_key(Specifier("<5"))
+    True
+    """
+    try:
+        operator_rank = _SPECIFIER_OPERATOR_RANK.index(spec.operator)
+    except ValueError:  # pragma: no cover
+        operator_rank = 999
+    return operator_rank, spec.version

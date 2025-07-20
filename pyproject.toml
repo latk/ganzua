@@ -10,6 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "packaging>=25.0",
     "pydantic>=2.11.7",
+    "tomlkit>=0.13.3",
     "typer>=0.16.0",
 ]
 

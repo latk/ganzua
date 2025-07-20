@@ -1,0 +1,72 @@
+import tomlkit
+
+import lockinator
+from lockinator._lockfile import Lockfile
+
+_LOCKFILE: Lockfile = {
+    "annotated-types": {"version": "0.7.0"},
+    "example": {"version": "0.2.0"},
+    "typing-extensions": {"version": "4.14.1"},
+}
+
+_OLD_PYPROJECT = """\
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "typing-extensions>=3,<4",  # moar type annotations
+    "merrily-ignored",
+    [42, "also ignored"],  # we ignore invalid junk
+]
+
+[project.optional-dependencies]
+extra1 = [
+    "annotated-types >=0.6.1, ==0.6.*",
+]
+extra2 = false  # known invalid
+extra3 = ["ndr"]
+
+[dependency-groups]
+group-a = ["typing-extensions ~=3.4"]
+group-b = [{include-group = "group-a"}, "annotated-types ~=0.6.1"]
+"""
+
+_EXPECTED_PYPROJECT = """\
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "typing-extensions>=4,<5",  # moar type annotations
+    "merrily-ignored",
+    [42, "also ignored"],  # we ignore invalid junk
+]
+
+[project.optional-dependencies]
+extra1 = [
+    "annotated-types>=0.7.0,==0.7.*",
+]
+extra2 = false  # known invalid
+extra3 = ["ndr"]
+
+[dependency-groups]
+group-a = ["typing-extensions~=4.14"]
+group-b = [{include-group = "group-a"}, "annotated-types~=0.7.0"]
+"""
+
+
+def test_pep621() -> None:
+    doc = tomlkit.parse(_OLD_PYPROJECT)
+    lockinator.update_pyproject(doc, _LOCKFILE)
+    assert doc.as_string() == _EXPECTED_PYPROJECT
+
+
+def test_empty() -> None:
+    doc = tomlkit.document()
+    lockinator.update_pyproject(doc, _LOCKFILE)
+    assert doc.as_string() == ""

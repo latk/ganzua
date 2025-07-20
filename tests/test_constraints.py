@@ -1,3 +1,5 @@
+# TODO test semver idioms with 0.x versions
+
 from packaging.requirements import Requirement
 
 from lockinator import Lockfile
@@ -11,13 +13,17 @@ _LOCKFILE: Lockfile = {
 
 def _assert_updated_req(input: str, expected: str) -> None:
     __tracebackhide__ = True  # better Pytest errors
-    assert str(update_requirement(Requirement(input), _LOCKFILE)) == str(
-        Requirement(expected)
-    )
+    updated = update_requirement(Requirement(input), _LOCKFILE)
+    # compare normalized form
+    assert str(Requirement(str(updated))) == str(Requirement(expected))
 
 
 def test_update_requirement_not_found() -> None:
     _assert_updated_req("bar >=4,<5", "bar >=4,<5")  # unchanged
+
+
+def test_update_requirement_unconstrainted() -> None:
+    _assert_updated_req("foo", "foo")
 
 
 def test_update_requirement_major_lower_bound() -> None:
