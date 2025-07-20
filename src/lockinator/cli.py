@@ -11,6 +11,7 @@ import functools
 import pathlib
 import typing as t
 
+import click
 import pydantic
 import rich
 import tomlkit
@@ -19,7 +20,11 @@ import typer
 import lockinator
 from lockinator._utils import error_context
 
-app = typer.Typer(rich_markup_mode="markdown")
+app = typer.Typer(
+    name="lockinator",
+    help="Inspect Python dependency lockfiles (uv and Poetry).",
+    rich_markup_mode="markdown",
+)
 
 type _Jsonish = t.Mapping[str, t.Any]
 
@@ -47,6 +52,29 @@ class _CommmandWithSchema(enum.StrEnum):
         self._value_ = discriminator
         self.schema = schema
         return self
+
+
+@app.callback(invoke_without_command=True)
+def default(ctx: typer.Context) -> None:
+    """Prints help message by default."""
+    if not ctx.invoked_subcommand:
+        rich.print(ctx.get_help())
+        raise typer.Exit()
+
+
+@app.command()
+def help(ctx: typer.Context, subcommand: str | None = typer.Argument(None)) -> None:
+    """Show help for the application or a specific subcommand."""
+    root = ctx.find_root()
+
+    if subcommand is not None and isinstance(root.command, click.Group):
+        cmd = root.command.commands[subcommand]
+        # cf https://github.com/pallets/click/blob/834e04a75c5693be55f3cd8b8d3580f74086a353/src/click/core.py#L738
+        with click.Context(cmd, info_name=cmd.name, parent=root) as cmd_ctx:
+            rich.print(cmd_ctx.get_help())
+        return
+
+    rich.print(root.get_help())
 
 
 @app.command()

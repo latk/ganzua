@@ -19,6 +19,11 @@ def _run(args: t.Sequence[str]) -> click.testing.Result:
     return result
 
 
+def _assert_result_eq(left: click.testing.Result, right: click.testing.Result) -> None:
+    __tracebackhide__ = True
+    assert (left.exit_code, left.output) == (right.exit_code, right.output)
+
+
 def test_inspect() -> None:
     result = _run(["inspect", str(resources.OLD_UV_LOCKFILE)])
     assert result.exit_code == 0
@@ -89,7 +94,8 @@ def test_remove_constraints(tmp_path: pathlib.Path) -> None:
     assert result.exit_code == 0
     assert result.stdout == ""
 
-    assert pyproject.read_text() == snapshot("""\
+    assert pyproject.read_text() == snapshot(
+        """\
 [project]
 name = "example"
 version = "0.1.0"
@@ -100,7 +106,8 @@ dependencies = [
     "annotated-types",
     "typing-extensions",
 ]
-""")
+"""
+    )
 
 
 @pytest.mark.parametrize("command", ["inspect", "diff"])
@@ -111,3 +118,28 @@ def test_schema(command: str) -> None:
     assert result.exit_code == 0
     schema = json.loads(result.stdout)
     assert schema == dirty_equals.IsPartialDict()
+
+
+def test_help_mentions_subcommands() -> None:
+    result = _run(["help"])
+    assert result.exit_code == 0
+    for cmd in [
+        "inspect",
+        "diff",
+        "update-constraints",
+        "remove-constraints",
+        "schema",
+    ]:
+        assert f" {cmd} " in result.output
+
+
+def test_no_args_is_help() -> None:
+    _assert_result_eq(_run([]), _run(["help"]))
+
+
+def test_help_explicit() -> None:
+    _assert_result_eq(_run(["--help"]), _run(["help"]))
+
+
+def test_help_subcommand() -> None:
+    _assert_result_eq(_run(["inspect", "--help"]), _run(["help", "inspect"]))
