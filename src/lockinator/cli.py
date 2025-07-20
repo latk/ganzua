@@ -104,10 +104,6 @@ def update_constraints(lockfile: pathlib.Path, pyproject: pathlib.Path) -> None:
     This tool will try to be as granular as the original constraint.
     For example, given the old constraint `foo>=3.5` and the new version `4.7.2`,
     the constraint would be updated to `foo>=4.7`.
-
-
-
-    Currently only supports PEP-621 pyproject.toml files, but no legacy Poetry.
     """
     locked = lockinator.lockfile_from(lockfile)
     with _toml_edit_scope(pyproject) as doc:

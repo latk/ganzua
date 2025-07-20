@@ -1,15 +1,16 @@
-import typing as t
-
 import tomlkit
 import tomlkit.items
 from packaging.requirements import Requirement
 from tomlkit.container import Container as _TomlContainer
 from tomlkit.exceptions import NonExistentKey
 
-from ._constraints import unconstrain_requirement, update_requirement
+from ._constraints import (
+    MapRequirement,
+    PoetryRequirement,
+    UnconstrainRequirement,
+    UpdateRequirement,
+)
 from ._lockfile import Lockfile
-
-type _RequirementsCallback = t.Callable[[Requirement], Requirement]
 
 
 def update_pyproject(doc: tomlkit.TOMLDocument, lockfile: Lockfile) -> None:
@@ -17,46 +18,73 @@ def update_pyproject(doc: tomlkit.TOMLDocument, lockfile: Lockfile) -> None:
     # TODO support Poetry-specific fields
     # TODO check if there are uv-specific fields
     # TODO support build dependencies?
-
-    def update_with_locked_version(req: Requirement) -> Requirement:
-        return update_requirement(req, lockfile)
-
-    _update_all_requirements(doc, update_with_locked_version)
+    _update_all_requirements(doc, UpdateRequirement(lockfile))
 
 
 def unconstrain_pyproject(doc: tomlkit.TOMLDocument) -> None:
-    _update_all_requirements(doc, unconstrain_requirement)
+    _update_all_requirements(doc, UnconstrainRequirement())
 
 
 def _update_all_requirements(
-    pyproject: tomlkit.TOMLDocument, callback: _RequirementsCallback
+    pyproject: tomlkit.TOMLDocument, mapper: MapRequirement
 ) -> None:
     """Apply the callback to each requirement specifier in the pyproject.toml file."""
     project = _toml_get_table(pyproject, "project")
 
-    _update_requirements_array(_toml_get_array(project, "dependencies"), callback)
+    _update_requirements_array(_toml_get_array(project, "dependencies"), mapper)
 
     optional_dependencies = _toml_get_table(project, "optional-dependencies")
     for extra in optional_dependencies:
         _update_requirements_array(
-            _toml_get_array(optional_dependencies, extra), callback
+            _toml_get_array(optional_dependencies, extra), mapper
         )
 
     dependency_groups = _toml_get_table(pyproject, "dependency-groups")
     for group in dependency_groups:
-        _update_requirements_array(_toml_get_array(dependency_groups, group), callback)
+        _update_requirements_array(_toml_get_array(dependency_groups, group), mapper)
+
+    # cf https://python-poetry.org/docs/pyproject/#dependencies-and-dependency-groups
+    poetry = _toml_get_table(_toml_get_table(pyproject, "tool"), "poetry")
+    _update_poetry_dependency_table(_toml_get_table(poetry, "dependencies"), mapper)
+
+    poetry_dependency_groups = _toml_get_table(poetry, "group")
+    for group in poetry_dependency_groups:
+        poetry_group = _toml_get_table(poetry_dependency_groups, group)
+        _update_poetry_dependency_table(
+            _toml_get_table(poetry_group, "dependencies"), mapper
+        )
 
 
 def _update_requirements_array(
-    reqs: tomlkit.items.Array, callback: _RequirementsCallback
+    reqs: tomlkit.items.Array, mapper: MapRequirement
 ) -> None:
     for i, old in enumerate(list(reqs)):
         if not isinstance(old, str):
             continue
         old_req = Requirement(old)
-        new_req = callback(old_req)
+        new_req = mapper.pep508(old_req)
         if old_req != new_req:
             reqs[i] = str(new_req)
+
+
+def _update_poetry_dependency_table(
+    reqs: tomlkit.items.AbstractTable, mapper: MapRequirement
+) -> None:
+    name: str
+    for name in list(reqs.keys()):
+        target_table = reqs
+        target_key = name
+        value = reqs[name]
+        if isinstance(value, tomlkit.items.AbstractTable) and "version" in value:
+            target_table = value
+            target_key = "version"
+            value = value["version"]
+        if not isinstance(value, tomlkit.items.String):
+            continue
+        old_req = PoetryRequirement(name=name, specifier=value.value)
+        new_req = mapper.poetry(old_req)
+        if old_req != new_req:
+            target_table[target_key] = new_req.specifier
 
 
 def _toml_get_table(

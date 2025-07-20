@@ -84,11 +84,47 @@ group-a = ["typing-extensions"]
 group-b = [{include-group = "group-a"}, "annotated-types"]
 """
 
+_OLD_POETRY_PYPROJECT = """\
+[tool.poetry.dependencies]
+typing-extensions = "^3.2"
+ignored-garbage = { not-a-version = true }
+
+[tool.poetry.group.poetry-a.dependencies]
+typing-extensions = { version = "^3.4" }
+already-unconstrained = "*"
+"""
+
+_EXPECTED_POETRY_PYPROJECT = """\
+[tool.poetry.dependencies]
+typing-extensions = "^4.14"
+ignored-garbage = { not-a-version = true }
+
+[tool.poetry.group.poetry-a.dependencies]
+typing-extensions = { version = "^4.14" }
+already-unconstrained = "*"
+"""
+
+_UNCONSTRAINED_POETRY_PYPROJECT = """\
+[tool.poetry.dependencies]
+typing-extensions = "*"
+ignored-garbage = { not-a-version = true }
+
+[tool.poetry.group.poetry-a.dependencies]
+typing-extensions = { version = "*" }
+already-unconstrained = "*"
+"""
+
 
 def test_update_pep621() -> None:
     doc = tomlkit.parse(_OLD_PYPROJECT)
     lockinator.update_pyproject(doc, _LOCKFILE)
     assert doc.as_string() == _EXPECTED_PYPROJECT
+
+
+def test_update_poetry() -> None:
+    doc = tomlkit.parse(_OLD_POETRY_PYPROJECT)
+    lockinator.update_pyproject(doc, _LOCKFILE)
+    assert doc.as_string() == _EXPECTED_POETRY_PYPROJECT
 
 
 def test_update_empty() -> None:
@@ -101,3 +137,9 @@ def test_unconstrain_pep621() -> None:
     doc = tomlkit.parse(_OLD_PYPROJECT)
     lockinator.unconstrain_pyproject(doc)
     assert doc.as_string() == _UNCONSTRAINED_PYPROJECT
+
+
+def test_unconstrain_poetry() -> None:
+    doc = tomlkit.parse(_OLD_POETRY_PYPROJECT)
+    lockinator.unconstrain_pyproject(doc)
+    assert doc.as_string() == _UNCONSTRAINED_POETRY_PYPROJECT

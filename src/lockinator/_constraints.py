@@ -1,5 +1,6 @@
 import copy
 import typing as t
+from dataclasses import dataclass
 
 from packaging.requirements import Requirement
 from packaging.specifiers import Specifier, SpecifierSet
@@ -9,30 +10,112 @@ from packaging.version import Version
 from ._lockfile import Lockfile
 
 
-def update_requirement(req: Requirement, lockfile: Lockfile) -> Requirement:
+@dataclass(frozen=True, slots=True)
+class PoetryRequirement:
+    name: str
+    specifier: str
+
+
+class MapRequirement(t.Protocol):  # pragma: no cover
+    def pep508(self, req: Requirement) -> Requirement: ...
+    def poetry(self, req: PoetryRequirement) -> PoetryRequirement: ...
+
+
+@dataclass
+class UpdateRequirement(MapRequirement):
     """Update a requirement constraint to match the locked version."""
-    target = lockfile.get(req.name)
-    if not target:
-        return req
 
-    target_version = Version(target["version"])
-    updated_specifier = _update_specifier_set(req.specifier, target_version)
-    if req.specifier == updated_specifier:
-        return req
+    lockfile: Lockfile
 
-    updated = copy.copy(req)
-    updated.specifier = _PrettySpecifierSet(updated_specifier)
-    return updated
+    @t.override
+    def pep508(self, req: Requirement) -> Requirement:
+        target = self.lockfile.get(req.name)
+        if not target:
+            return req
+
+        target_version = Version(target["version"])
+        updated_specifier = _update_specifier_set(req.specifier, target_version)
+        if req.specifier == updated_specifier:
+            return req
+
+        updated = copy.copy(req)
+        updated.specifier = _PrettySpecifierSet(updated_specifier)
+        return updated
+
+    @t.override
+    def poetry(self, req: PoetryRequirement) -> PoetryRequirement:
+        target = self.lockfile.get(req.name)
+        if not target:
+            return req
+
+        target_version = Version(target["version"])
+        updated_specifier = _update_poetry_specifier(req.specifier, target_version)
+        if req.specifier == updated_specifier:
+            return req
+
+        return PoetryRequirement(req.name, updated_specifier)
 
 
-def unconstrain_requirement(req: Requirement) -> Requirement:
-    """Remove any constraints from the requirement."""
-    if not req.specifier:
-        return req
+@dataclass
+class UnconstrainRequirement(MapRequirement):
+    @t.override
+    def pep508(self, req: Requirement) -> Requirement:
+        """Remove any constraints from the requirement."""
+        if not req.specifier:
+            return req
 
-    updated = copy.copy(req)
-    updated.specifier = SpecifierSet()
-    return updated
+        updated = copy.copy(req)
+        updated.specifier = SpecifierSet()
+        return updated
+
+    @t.override
+    def poetry(self, req: PoetryRequirement) -> PoetryRequirement:
+        return PoetryRequirement(name=req.name, specifier="*")
+
+
+def _update_poetry_specifier(spec: str, target: Version) -> str:
+    """Update a Poetry version specifier.
+
+    Poetry supports both PEP-440 constraints,
+    as well as a couple of operators of its own.
+    Cf https://python-poetry.org/docs/dependency-specification/#version-constraints
+    """
+    # unconstrained
+    if spec.strip() == "*":
+        return spec
+
+    # ordinary PEP-440 specifier
+    if spec.startswith(("<", ">", "==", "!=", "~=")):
+        return _update_poetry_specifier_translated(
+            spec, target, poetry_operator="", pep440_operator=""
+        )
+
+    # Poetry semver constraint
+    if spec.startswith("^"):
+        return _update_poetry_specifier_translated(
+            spec, target, poetry_operator="^", pep440_operator=">="
+        )
+
+    # Poetry compatibility constraint
+    if spec.startswith("~"):
+        return _update_poetry_specifier_translated(
+            spec, target, poetry_operator="~", pep440_operator="~="
+        )
+
+    # bare numbers are treated as `==` specifiers (exact or prefix)
+    return _update_poetry_specifier_translated(
+        spec, target, poetry_operator="", pep440_operator="=="
+    )
+
+
+def _update_poetry_specifier_translated(
+    spec: str, target: Version, *, poetry_operator: str, pep440_operator: str
+) -> str:
+    old_spec = SpecifierSet(pep440_operator + spec.removeprefix(poetry_operator))
+    new_spec = _update_specifier_set(old_spec, target)
+    if old_spec == new_spec:
+        return spec
+    return poetry_operator + str(new_spec).removeprefix(pep440_operator)
 
 
 def _update_specifier_set(spec: SpecifierSet, target: Version) -> SpecifierSet:
