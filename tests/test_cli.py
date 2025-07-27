@@ -185,3 +185,22 @@ def test_help_can_show_subcommands() -> None:
     for cmd in _WELL_KNOWN_COMMANDS:
         assert f"\n\nganzua {cmd}\n-----" in result.output
         assert _run(["help", "--all", cmd]).output in result.output
+
+
+def test_help_can_use_markdown() -> None:
+    result = _run(["help", "help", "--markdown"])
+    assert result.exit_code == 0
+    assert result.output == snapshot(
+        """\
+Usage: `ganzua help [OPTIONS] [SUBCOMMAND]...`
+
+Show help for the application or a specific subcommand.
+
+**Options:**
+
+* `--all`
+  Also show help for all subcommands.
+* `--markdown`
+  Output help in Markdown format.
+"""
+    )

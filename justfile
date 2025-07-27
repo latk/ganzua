@@ -3,7 +3,7 @@
 set shell := ["uv", "run", "bash", "-euo", "pipefail", "-c"]
 set positional-arguments
 
-qa *args: sync lint types (test args)
+qa *args: sync lint types (test args) check-readme-up-to-date
 
 # install dependencies if necessary
 @sync:
@@ -19,6 +19,7 @@ lint:
 fix:
   ruff format .
   ruff check --fix-only --show-fixes .
+  ./scripts/readme-usage.py update
 
 # check types
 types:
@@ -32,3 +33,6 @@ test *args:
 coverage-serve:
   coverage html
   python -m http.server -d htmlcov -b localhost 0
+
+check-readme-up-to-date:
+  ./scripts/readme-usage.py diff

@@ -19,6 +19,131 @@ $ ganzua diff tests/{old,new}-uv-project/uv.lock
 }
 ```
 
+## Usage
+
+<!-- begin usage -->
+
+Usage: `ganzua [OPTIONS] COMMAND [ARGS]...`
+
+Inspect Python dependency lockfiles (uv and Poetry).
+
+**Options:**
+
+* `--help`
+  Show this help message and exit.
+
+**Commands:**
+
+* `help`
+  Show help for the application or a specific subcommand.
+* `inspect`
+  Inspect a lockfile.
+* `diff`
+  Compare two lockfiles.
+* `update-constraints`
+  Update pyproject.toml dependency constraints to match the lockfile.
+* `remove-constraints`
+  Remove any dependency version constraints from the `pyproject.toml`.
+* `schema`
+  Show the JSON schema for the output of the given command.
+
+Ganzua is licensed under the Apache-2.0 license.
+
+
+### ganzua help
+
+Usage: `ganzua help [OPTIONS] [SUBCOMMAND]...`
+
+Show help for the application or a specific subcommand.
+
+**Options:**
+
+* `--all`
+  Also show help for all subcommands.
+* `--markdown`
+  Output help in Markdown format.
+
+
+### ganzua inspect
+
+Usage: `ganzua inspect [OPTIONS] LOCKFILE`
+
+Inspect a lockfile.
+
+**Options:**
+
+* `--help`
+  Show this help message and exit.
+
+
+### ganzua diff
+
+Usage: `ganzua diff [OPTIONS] OLD NEW`
+
+Compare two lockfiles.
+
+**Options:**
+
+* `--help`
+  Show this help message and exit.
+
+
+### ganzua update-constraints
+
+Usage: `ganzua update-constraints [OPTIONS] LOCKFILE PYPROJECT`
+
+Update pyproject.toml dependency constraints to match the lockfile.
+
+Of course, the lockfile should always be a valid solution for the constraints.
+But this tool will increment the constraints to match the current locked versions.
+Often, constraints are somewhat relaxed.
+This tool will try to be as granular as the original constraint.
+For example, given the old constraint `foo>=3.5` and the new version `4.7.2`,
+the constraint would be updated to `foo>=4.7`.
+
+**Options:**
+
+* `--help`
+  Show this help message and exit.
+
+
+### ganzua remove-constraints
+
+Usage: `ganzua remove-constraints [OPTIONS] PYPROJECT`
+
+Remove any dependency version constraints from the `pyproject.toml`.
+
+This can be useful for allowing uv/Poetry to update to the most recent versions,
+ignoring the previous constraints. Approximate recipe:
+
+```bash
+cp pyproject.toml pyproject.toml.bak
+ganzua remove-constraints pyproject.toml
+uv lock --upgrade  # perform the upgrade
+mv pyproject.toml.bak pyproject.toml  # restore old constraints
+ganzua update-constraints uv.lock pyproject.toml
+uv lock
+```
+
+**Options:**
+
+* `--help`
+  Show this help message and exit.
+
+
+### ganzua schema
+
+Usage: `ganzua schema [OPTIONS] {inspect|diff}`
+
+Show the JSON schema for the output of the given command.
+
+**Options:**
+
+* `--help`
+  Show this help message and exit.
+
+<!-- end usage -->
+
 ##  What does Ganzua mean?
 
 The Spanish term *ganzúa* means lockpick. It is pronounced *gan-THU-a*.

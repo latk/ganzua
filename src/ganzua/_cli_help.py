@@ -1,5 +1,6 @@
 import contextlib
 import inspect
+import textwrap
 import typing as t
 from dataclasses import dataclass
 
@@ -39,12 +40,22 @@ _HELP_OPTION = click.Option(
     type=bool,
     is_flag=True,
     flag_value=True,
-    help="Whether to also show all subcommands.",
+    help="Also show help for all subcommands.",
+)
+@click.option(
+    "--markdown",
+    type=bool,
+    is_flag=True,
+    flag_value=True,
+    help="Output help in Markdown format.",
 )
 @click.argument("subcommand", nargs=-1)
 @click.pass_context
 def help_command(
-    help_ctx: click.Context, recursive: bool, subcommand: tuple[str, ...]
+    help_ctx: click.Context,
+    recursive: bool,
+    markdown: bool,
+    subcommand: tuple[str, ...],
 ) -> None:
     """Show help for the application or a specific subcommand."""
     ctx = help_ctx.find_root()
@@ -60,7 +71,13 @@ def help_command(
 
             # cf https://github.com/pallets/click/blob/834e04a75c5693be55f3cd8b8d3580f74086a353/src/click/core.py#L738
             ctx = stack.enter_context(click.Context(cmd, info_name=name, parent=ctx))
-        rich.print(_as_rich_group(format_command_help(ctx, recursive=recursive)))
+        help_items = format_command_help(ctx, recursive=recursive)
+        if markdown:
+            click.echo(
+                "\n".join(line for item in help_items for line in _as_markdown(item))
+            )
+        else:
+            rich.print(_as_rich_group(help_items))
 
 
 class _FixedCommand(click.Command):
@@ -107,7 +124,49 @@ type _MarkdownOrRich = (
 )
 
 
-def _as_rich(  # noqa: PLR0911  # too-many-return-statements
+def _as_markdown(item: _MarkdownOrRich, *, level: int = 3) -> t.Iterable[str]:
+    r"""Convert the help content to Markdown.
+
+    Example: can emit headings.
+
+    >>> doc = [
+    ...     _Markdown("content"),
+    ...     _SubcommandHeading("some info"),
+    ...     _Markdown("more content"),
+    ... ]
+    >>> print("\n".join(line for item in doc for line in _as_markdown(item)))
+    content
+    <BLANKLINE>
+    <BLANKLINE>
+    ### some info
+    <BLANKLINE>
+    more content
+    """
+    match item:
+        case str():
+            yield item
+        case _DefinitionList():
+            for key, description in item.items:
+                yield f"* `{key}`"
+                yield textwrap.indent(description.content, "  ")
+        case _Usage():
+            yield f"Usage: `{item.usage}`"
+        case _HelpHeading():
+            yield f"**{item.text}**\n"
+        case _SubcommandHeading():
+            atx_prefix = "#" * level
+            yield "\n"
+            yield f"{atx_prefix} {item.text}"
+            yield ""
+        case _Markdown():
+            yield item.content
+        case _Indent():
+            yield from _as_markdown(item.content, level=level)
+        case other:  # pragma: no cover
+            t.assert_never(other)
+
+
+def _as_rich(  # noqa: PLR0911  # too-many-return-statement
     item: _MarkdownOrRich,
 ) -> rich.console.RenderableType:
     import rich.markdown  # noqa: PLC0415
