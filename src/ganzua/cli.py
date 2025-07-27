@@ -63,20 +63,53 @@ _ExistingFilePath = click.Path(
 
 
 @app.command()
-@click.argument("subcommand", required=False)
+@click.option(
+    "--all/--no-all",
+    "recursive",
+    type=bool,
+    help="Whether to also show all subcommands.",
+)
+@click.argument("subcommand", nargs=-1)
 @click.pass_context
-def help(ctx: click.Context, subcommand: str | None) -> None:
+def help(help_ctx: click.Context, recursive: bool, subcommand: tuple[str, ...]) -> None:
     """Show help for the application or a specific subcommand."""
-    root = ctx.find_root()
+    ctx = help_ctx.find_root()
 
-    if subcommand is not None and isinstance(root.command, click.Group):
-        cmd = root.command.commands[subcommand]
-        # cf https://github.com/pallets/click/blob/834e04a75c5693be55f3cd8b8d3580f74086a353/src/click/core.py#L738
-        with click.Context(cmd, info_name=cmd.name, parent=root) as cmd_ctx:
-            rich.print(cmd_ctx.get_help())
+    with contextlib.ExitStack() as stack:
+        # Navigate to the correct subcommand
+        for name in subcommand:
+            if (
+                not isinstance(ctx.command, click.Group)
+                or (cmd := ctx.command.get_command(ctx, name)) is None
+            ):
+                help_ctx.fail(f"no such subcommand: {' '.join(subcommand)}")
+
+            # cf https://github.com/pallets/click/blob/834e04a75c5693be55f3cd8b8d3580f74086a353/src/click/core.py#L738
+            ctx = stack.enter_context(click.Context(cmd, info_name=name, parent=ctx))
+
+        _print_subcommand_help(ctx, recursive=recursive)
+
+
+def _print_subcommand_help(ctx: click.Context, *, recursive: bool) -> None:
+    """Print the help for the context's command, and possibly its subcommands."""
+    rich.print(ctx.get_help())
+
+    if not recursive:
         return
 
-    rich.print(root.get_help())
+    if not isinstance(ctx.command, click.Group):
+        return
+
+    for name in ctx.command.list_commands(ctx):
+        cmd = ctx.command.get_command(ctx, name)
+        if cmd is None:  # pragma: no cover
+            raise RuntimeError(f"cmd {name!r} was registered but not found")
+        with click.Context(cmd, info_name=name, parent=ctx) as new_ctx:
+            command_path = new_ctx.command_path
+            rich.print("\n")
+            rich.print(command_path)
+            rich.print("-" * len(command_path), end="\n\n")
+            _print_subcommand_help(new_ctx, recursive=recursive)
 
 
 @app.command()

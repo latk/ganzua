@@ -11,6 +11,18 @@ from ganzua.cli import app
 
 from . import resources
 
+_CLICK_ERROR = 2
+"""The exit code used by Click by default."""
+
+
+_WELL_KNOWN_COMMANDS = [
+    "inspect",
+    "diff",
+    "update-constraints",
+    "remove-constraints",
+    "schema",
+]
+
 
 def _run(args: t.Sequence[str]) -> click.testing.Result:
     result = click.testing.CliRunner().invoke(app, args)
@@ -122,13 +134,7 @@ def test_schema(command: str) -> None:
 def test_help_mentions_subcommands() -> None:
     result = _run(["help"])
     assert result.exit_code == 0
-    for cmd in [
-        "inspect",
-        "diff",
-        "update-constraints",
-        "remove-constraints",
-        "schema",
-    ]:
+    for cmd in _WELL_KNOWN_COMMANDS:
         assert f" {cmd} " in result.output
 
 
@@ -145,7 +151,7 @@ def test_no_args_is_help() -> None:
     # The no-args mode does nothing useful,
     # so the exit code should warn users that the tool didn't do anything useful.
     # But don't return an error code when the help was explicitly requested.
-    assert no_args.exit_code == 2  # noqa: PLR2004  # magic constant
+    assert no_args.exit_code == _CLICK_ERROR
     assert explicit_help.exit_code == 0
 
     assert no_args.output == explicit_help.output
@@ -157,3 +163,19 @@ def test_help_explicit() -> None:
 
 def test_help_subcommand() -> None:
     _assert_result_eq(_run(["inspect", "--help"]), _run(["help", "inspect"]))
+
+
+def test_help_rejects_unknown_commands() -> None:
+    result = _run(["help", "this-is-not-a-command"])
+    assert result.exit_code == _CLICK_ERROR
+    assert result.stderr.startswith("Usage: ganzua help")
+    assert result.stderr.endswith("no such subcommand: this-is-not-a-command\n")
+
+
+def test_help_can_show_subcommands() -> None:
+    result = _run(["help", "--all"])
+    assert result.exit_code == 0
+    assert result.output.startswith(_run(["help"]).output)
+    for cmd in _WELL_KNOWN_COMMANDS:
+        assert f"\n\nganzua {cmd}\n-----" in result.output
+        assert _run(["help", "--all", cmd]).output in result.output
