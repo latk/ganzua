@@ -25,7 +25,7 @@ _WELL_KNOWN_COMMANDS = [
 
 
 def _run(args: t.Sequence[str]) -> click.testing.Result:
-    result = click.testing.CliRunner().invoke(app, args)
+    result = click.testing.CliRunner().invoke(app.click, args)
     print(result.output)
     return result
 
@@ -33,6 +33,12 @@ def _run(args: t.Sequence[str]) -> click.testing.Result:
 def _assert_result_eq(left: click.testing.Result, right: click.testing.Result) -> None:
     __tracebackhide__ = True
     assert (left.exit_code, left.output) == (right.exit_code, right.output)
+
+
+def test_entrypoint() -> None:
+    with pytest.raises(SystemExit) as errinfo:
+        app(["help"])
+    assert errinfo.value.code == 0
 
 
 def test_inspect() -> None:

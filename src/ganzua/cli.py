@@ -1,10 +1,5 @@
 """The ganzua command-line interface."""
 
-# Linter exceptions:
-# * Command help is reflowed unless `\b` is present.
-#   Thus, we must allow escapes in docstrings.
-#   ruff: noqa: D301
-
 import contextlib
 import enum
 import functools
@@ -17,16 +12,20 @@ import rich
 import tomlkit
 
 import ganzua
-from ganzua._utils import error_context
 
+from ._cli_help import App
+from ._utils import error_context
 
-@click.group(
+app = App(
     name="ganzua",
-    epilog="Ganzua is licensed under the Apache-2.0 license.",
-    no_args_is_help=True,
+    help="""\
+Inspect Python dependency lockfiles (uv and Poetry).
+
+<!-- options -->
+
+Ganzua is licensed under the Apache-2.0 license.
+""",
 )
-def app() -> None:
-    """Inspect Python dependency lockfiles (uv and Poetry)."""
 
 
 type _Jsonish = t.Mapping[str, t.Any]
@@ -60,56 +59,6 @@ class _CommmandWithSchema(enum.StrEnum):
 _ExistingFilePath = click.Path(
     exists=True, path_type=pathlib.Path, file_okay=True, dir_okay=False
 )
-
-
-@app.command()
-@click.option(
-    "--all/--no-all",
-    "recursive",
-    type=bool,
-    help="Whether to also show all subcommands.",
-)
-@click.argument("subcommand", nargs=-1)
-@click.pass_context
-def help(help_ctx: click.Context, recursive: bool, subcommand: tuple[str, ...]) -> None:
-    """Show help for the application or a specific subcommand."""
-    ctx = help_ctx.find_root()
-
-    with contextlib.ExitStack() as stack:
-        # Navigate to the correct subcommand
-        for name in subcommand:
-            if (
-                not isinstance(ctx.command, click.Group)
-                or (cmd := ctx.command.get_command(ctx, name)) is None
-            ):
-                help_ctx.fail(f"no such subcommand: {' '.join(subcommand)}")
-
-            # cf https://github.com/pallets/click/blob/834e04a75c5693be55f3cd8b8d3580f74086a353/src/click/core.py#L738
-            ctx = stack.enter_context(click.Context(cmd, info_name=name, parent=ctx))
-
-        _print_subcommand_help(ctx, recursive=recursive)
-
-
-def _print_subcommand_help(ctx: click.Context, *, recursive: bool) -> None:
-    """Print the help for the context's command, and possibly its subcommands."""
-    rich.print(ctx.get_help())
-
-    if not recursive:
-        return
-
-    if not isinstance(ctx.command, click.Group):
-        return
-
-    for name in ctx.command.list_commands(ctx):
-        cmd = ctx.command.get_command(ctx, name)
-        if cmd is None:  # pragma: no cover
-            raise RuntimeError(f"cmd {name!r} was registered but not found")
-        with click.Context(cmd, info_name=name, parent=ctx) as new_ctx:
-            command_path = new_ctx.command_path
-            rich.print("\n")
-            rich.print(command_path)
-            rich.print("-" * len(command_path), end="\n\n")
-            _print_subcommand_help(new_ctx, recursive=recursive)
 
 
 @app.command()
@@ -158,7 +107,6 @@ def remove_constraints(pyproject: pathlib.Path) -> None:
     This can be useful for allowing uv/Poetry to update to the most recent versions,
     ignoring the previous constraints. Approximate recipe:
 
-    \b
     ```bash
     cp pyproject.toml pyproject.toml.bak
     ganzua remove-constraints pyproject.toml
