@@ -7,8 +7,10 @@ authors = [
     { name = "Lukas Atkinson" },
 ]
 license = "Apache-2.0"
+keywords = ["poetry", "uv", "dependency", "requirements", "packaging", "dependabot"]
 classifiers = [
   "License :: OSI Approved :: Apache Software License",
+  "Intended Audience :: Developers",
 ]
 requires-python = ">=3.12"
 dependencies = [
