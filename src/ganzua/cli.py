@@ -15,17 +15,19 @@ import click
 import pydantic
 import rich
 import tomlkit
-import typer
 
 import ganzua
 from ganzua._utils import error_context
 
-app = typer.Typer(
+
+@click.group(
     name="ganzua",
-    help="Inspect Python dependency lockfiles (uv and Poetry).",
     epilog="Ganzua is licensed under the Apache-2.0 license.",
-    rich_markup_mode="markdown",
+    no_args_is_help=True,
 )
+def app() -> None:
+    """Inspect Python dependency lockfiles (uv and Poetry)."""
+
 
 type _Jsonish = t.Mapping[str, t.Any]
 
@@ -55,16 +57,15 @@ class _CommmandWithSchema(enum.StrEnum):
         return self
 
 
-@app.callback(invoke_without_command=True)
-def default(ctx: typer.Context) -> None:
-    """Prints help message by default."""
-    if not ctx.invoked_subcommand:
-        rich.print(ctx.get_help())
-        raise typer.Exit()
+_ExistingFilePath = click.Path(
+    exists=True, path_type=pathlib.Path, file_okay=True, dir_okay=False
+)
 
 
 @app.command()
-def help(ctx: typer.Context, subcommand: str | None = typer.Argument(None)) -> None:
+@click.argument("subcommand", required=False)
+@click.pass_context
+def help(ctx: click.Context, subcommand: str | None) -> None:
     """Show help for the application or a specific subcommand."""
     root = ctx.find_root()
 
@@ -79,6 +80,7 @@ def help(ctx: typer.Context, subcommand: str | None = typer.Argument(None)) -> N
 
 
 @app.command()
+@click.argument("lockfile", type=_ExistingFilePath)
 @_with_print_json
 def inspect(lockfile: pathlib.Path) -> _Jsonish:
     """Inspect a lockfile."""
@@ -86,6 +88,8 @@ def inspect(lockfile: pathlib.Path) -> _Jsonish:
 
 
 @app.command()
+@click.argument("old", type=_ExistingFilePath)
+@click.argument("new", type=_ExistingFilePath)
 @_with_print_json
 def diff(old: pathlib.Path, new: pathlib.Path) -> _Jsonish:
     """Compare two lockfiles."""
@@ -96,6 +100,8 @@ def diff(old: pathlib.Path, new: pathlib.Path) -> _Jsonish:
 
 
 @app.command()
+@click.argument("lockfile", type=_ExistingFilePath)
+@click.argument("pyproject", type=_ExistingFilePath)
 def update_constraints(lockfile: pathlib.Path, pyproject: pathlib.Path) -> None:
     """Update pyproject.toml dependency constraints to match the lockfile.
 
@@ -112,6 +118,7 @@ def update_constraints(lockfile: pathlib.Path, pyproject: pathlib.Path) -> None:
 
 
 @app.command()
+@click.argument("pyproject", type=_ExistingFilePath)
 def remove_constraints(pyproject: pathlib.Path) -> None:
     """Remove any dependency version constraints from the `pyproject.toml`.
 
@@ -147,6 +154,7 @@ def _toml_edit_scope(path: pathlib.Path) -> t.Iterator[tomlkit.TOMLDocument]:
 
 
 @app.command()
+@click.argument("command", type=click.Choice(_CommmandWithSchema))
 @_with_print_json
 def schema(command: _CommmandWithSchema) -> _Jsonish:
     """Show the JSON schema for the output of the given command."""

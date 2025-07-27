@@ -12,11 +12,11 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "click>=8.2.1",
     "packaging>=25.0",
     "pydantic>=2.11.7",
     "rich>=14.0.0",
     "tomlkit>=0.13.3",
-    "typer>=0.16.0",
 ]
 
 [project.scripts]

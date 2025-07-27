@@ -5,7 +5,6 @@ import typing as t
 import click.testing
 import dirty_equals
 import pytest
-import typer.testing
 from inline_snapshot import snapshot
 
 from ganzua.cli import app
@@ -14,7 +13,7 @@ from . import resources
 
 
 def _run(args: t.Sequence[str]) -> click.testing.Result:
-    result = typer.testing.CliRunner().invoke(app, args)
+    result = click.testing.CliRunner().invoke(app, args)
     print(result.output)
     return result
 
@@ -140,7 +139,16 @@ def test_help_shows_license() -> None:
 
 
 def test_no_args_is_help() -> None:
-    _assert_result_eq(_run([]), _run(["help"]))
+    no_args = _run([])
+    explicit_help = _run(["help"])
+
+    # The no-args mode does nothing useful,
+    # so the exit code should warn users that the tool didn't do anything useful.
+    # But don't return an error code when the help was explicitly requested.
+    assert no_args.exit_code == 2  # noqa: PLR2004  # magic constant
+    assert explicit_help.exit_code == 0
+
+    assert no_args.output == explicit_help.output
 
 
 def test_help_explicit() -> None:
