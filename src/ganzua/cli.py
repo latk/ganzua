@@ -23,6 +23,7 @@ from ganzua._utils import error_context
 app = typer.Typer(
     name="ganzua",
     help="Inspect Python dependency lockfiles (uv and Poetry).",
+    epilog="Ganzua is licensed under the Apache-2.0 license.",
     rich_markup_mode="markdown",
 )
 

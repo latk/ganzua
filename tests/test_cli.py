@@ -133,6 +133,12 @@ def test_help_mentions_subcommands() -> None:
         assert f" {cmd} " in result.output
 
 
+def test_help_shows_license() -> None:
+    result = _run(["help"])
+    assert result.exit_code == 0
+    assert "Apache-2.0 license" in result.output
+
+
 def test_no_args_is_help() -> None:
     _assert_result_eq(_run([]), _run(["help"]))
 
