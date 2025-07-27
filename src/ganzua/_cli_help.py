@@ -5,11 +5,8 @@ from dataclasses import dataclass
 
 import click
 import rich
-from rich.console import Console, ConsoleOptions, RenderableType, RenderResult, group
-from rich.markdown import Markdown
-from rich.padding import Padding
+import rich.console
 from rich.style import Style
-from rich.table import Table
 from rich.text import Text
 
 _HEADING_STYLE = Style(color="green", bold=True)
@@ -20,7 +17,7 @@ _OPT_STYLE = Style(color="cyan", bold=True)
 def show_help(ctx: click.Context, _param: click.Parameter, want_help: bool) -> None:
     if not want_help or ctx.resilient_parsing:
         return
-    rich.print(format_command_help(ctx, recursive=False))
+    rich.print(_as_rich_group(format_command_help(ctx, recursive=False)))
     ctx.exit(0)
 
 
@@ -63,7 +60,7 @@ def help_command(
 
             # cf https://github.com/pallets/click/blob/834e04a75c5693be55f3cd8b8d3580f74086a353/src/click/core.py#L738
             ctx = stack.enter_context(click.Context(cmd, info_name=name, parent=ctx))
-        rich.print(format_command_help(ctx, recursive=recursive))
+        rich.print(_as_rich_group(format_command_help(ctx, recursive=recursive)))
 
 
 class _FixedCommand(click.Command):
@@ -76,7 +73,7 @@ class _FixedGroup(_FixedCommand, click.Group):
     @t.override
     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
         if not args and not ctx.resilient_parsing:
-            rich.print(format_command_help(ctx, recursive=False))
+            rich.print(_as_rich_group(format_command_help(ctx, recursive=False)))
             ctx.exit(2)
         return super().parse_args(ctx, args)
 
@@ -99,8 +96,56 @@ class App:
         return self.click.command(cls=_FixedCommand)
 
 
-@group()
-def format_command_help(ctx: click.Context, *, recursive: bool) -> RenderResult:
+type _MarkdownOrRich = (
+    str
+    | _Usage
+    | _DefinitionList
+    | _HelpHeading
+    | _SubcommandHeading
+    | _Markdown
+    | _Indent
+)
+
+
+def _as_rich(  # noqa: PLR0911  # too-many-return-statements
+    item: _MarkdownOrRich,
+) -> rich.console.RenderableType:
+    import rich.markdown  # noqa: PLC0415
+    import rich.padding  # noqa: PLC0415
+
+    match item:
+        case str():
+            return Text(item)
+        case _DefinitionList():
+            return item
+        case _Usage():
+            u = Text()
+            u.append("Usage: ", style=_HEADING_STYLE)
+            u.append(item.usage, _CODE_STYLE)
+            return u
+        case _HelpHeading():
+            return Text(item.text, style=_HEADING_STYLE)
+        case _SubcommandHeading():
+            return Text(
+                "\n".join(("", item.text, "-" * len(item.text))),
+                end="\n\n",
+                style=_HEADING_STYLE,
+            )
+        case _Markdown():
+            return rich.markdown.Markdown(item.content)
+        case _Indent():
+            return rich.padding.Padding(_as_rich(item.content), pad=(0, 0, 0, item.pad))
+        case other:  # pragma: no cover
+            t.assert_never(other)
+
+
+def _as_rich_group(items: t.Iterable[_MarkdownOrRich]) -> rich.console.Group:
+    return rich.console.Group(*(_as_rich(item) for item in items))
+
+
+def format_command_help(
+    ctx: click.Context, *, recursive: bool
+) -> t.Iterable[_MarkdownOrRich]:
     """Format the command help as a Rich renderable.
 
     Args:
@@ -114,26 +159,26 @@ def format_command_help(ctx: click.Context, *, recursive: bool) -> RenderResult:
     >>> _render(format_command_help(ctx, recursive=False))
     Usage: foo [OPTIONS]
     """
-    yield _usage(ctx)
+    yield _Usage(ctx)
 
     if ctx.command.help:
-        yield Text()
-        yield Markdown(inspect.cleandoc(ctx.command.help))
+        yield ""
+        yield _Markdown(inspect.cleandoc(ctx.command.help))
 
     params = ctx.command.get_params(ctx)
     if options := [p for p in params if isinstance(p, click.Option)]:
-        yield Text()
-        yield Text("Options:", style=_HEADING_STYLE)
-        yield _indent(
+        yield ""
+        yield _HelpHeading("Options:")
+        yield _Indent(
             _DefinitionList(
-                [(_option_opts(opt), Markdown(opt.help or "")) for opt in options]
+                [(_option_opts(opt), _Markdown(opt.help or "")) for opt in options]
             )
         )
 
     if isinstance(ctx.command, click.Group) and (commands := ctx.command.commands):
-        yield Text()
-        yield Text("Commands:", style=_HEADING_STYLE)
-        yield _indent(
+        yield ""
+        yield _HelpHeading("Commands:")
+        yield _Indent(
             _DefinitionList(
                 [
                     (Text(name, style=_OPT_STYLE), _command_short_help(cmd))
@@ -143,8 +188,8 @@ def format_command_help(ctx: click.Context, *, recursive: bool) -> RenderResult:
         )
 
     if ctx.command.epilog:
-        yield Text()
-        yield Markdown(ctx.command.epilog)
+        yield ""
+        yield _Markdown(ctx.command.epilog)
 
     if not recursive:
         return
@@ -155,18 +200,36 @@ def format_command_help(ctx: click.Context, *, recursive: bool) -> RenderResult:
     for name, cmd in ctx.command.commands.items():
         with click.Context(cmd, info_name=name, parent=ctx) as ctx_cmd:
             command_path = ctx_cmd.command_path
-            yield Text(end="\n\n")
-            yield Text(command_path, style=_HEADING_STYLE)
-            yield Text("-" * len(command_path), style=_HEADING_STYLE, end="\n\n")
-            yield format_command_help(ctx_cmd, recursive=recursive)
+            yield _SubcommandHeading(command_path)
+            yield from format_command_help(ctx_cmd, recursive=recursive)
 
 
-def _usage(ctx: click.Context) -> Text:
-    usage = Text()
-    usage.append("Usage: ", style=_HEADING_STYLE)
-    usage.append(ctx.command_path + " ", style=_CODE_STYLE)
-    usage.append(" ".join(ctx.command.collect_usage_pieces(ctx)), style=_CODE_STYLE)
-    return usage
+class _Usage:
+    def __init__(self, ctx: click.Context) -> None:
+        self.usage = " ".join(
+            [ctx.command_path, *ctx.command.collect_usage_pieces(ctx)]
+        )
+
+
+@dataclass
+class _HelpHeading:
+    text: str
+
+
+@dataclass
+class _SubcommandHeading:
+    text: str
+
+
+@dataclass
+class _Markdown:
+    content: str
+
+
+@dataclass
+class _Indent:
+    content: _MarkdownOrRich
+    pad: int = 4
 
 
 def _option_opts(option: click.Option) -> Text:
@@ -192,18 +255,27 @@ def _option_opts(option: click.Option) -> Text:
     return Text(", ").join(Text(opt, style=_OPT_STYLE) for opt in all_opts)
 
 
-def _command_short_help(command: click.Command) -> Markdown:
+def _command_short_help(command: click.Command) -> _Markdown:
     full_help = inspect.cleandoc(command.help or "")
     short_help, _sep, _rest = full_help.partition("\n\n")
-    return Markdown(short_help.replace("\n", " "))
+    return _Markdown(short_help.replace("\n", " "))
 
 
-def _render(renderable: RenderableType, *, width: int = 80) -> None:
+def _render(
+    renderable: rich.console.RenderableType | t.Iterable[_MarkdownOrRich],
+    *,
+    width: int = 80,
+) -> None:
     import re  # noqa: PLC0415
     from io import StringIO  # noqa: PLC0415
 
+    if isinstance(renderable, str | Text):
+        pass
+    elif isinstance(renderable, t.Iterable):
+        renderable = _as_rich_group(renderable)
+
     file = StringIO()
-    Console(width=width, file=file).print(renderable)
+    rich.console.Console(width=width, file=file).print(renderable)
     print(re.sub(r"(?m) +$", "", file.getvalue().strip()))  # strip trailing space
 
 
@@ -215,8 +287,8 @@ class _DefinitionList:
 
     >>> dl = _DefinitionList(
     ...     [
-    ...         (Text("some-key"), Markdown("description")),
-    ...         (Text("another-key"), Markdown("another description")),
+    ...         (Text("some-key"), _Markdown("description")),
+    ...         (Text("another-key"), _Markdown("another description")),
     ...     ]
     ... )
     >>> _render(dl, width=100)
@@ -229,21 +301,7 @@ class _DefinitionList:
         another description
     """
 
-    items: list[tuple[Text, Markdown]]
-
-    def as_table(self) -> Table:
-        table = Table.grid(expand=True)
-        table.add_column(no_wrap=True)
-        table.add_column(width=2)
-        table.add_column()
-        for key, description in self.items:
-            table.add_row(key, "", description)
-        return table
-
-    def as_list(self) -> RenderResult:
-        for key, description in self.items:
-            yield key
-            yield _indent(description)
+    items: list[tuple[Text, _Markdown]]
 
     def _max_key_len(self) -> int:
         """The terminal cell size of the longest key."""
@@ -256,13 +314,20 @@ class _DefinitionList:
         return fraction_used_by_key > max_key_fraction
 
     def __rich_console__(
-        self, console: Console, options: ConsoleOptions
-    ) -> RenderResult:
+        self, console: rich.console.Console, options: rich.console.ConsoleOptions
+    ) -> rich.console.RenderResult:
         if self._should_render_nextline(max_width=options.max_width):
-            yield from self.as_list()
-        else:
-            yield self.as_table()
+            for key, description in self.items:
+                yield key
+                yield _as_rich(_Indent(description))
+            return
 
+        import rich.table  # noqa: PLC0415  # lazy import
 
-def _indent(renderable: RenderableType, pad: int = 4) -> Padding:
-    return Padding(renderable, pad=(0, 0, 0, pad))
+        table = rich.table.Table.grid(expand=True)
+        table.add_column(no_wrap=True)
+        table.add_column(width=2)
+        table.add_column()
+        for key, description in self.items:
+            table.add_row(key, "", _as_rich(description))
+        yield table
