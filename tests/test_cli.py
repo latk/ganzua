@@ -8,7 +8,7 @@ import pytest
 import typer.testing
 from inline_snapshot import snapshot
 
-from lockinator.cli import app
+from ganzua.cli import app
 
 from . import resources
 

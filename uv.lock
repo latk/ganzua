@@ -102,31 +102,7 @@ wheels = [
 ]
 
 [[package]]
-name = "iniconfig"
-version = "2.1.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f2/97/ebf4da567aa6827c909642694d71c9fcf53e5b504f2d96afea02718862f3/iniconfig-2.1.0.tar.gz", hash = "sha256:3abbd2e30b36733fee78f9c7f7308f2d0050e88f0087fd25c2645f63c773e1c7", size = 4793 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/e1/e6716421ea10d38022b952c159d5161ca1193197fb744506875fbb87ea7b/iniconfig-2.1.0-py3-none-any.whl", hash = "sha256:9deba5723312380e77435581c6bf4935c94cbfab9b1ed33ef8d238ea168eb760", size = 6050 },
-]
-
-[[package]]
-name = "inline-snapshot"
-version = "0.24.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "asttokens" },
-    { name = "executing" },
-    { name = "pytest" },
-    { name = "rich" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/43/31/9fb282bc713e56e677be1f5b4e55183874e56f8374be054f8a511f96736d/inline_snapshot-0.24.0.tar.gz", hash = "sha256:6aa304f2904103a449f3213e059728da5f1c34757f943efca837b4669f290843", size = 263374 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/82/43/8bc5960a35b14cff168be441a3f18eb7b3dd2b734ed5d5a4050bf6f44958/inline_snapshot-0.24.0-py3-none-any.whl", hash = "sha256:43a19e76799f86a97b28492883d99b02c96377e0aac2e56aa19b1257c64f3759", size = 50970 },
-]
-
-[[package]]
-name = "lockinator"
+name = "ganzua"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
@@ -164,6 +140,30 @@ dev = [
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "ruff", specifier = ">=0.12.4" },
+]
+
+[[package]]
+name = "iniconfig"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f2/97/ebf4da567aa6827c909642694d71c9fcf53e5b504f2d96afea02718862f3/iniconfig-2.1.0.tar.gz", hash = "sha256:3abbd2e30b36733fee78f9c7f7308f2d0050e88f0087fd25c2645f63c773e1c7", size = 4793 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2c/e1/e6716421ea10d38022b952c159d5161ca1193197fb744506875fbb87ea7b/iniconfig-2.1.0-py3-none-any.whl", hash = "sha256:9deba5723312380e77435581c6bf4935c94cbfab9b1ed33ef8d238ea168eb760", size = 6050 },
+]
+
+[[package]]
+name = "inline-snapshot"
+version = "0.24.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "asttokens" },
+    { name = "executing" },
+    { name = "pytest" },
+    { name = "rich" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/43/31/9fb282bc713e56e677be1f5b4e55183874e56f8374be054f8a511f96736d/inline_snapshot-0.24.0.tar.gz", hash = "sha256:6aa304f2904103a449f3213e059728da5f1c34757f943efca837b4669f290843", size = 263374 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/82/43/8bc5960a35b14cff168be441a3f18eb7b3dd2b734ed5d5a4050bf6f44958/inline_snapshot-0.24.0-py3-none-any.whl", hash = "sha256:43a19e76799f86a97b28492883d99b02c96377e0aac2e56aa19b1257c64f3759", size = 50970 },
 ]
 
 [[package]]

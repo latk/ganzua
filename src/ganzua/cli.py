@@ -1,4 +1,4 @@
-"""The lockinator command-line interface."""
+"""The ganzua command-line interface."""
 
 # Linter exceptions:
 # * Command help is reflowed unless `\b` is present.
@@ -17,11 +17,11 @@ import rich
 import tomlkit
 import typer
 
-import lockinator
-from lockinator._utils import error_context
+import ganzua
+from ganzua._utils import error_context
 
 app = typer.Typer(
-    name="lockinator",
+    name="ganzua",
     help="Inspect Python dependency lockfiles (uv and Poetry).",
     rich_markup_mode="markdown",
 )
@@ -40,8 +40,8 @@ def _with_print_json[**P](command: t.Callable[P, _Jsonish]) -> t.Callable[P, Non
 class _CommmandWithSchema(enum.StrEnum):
     schema: pydantic.TypeAdapter[t.Any]
 
-    inspect = "inspect", lockinator.LOCKFILE_SCHEMA
-    diff = "diff", lockinator.DIFF_SCHEMA
+    inspect = "inspect", ganzua.LOCKFILE_SCHEMA
+    diff = "diff", ganzua.DIFF_SCHEMA
 
     def __new__(cls, discriminator: str, schema: pydantic.TypeAdapter[t.Any]) -> t.Self:
         # Overriding __new__() of an enum is a bit tricky,
@@ -81,16 +81,16 @@ def help(ctx: typer.Context, subcommand: str | None = typer.Argument(None)) -> N
 @_with_print_json
 def inspect(lockfile: pathlib.Path) -> _Jsonish:
     """Inspect a lockfile."""
-    return lockinator.lockfile_from(lockfile)
+    return ganzua.lockfile_from(lockfile)
 
 
 @app.command()
 @_with_print_json
 def diff(old: pathlib.Path, new: pathlib.Path) -> _Jsonish:
     """Compare two lockfiles."""
-    return lockinator.diff(
-        lockinator.lockfile_from(old),
-        lockinator.lockfile_from(new),
+    return ganzua.diff(
+        ganzua.lockfile_from(old),
+        ganzua.lockfile_from(new),
     )
 
 
@@ -105,9 +105,9 @@ def update_constraints(lockfile: pathlib.Path, pyproject: pathlib.Path) -> None:
     For example, given the old constraint `foo>=3.5` and the new version `4.7.2`,
     the constraint would be updated to `foo>=4.7`.
     """
-    locked = lockinator.lockfile_from(lockfile)
+    locked = ganzua.lockfile_from(lockfile)
     with _toml_edit_scope(pyproject) as doc:
-        lockinator.update_pyproject(doc, locked)
+        ganzua.update_pyproject(doc, locked)
 
 
 @app.command()
@@ -120,15 +120,15 @@ def remove_constraints(pyproject: pathlib.Path) -> None:
     \b
     ```bash
     cp pyproject.toml pyproject.toml.bak
-    lockinator remove-constraints pyproject.toml
+    ganzua remove-constraints pyproject.toml
     uv lock --upgrade  # perform the upgrade
     mv pyproject.toml.bak pyproject.toml  # restore old constraints
-    lockinator update-constraints uv.lock pyproject.toml
+    ganzua update-constraints uv.lock pyproject.toml
     uv lock
     ```
     """
     with _toml_edit_scope(pyproject) as doc:
-        lockinator.unconstrain_pyproject(doc)
+        ganzua.unconstrain_pyproject(doc)
 
 
 @contextlib.contextmanager

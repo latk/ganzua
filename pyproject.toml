@@ -1,7 +1,7 @@
 [project]
-name = "lockinator"
+name = "ganzua"
 version = "0.1.0"
-description = "manage dependency lockfiles"
+description = "extract dependency information from lockfiles"
 readme = "README.md"
 authors = [
     { name = "Lukas Atkinson" }
@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-lockinator = "lockinator.cli:app"
+ganzua = "ganzua.cli:app"
 
 [build-system]
 requires = ["hatchling"]

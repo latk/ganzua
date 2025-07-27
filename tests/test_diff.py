@@ -3,8 +3,8 @@ from importlib.resources.abc import Traversable
 import pytest
 from inline_snapshot import snapshot
 
-from lockinator import diff
-from lockinator._lockfile import lockfile_from
+from ganzua import diff
+from ganzua._lockfile import lockfile_from
 
 from . import resources
 

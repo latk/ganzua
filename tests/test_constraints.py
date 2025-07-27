@@ -2,8 +2,8 @@
 
 from packaging.requirements import Requirement
 
-from lockinator import Lockfile
-from lockinator._constraints import (
+from ganzua import Lockfile
+from ganzua._constraints import (
     PoetryRequirement,
     UnconstrainRequirement,
     UpdateRequirement,

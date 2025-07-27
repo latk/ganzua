@@ -26,7 +26,7 @@ types:
 
 # run the test suite
 test *args:
-  pytest --cov=lockinator --cov=tests "$@"
+  pytest --cov=ganzua --cov=tests "$@"
 
 # serve a HTML page with code coverage on a random port
 coverage-serve:
