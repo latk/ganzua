@@ -1,0 +1,27 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # allow manual invocation
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          python-version: ${{ matrix.python-version }}
+      # Keep steps in sync with justfile
+      - run: uv sync --locked --all-extras --dev
+      - run: just -v lint
+      - run: just -v types
+      - run: just -v test
+      - run: just -v check-readme-up-to-date
+      - run: just -v dist
