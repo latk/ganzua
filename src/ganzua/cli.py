@@ -4,6 +4,7 @@ import contextlib
 import enum
 import functools
 import pathlib
+import shutil
 import typing as t
 
 import click
@@ -84,7 +85,10 @@ def diff(old: pathlib.Path, new: pathlib.Path) -> _Jsonish:
 @app.command()
 @click.argument("lockfile", type=_ExistingFilePath)
 @click.argument("pyproject", type=_ExistingFilePath)
-def update_constraints(lockfile: pathlib.Path, pyproject: pathlib.Path) -> None:
+@click.option("--backup", type=click.Path(), help="Store a backup in this file.")
+def update_constraints(
+    lockfile: pathlib.Path, pyproject: pathlib.Path, backup: pathlib.Path | None
+) -> None:
     """Update pyproject.toml dependency constraints to match the lockfile.
 
     Of course, the lockfile should always be a valid solution for the constraints.
@@ -94,6 +98,9 @@ def update_constraints(lockfile: pathlib.Path, pyproject: pathlib.Path) -> None:
     For example, given the old constraint `foo>=3.5` and the new version `4.7.2`,
     the constraint would be updated to `foo>=4.7`.
     """
+    if backup is not None:
+        shutil.copy(pyproject, backup)
+
     locked = ganzua.lockfile_from(lockfile)
     with _toml_edit_scope(pyproject) as doc:
         ganzua.update_pyproject(doc, locked)
@@ -101,21 +108,24 @@ def update_constraints(lockfile: pathlib.Path, pyproject: pathlib.Path) -> None:
 
 @app.command()
 @click.argument("pyproject", type=_ExistingFilePath)
-def remove_constraints(pyproject: pathlib.Path) -> None:
+@click.option("--backup", type=click.Path(), help="Store a backup in this file.")
+def remove_constraints(pyproject: pathlib.Path, backup: pathlib.Path | None) -> None:
     """Remove any dependency version constraints from the `pyproject.toml`.
 
     This can be useful for allowing uv/Poetry to update to the most recent versions,
     ignoring the previous constraints. Approximate recipe:
 
     ```bash
-    cp pyproject.toml pyproject.toml.bak
-    ganzua remove-constraints pyproject.toml
+    ganzua remove-constraints --backup=pyproject.toml.bak pyproject.toml
     uv lock --upgrade  # perform the upgrade
     mv pyproject.toml.bak pyproject.toml  # restore old constraints
     ganzua update-constraints uv.lock pyproject.toml
     uv lock
     ```
     """
+    if backup is not None:
+        shutil.copy(pyproject, backup)
+
     with _toml_edit_scope(pyproject) as doc:
         ganzua.unconstrain_pyproject(doc)
 

@@ -103,6 +103,8 @@ the constraint would be updated to `foo>=4.7`.
 
 **Options:**
 
+* `--backup`
+  Store a backup in this file.
 * `--help`
   Show this help message and exit.
 
@@ -117,8 +119,7 @@ This can be useful for allowing uv/Poetry to update to the most recent versions,
 ignoring the previous constraints. Approximate recipe:
 
 ```bash
-cp pyproject.toml pyproject.toml.bak
-ganzua remove-constraints pyproject.toml
+ganzua remove-constraints --backup=pyproject.toml.bak pyproject.toml
 uv lock --upgrade  # perform the upgrade
 mv pyproject.toml.bak pyproject.toml  # restore old constraints
 ganzua update-constraints uv.lock pyproject.toml
@@ -127,6 +128,8 @@ uv lock
 
 **Options:**
 
+* `--backup`
+  Store a backup in this file.
 * `--help`
   Show this help message and exit.
 

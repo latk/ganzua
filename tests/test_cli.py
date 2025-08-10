@@ -65,12 +65,25 @@ def test_diff() -> None:
     )
 
 
-def test_update_constraints(tmp_path: pathlib.Path) -> None:
+@pytest.mark.parametrize(
+    "want_backup",
+    [
+        pytest.param(True, id="backup"),
+        pytest.param(False, id="nobackup"),
+    ],
+)
+def test_update_constraints(tmp_path: pathlib.Path, want_backup: bool) -> None:
+    backup = tmp_path / "backup.pyproject.toml"
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_bytes(resources.OLD_UV_PYPROJECT.read_bytes())
 
     result = _run(
-        ["update-constraints", str(resources.NEW_UV_LOCKFILE), str(pyproject)]
+        [
+            "update-constraints",
+            *([f"--backup={backup}"] * want_backup),
+            str(resources.NEW_UV_LOCKFILE),
+            str(pyproject),
+        ]
     )
     assert result.exit_code == 0
     assert result.stdout == ""
@@ -89,6 +102,11 @@ dependencies = [
 """
     )
 
+    if want_backup:
+        assert backup.read_text() == resources.OLD_UV_PYPROJECT.read_text()
+    else:
+        assert not backup.exists()
+
 
 def test_update_constraints_noop(tmp_path: pathlib.Path) -> None:
     pyproject = tmp_path / "pyproject.toml"
@@ -103,11 +121,21 @@ def test_update_constraints_noop(tmp_path: pathlib.Path) -> None:
     assert pyproject.read_text() == resources.NEW_UV_PYPROJECT.read_text()
 
 
-def test_remove_constraints(tmp_path: pathlib.Path) -> None:
+@pytest.mark.parametrize(
+    "want_backup",
+    [
+        pytest.param(True, id="backup"),
+        pytest.param(False, id="nobackup"),
+    ],
+)
+def test_remove_constraints(tmp_path: pathlib.Path, want_backup: bool) -> None:
+    backup = tmp_path / "backup.pyproject.toml"
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_bytes(resources.NEW_UV_PYPROJECT.read_bytes())
 
-    result = _run(["remove-constraints", str(pyproject)])
+    result = _run(
+        ["remove-constraints", *([f"--backup={backup}"] * want_backup), str(pyproject)]
+    )
     assert result.exit_code == 0
     assert result.stdout == ""
 
@@ -125,6 +153,11 @@ dependencies = [
 ]
 """
     )
+
+    if want_backup:
+        assert backup.read_text() == resources.NEW_UV_PYPROJECT.read_text()
+    else:
+        assert not backup.exists()
 
 
 @pytest.mark.parametrize("command", ["inspect", "diff"])
