@@ -59,8 +59,11 @@ def test_diff() -> None:
     assert result.exit_code == 0
     assert json.loads(result.stdout) == snapshot(
         {
-            "annotated-types": {"old": None, "new": "0.7.0"},
-            "typing-extensions": {"old": "3.10.0.2", "new": "4.14.1"},
+            "annotated-types": {"old": None, "new": {"version": "0.7.0"}},
+            "typing-extensions": {
+                "old": {"version": "3.10.0.2"},
+                "new": {"version": "4.14.1"},
+            },
         }
     )
 
