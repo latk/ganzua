@@ -103,7 +103,7 @@ the constraint would be updated to `foo>=4.7`.
 
 **Options:**
 
-* `--backup`
+* `--backup PATH`
   Store a backup in this file.
 * `--help`
   Show this help message and exit.
@@ -128,7 +128,7 @@ uv lock
 
 **Options:**
 
-* `--backup`
+* `--backup PATH`
   Store a backup in this file.
 * `--help`
   Show this help message and exit.

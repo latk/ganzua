@@ -230,7 +230,7 @@ def format_command_help(
         yield _HelpHeading("Options:")
         yield _Indent(
             _DefinitionList(
-                [(_option_opts(opt), _Markdown(opt.help or "")) for opt in options]
+                [(_option_opts(opt, ctx), _Markdown(opt.help or "")) for opt in options]
             )
         )
 
@@ -291,13 +291,13 @@ class _Indent:
     pad: int = 4
 
 
-def _option_opts(option: click.Option) -> Text:
+def _option_opts(option: click.Option, ctx: click.Context) -> Text:
     """Format the option flags into a text chunk.
 
     Example: Can merge negations:
 
     >>> opt = click.Option(["-h", "--foo/--no-foo", "--bar"], help="whatever")
-    >>> _render(_option_opts(opt))
+    >>> _render(_option_opts(opt, click.Context(click.Command(None))))
     -h, --[no-]foo, --bar
     """
     all_opts = [*option.opts, *option.secondary_opts]
@@ -310,8 +310,15 @@ def _option_opts(option: click.Option) -> Text:
             all_opts.remove(negated)
 
     if len(all_opts) == 1:
-        return Text(all_opts[0], style=_OPT_STYLE)
-    return Text(", ").join(Text(opt, style=_OPT_STYLE) for opt in all_opts)
+        joined_options = Text(all_opts[0], style=_OPT_STYLE)
+    else:
+        joined_options = Text(", ").join(
+            Text(opt, style=_OPT_STYLE) for opt in all_opts
+        )
+
+    if option.is_flag:
+        return joined_options
+    return joined_options + Text(f" {option.make_metavar(ctx)}", style=_CODE_STYLE)
 
 
 def _command_short_help(command: click.Command) -> _Markdown:
