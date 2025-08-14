@@ -53,6 +53,19 @@ def test_inspect() -> None:
     )
 
 
+def test_inspect_markdown() -> None:
+    result = _run(["inspect", "--format=markdown", str(resources.OLD_UV_LOCKFILE)])
+    assert result.stdout == snapshot(
+        """\
+| package           | version  |
+|-------------------|----------|
+| example           | 0.1.0    |
+| typing-extensions | 3.10.0.2 |
+
+"""
+    )
+
+
 def test_diff() -> None:
     result = _run(
         ["diff", str(resources.OLD_UV_LOCKFILE), str(resources.NEW_UV_LOCKFILE)]
@@ -65,6 +78,26 @@ def test_diff() -> None:
                 "new": {"version": "4.14.1"},
             },
         }
+    )
+
+
+def test_diff_markdown() -> None:
+    result = _run(
+        [
+            "diff",
+            "--format=markdown",
+            str(resources.OLD_UV_LOCKFILE),
+            str(resources.NEW_UV_LOCKFILE),
+        ]
+    )
+    assert result.stdout == snapshot(
+        """\
+| package           | old      | new    |
+|-------------------|----------|--------|
+| annotated-types   | -        | 0.7.0  |
+| typing-extensions | 3.10.0.2 | 4.14.1 |
+
+"""
     )
 
 

@@ -6,6 +6,7 @@ import functools
 import pathlib
 import shutil
 import typing as t
+from dataclasses import dataclass
 
 import click
 import pydantic
@@ -15,6 +16,9 @@ import tomlkit
 import ganzua
 
 from ._cli_help import App
+from ._diff import Diff
+from ._lockfile import Lockfile
+from ._markdown import md_from_diff, md_from_lockfile
 from ._utils import error_context
 
 app = App(
@@ -32,12 +36,43 @@ Ganzua is licensed under the Apache-2.0 license.
 type _Jsonish = t.Mapping[str, t.Any]
 
 
-def _with_print_json[**P](command: t.Callable[P, _Jsonish]) -> t.Callable[P, None]:
-    @functools.wraps(command)
-    def command_with_json_output(*args: P.args, **kwargs: P.kwargs) -> None:
-        rich.print_json(data=command(*args, **kwargs))
+class OutputFormat(enum.Enum):
+    """Different output formats available for structured data."""
 
-    return command_with_json_output
+    JSON = enum.auto()
+    MARKDOWN = enum.auto()
+
+
+@dataclass
+class _with_print_json[R: _Jsonish]:  # noqa: N801  # invalid-name
+    """Decorator for pretty-printing returned data from a Click command."""
+
+    markdown: t.Callable[[R], str]
+
+    def __call__[**P](
+        self, command: t.Callable[P, R]
+    ) -> t.Callable[t.Concatenate[OutputFormat, P], None]:
+        @functools.wraps(command)
+        @click.option(
+            "--format",
+            type=click.Choice(OutputFormat, case_sensitive=False),
+            default=OutputFormat.JSON,
+            show_default=True,
+            help="Choose the output format, e.g. Markdown. [default: json]",
+        )
+        def command_with_json_output(
+            format: OutputFormat, *args: P.args, **kwargs: P.kwargs
+        ) -> None:
+            data = command(*args, **kwargs)
+            match format:
+                case OutputFormat.JSON:
+                    rich.print_json(data=data)
+                case OutputFormat.MARKDOWN:
+                    click.echo(self.markdown(data))
+                case other:  # pragma: no cover
+                    t.assert_never(other)
+
+        return command_with_json_output
 
 
 class _CommmandWithSchema(enum.StrEnum):
@@ -64,8 +99,8 @@ _ExistingFilePath = click.Path(
 
 @app.command()
 @click.argument("lockfile", type=_ExistingFilePath)
-@_with_print_json
-def inspect(lockfile: pathlib.Path) -> _Jsonish:
+@_with_print_json(md_from_lockfile)
+def inspect(lockfile: pathlib.Path) -> Lockfile:
     """Inspect a lockfile."""
     return ganzua.lockfile_from(lockfile)
 
@@ -73,8 +108,8 @@ def inspect(lockfile: pathlib.Path) -> _Jsonish:
 @app.command()
 @click.argument("old", type=_ExistingFilePath)
 @click.argument("new", type=_ExistingFilePath)
-@_with_print_json
-def diff(old: pathlib.Path, new: pathlib.Path) -> _Jsonish:
+@_with_print_json(md_from_diff)
+def diff(old: pathlib.Path, new: pathlib.Path) -> Diff:
     """Compare two lockfiles."""
     return ganzua.diff(
         ganzua.lockfile_from(old),
@@ -146,7 +181,7 @@ def _toml_edit_scope(path: pathlib.Path) -> t.Iterator[tomlkit.TOMLDocument]:
 
 @app.command()
 @click.argument("command", type=click.Choice(_CommmandWithSchema))
-@_with_print_json
-def schema(command: _CommmandWithSchema) -> _Jsonish:
+def schema(command: _CommmandWithSchema) -> None:
     """Show the JSON schema for the output of the given command."""
-    return command.schema.json_schema(mode="serialization")
+    schema = command.schema.json_schema(mode="serialization")
+    rich.print_json(data=schema)

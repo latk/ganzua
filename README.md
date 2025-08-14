@@ -72,6 +72,8 @@ Inspect a lockfile.
 
 **Options:**
 
+* `--format [json|markdown]`
+  Choose the output format, e.g. Markdown. [default: json]
 * `--help`
   Show this help message and exit.
 
@@ -84,6 +86,8 @@ Compare two lockfiles.
 
 **Options:**
 
+* `--format [json|markdown]`
+  Choose the output format, e.g. Markdown. [default: json]
 * `--help`
   Show this help message and exit.
 
