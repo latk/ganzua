@@ -22,6 +22,7 @@ fix:
   ruff format .
   ruff check --fix-only --show-fixes .
   ./scripts/readme-usage.py update
+  for cmd in diff inspect; do ganzua schema $cmd >tests/schema.$cmd.json; done
 
 # check types
 types:

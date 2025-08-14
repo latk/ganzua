@@ -1,0 +1,21 @@
+{
+  "$defs": {
+    "LockedPackage": {
+      "properties": {
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version"
+      ],
+      "title": "LockedPackage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": {
+    "$ref": "#/$defs/LockedPackage"
+  },
+  "type": "object"
+}

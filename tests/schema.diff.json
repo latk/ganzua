@@ -1,0 +1,51 @@
+{
+  "$defs": {
+    "DiffEntry": {
+      "properties": {
+        "old": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LockedPackage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "new": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LockedPackage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "old",
+        "new"
+      ],
+      "title": "DiffEntry",
+      "type": "object"
+    },
+    "LockedPackage": {
+      "properties": {
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version"
+      ],
+      "title": "LockedPackage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": {
+    "$ref": "#/$defs/DiffEntry"
+  },
+  "type": "object"
+}

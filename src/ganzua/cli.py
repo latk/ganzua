@@ -149,4 +149,4 @@ def _toml_edit_scope(path: pathlib.Path) -> t.Iterator[tomlkit.TOMLDocument]:
 @_with_print_json
 def schema(command: _CommmandWithSchema) -> _Jsonish:
     """Show the JSON schema for the output of the given command."""
-    return command.schema.json_schema()
+    return command.schema.json_schema(mode="serialization")

@@ -164,13 +164,14 @@ dependencies = [
 
 
 @pytest.mark.parametrize("command", ["inspect", "diff"])
-def test_schema(command: str) -> None:
+def test_schema(command: t.Literal["inspect", "diff"]) -> None:
     """Can output a JSON schema for a given command."""
     # But we only test that the output is something json-ish
     result = _run(["schema", command])
     assert result.exit_code == 0
     schema = json.loads(result.stdout)
     assert schema == dirty_equals.IsPartialDict()
+    assert schema == json.loads(resources.schema(command).read_bytes())
 
 
 def test_help_mentions_subcommands() -> None:
