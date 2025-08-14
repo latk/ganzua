@@ -5,7 +5,7 @@ import typing as t
 import click.testing
 import dirty_equals
 import pytest
-from inline_snapshot import snapshot
+from inline_snapshot import external_file, snapshot
 
 from ganzua.cli import app
 
@@ -164,14 +164,14 @@ dependencies = [
 
 
 @pytest.mark.parametrize("command", ["inspect", "diff"])
-def test_schema(command: t.Literal["inspect", "diff"]) -> None:
+def test_schema(command: str) -> None:
     """Can output a JSON schema for a given command."""
     # But we only test that the output is something json-ish
     result = _run(["schema", command])
     assert result.exit_code == 0
     schema = json.loads(result.stdout)
     assert schema == dirty_equals.IsPartialDict()
-    assert schema == json.loads(resources.schema(command).read_bytes())
+    assert schema == external_file(f"schema.{command}.json")
 
 
 def test_help_mentions_subcommands() -> None:
