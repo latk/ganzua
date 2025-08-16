@@ -42,6 +42,12 @@ dev = [
 [tool.uv.workspace]
 exclude = ["tests/*"]
 
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src/",
+  "/tests/",
+]
+
 [tool.ruff.lint]
 select = [
   "ANN",  # type annotations
