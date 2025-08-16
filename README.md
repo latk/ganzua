@@ -58,7 +58,7 @@ However, it is recommended that you use `uv tool` or `pipx` to install Ganzua in
 To preview a bleeding-edge version without waiting for a PyPI release, you can install directly from the Ganzua repository on GitHub. For example:
 
 * `uv tool run git+https://github.com/latk/ganzua.git`
-* `pipx run git+https://github.com/latk/ganzua.git`
+* `pipx run --spec git+https://github.com/latk/ganzua.git ganzua`
 
 ## Usage
 
