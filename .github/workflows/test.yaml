@@ -24,5 +24,6 @@ jobs:
       - run: just -v lint
       - run: just -v types
       - run: just -v test
-      - run: just -v check-readme-up-to-date
+      - run: just -v check-readme-usage
+      - run: just -v check-readme-examples
       - run: just -v dist
