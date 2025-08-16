@@ -1,22 +1,40 @@
 Ganzua
 ======
 
-A tool for extracting dependency information from Python lockfiles.
+A tool for picking dependency information from Python lockfiles,
+and manipulating the version constraints in `pyproject.toml` files.
 
-For example, we can summarize the differences between two `uv.lock` files:
+For example, we can summarize the differences between two `uv.lock` files.
+By default, we get JSON output:
 
 ```console
 $ ganzua diff tests/{old,new}-uv-project/uv.lock
 {
   "annotated-types": {
     "old": null,
-    "new": "0.7.0"
+    "new": {
+      "version": "0.7.0"
+    }
   },
   "typing-extensions": {
-    "old": "3.10.0.2",
-    "new": "4.14.1"
+    "old": {
+      "version": "3.10.0.2"
+    },
+    "new": {
+      "version": "4.14.1"
+    }
   }
 }
+```
+
+We can also opt in to Markdown output, which will produce a table:
+
+```console
+$ ganzua diff --format=markdown tests/{old,new}-uv-project/uv.lock
+| package           | old      | new    |
+|-------------------|----------|--------|
+| annotated-types   | -        | 0.7.0  |
+| typing-extensions | 3.10.0.2 | 4.14.1 |
 ```
 
 ## Usage

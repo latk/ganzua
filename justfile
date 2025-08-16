@@ -5,7 +5,7 @@ set positional-arguments
 
 # keep in sync with .github/workflows/test.yaml
 [doc("run the entire QA suite")]
-qa *args: sync lint types (test args) check-readme-up-to-date dist
+qa *args: sync lint types (test args) check-readme-usage check-readme-examples dist
 
 # install dependencies if necessary
 @sync:
@@ -53,5 +53,9 @@ coverage-serve:
   python -m http.server -d htmlcov -b localhost 0
 
 # check that the README is up to date with the CLI help
-check-readme-up-to-date:
+check-readme-usage:
   ./scripts/readme-usage.py diff
+
+# check that all shell examples in the README are up to date
+check-readme-examples *args:
+  TERM=dumb byexample --language shell README.md "$@"
