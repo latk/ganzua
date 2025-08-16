@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "extract dependency information from lockfiles"
 readme = "README.md"
 authors = [
-    { name = "Lukas Atkinson" },
+    { name = "Lukas Atkinson", email = "opensource@LukasAtkinson.de" },
 ]
 license = "Apache-2.0"
 keywords = ["poetry", "uv", "dependency", "requirements", "packaging", "dependabot"]
@@ -23,6 +23,9 @@ dependencies = [
 
 [project.scripts]
 ganzua = "ganzua.cli:app"
+
+[project.urls]
+Repository = "https://github.com/latk/ganzua"
 
 [build-system]
 requires = ["hatchling"]
