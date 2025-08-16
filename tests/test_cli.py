@@ -18,9 +18,14 @@ _CLICK_ERROR = 2
 _WELL_KNOWN_COMMANDS = [
     "inspect",
     "diff",
-    "update-constraints",
-    "remove-constraints",
+    "constraints",
     "schema",
+]
+
+_WELL_KNOWN_SUBCOMMANDS = [
+    *_WELL_KNOWN_COMMANDS,
+    "constraints bump",
+    "constraints remove",
 ]
 
 
@@ -108,16 +113,17 @@ def test_diff_markdown() -> None:
         pytest.param(False, id="nobackup"),
     ],
 )
-def test_update_constraints(tmp_path: pathlib.Path, want_backup: bool) -> None:
+def test_constraints_bump(tmp_path: pathlib.Path, want_backup: bool) -> None:
     backup = tmp_path / "backup.pyproject.toml"
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_bytes(resources.OLD_UV_PYPROJECT.read_bytes())
 
     result = _run(
         [
-            "update-constraints",
+            "constraints",
+            "bump",
             *([f"--backup={backup}"] * want_backup),
-            str(resources.NEW_UV_LOCKFILE),
+            f"--lockfile={resources.NEW_UV_LOCKFILE}",
             str(pyproject),
         ]
     )
@@ -143,12 +149,17 @@ dependencies = [
         assert not backup.exists()
 
 
-def test_update_constraints_noop(tmp_path: pathlib.Path) -> None:
+def test_constraints_bump_noop(tmp_path: pathlib.Path) -> None:
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_bytes(resources.NEW_UV_PYPROJECT.read_bytes())
 
     result = _run(
-        ["update-constraints", str(resources.NEW_UV_LOCKFILE), str(pyproject)]
+        [
+            "constraints",
+            "bump",
+            f"--lockfile={resources.NEW_UV_LOCKFILE}",
+            str(pyproject),
+        ]
     )
     assert result.stdout == ""
 
@@ -162,13 +173,18 @@ def test_update_constraints_noop(tmp_path: pathlib.Path) -> None:
         pytest.param(False, id="nobackup"),
     ],
 )
-def test_remove_constraints(tmp_path: pathlib.Path, want_backup: bool) -> None:
+def test_constraints_remove(tmp_path: pathlib.Path, want_backup: bool) -> None:
     backup = tmp_path / "backup.pyproject.toml"
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_bytes(resources.NEW_UV_PYPROJECT.read_bytes())
 
     result = _run(
-        ["remove-constraints", *([f"--backup={backup}"] * want_backup), str(pyproject)]
+        [
+            "constraints",
+            "remove",
+            *([f"--backup={backup}"] * want_backup),
+            str(pyproject),
+        ]
     )
     assert result.stdout == ""
 
@@ -241,9 +257,9 @@ def test_help_rejects_unknown_commands() -> None:
 def test_help_can_show_subcommands() -> None:
     result = _run(["help", "--all"])
     assert result.output.startswith(_run(["help"]).output)
-    for cmd in _WELL_KNOWN_COMMANDS:
+    for cmd in _WELL_KNOWN_SUBCOMMANDS:
         assert f"\n\nganzua {cmd}\n-----" in result.output
-        assert _run(["help", "--all", cmd]).output in result.output
+        assert _run(["help", "--all", *cmd.split()]).output in result.output
 
 
 def test_help_can_use_markdown() -> None:

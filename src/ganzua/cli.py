@@ -117,18 +117,30 @@ def diff(old: pathlib.Path, new: pathlib.Path) -> Diff:
     )
 
 
-@app.command()
-@click.argument("lockfile", type=_ExistingFilePath)
+@app.group()
+def constraints() -> None:
+    """Work with `pyproject.toml` constraints."""
+
+
+@constraints.command("bump")
 @click.argument("pyproject", type=_ExistingFilePath)
+@click.option(
+    "--lockfile",
+    type=_ExistingFilePath,
+    required=True,
+    help="Where to load versions from. Required.",
+)
 @click.option("--backup", type=click.Path(), help="Store a backup in this file.")
-def update_constraints(
+def constraints_bump(
     lockfile: pathlib.Path, pyproject: pathlib.Path, backup: pathlib.Path | None
 ) -> None:
-    """Update pyproject.toml dependency constraints to match the lockfile.
+    """Update `pyproject.toml` dependency constraints to match the lockfile.
 
     Of course, the lockfile should always be a valid solution for the constraints.
-    But this tool will increment the constraints to match the current locked versions.
-    Often, constraints are somewhat relaxed.
+    But often, the constraints are somewhat relaxed.
+    This tool will *increment* the constraints to match the currently locked versions.
+    Specifically, the locked version becomes a lower bound for the constraint.
+
     This tool will try to be as granular as the original constraint.
     For example, given the old constraint `foo>=3.5` and the new version `4.7.2`,
     the constraint would be updated to `foo>=4.7`.
@@ -141,20 +153,20 @@ def update_constraints(
         ganzua.update_pyproject(doc, locked)
 
 
-@app.command()
+@constraints.command("remove")
 @click.argument("pyproject", type=_ExistingFilePath)
 @click.option("--backup", type=click.Path(), help="Store a backup in this file.")
-def remove_constraints(pyproject: pathlib.Path, backup: pathlib.Path | None) -> None:
+def constraints_remove(pyproject: pathlib.Path, backup: pathlib.Path | None) -> None:
     """Remove any dependency version constraints from the `pyproject.toml`.
 
     This can be useful for allowing uv/Poetry to update to the most recent versions,
     ignoring the previous constraints. Approximate recipe:
 
     ```bash
-    ganzua remove-constraints --backup=pyproject.toml.bak pyproject.toml
+    ganzua constraints remove --backup=pyproject.toml.bak pyproject.toml
     uv lock --upgrade  # perform the upgrade
     mv pyproject.toml.bak pyproject.toml  # restore old constraints
-    ganzua update-constraints uv.lock pyproject.toml
+    ganzua constraints bump --lockfile=uv.lock pyproject.toml
     uv lock
     ```
     """

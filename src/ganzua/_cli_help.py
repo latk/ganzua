@@ -95,6 +95,10 @@ class _FixedGroup(_FixedCommand, click.Group):
         return super().parse_args(ctx, args)
 
 
+_FixedGroup.command_class = _FixedCommand
+_FixedGroup.group_class = _FixedGroup
+
+
 class App:
     def __init__(self, name: str, *, help: str) -> None:
         prolog, _, epilog = help.partition("\n<!-- options -->\n")
@@ -108,9 +112,15 @@ class App:
     def __call__(self, args: t.Sequence[str] | None = None) -> object:
         return self.click.main(args)
 
-    def command(self) -> t.Callable[[t.Callable], click.Command]:
+    def command(
+        self, name: str | None = None
+    ) -> t.Callable[[t.Callable], click.Command]:
         """Register a subcommand."""
-        return self.click.command(cls=_FixedCommand)
+        return self.click.command(name)
+
+    def group(self) -> t.Callable[[t.Callable], click.Group]:
+        """Register a sub-group."""
+        return self.click.group()
 
 
 type _MarkdownOrRich = (

@@ -40,10 +40,8 @@ Inspect Python dependency lockfiles (uv and Poetry).
   Inspect a lockfile.
 * `diff`
   Compare two lockfiles.
-* `update-constraints`
-  Update pyproject.toml dependency constraints to match the lockfile.
-* `remove-constraints`
-  Remove any dependency version constraints from the `pyproject.toml`.
+* `constraints`
+  Work with `pyproject.toml` constraints.
 * `schema`
   Show the JSON schema for the output of the given command.
 
@@ -92,30 +90,53 @@ Compare two lockfiles.
   Show this help message and exit.
 
 
-### ganzua update-constraints
+### ganzua constraints
 
-Usage: `ganzua update-constraints [OPTIONS] LOCKFILE PYPROJECT`
+Usage: `ganzua constraints [OPTIONS] COMMAND [ARGS]...`
 
-Update pyproject.toml dependency constraints to match the lockfile.
+Work with `pyproject.toml` constraints.
+
+**Options:**
+
+* `--help`
+  Show this help message and exit.
+
+**Commands:**
+
+* `bump`
+  Update `pyproject.toml` dependency constraints to match the lockfile.
+* `remove`
+  Remove any dependency version constraints from the `pyproject.toml`.
+
+
+### ganzua constraints bump
+
+Usage: `ganzua constraints bump [OPTIONS] PYPROJECT`
+
+Update `pyproject.toml` dependency constraints to match the lockfile.
 
 Of course, the lockfile should always be a valid solution for the constraints.
-But this tool will increment the constraints to match the current locked versions.
-Often, constraints are somewhat relaxed.
+But often, the constraints are somewhat relaxed.
+This tool will *increment* the constraints to match the currently locked versions.
+Specifically, the locked version becomes a lower bound for the constraint.
+
 This tool will try to be as granular as the original constraint.
 For example, given the old constraint `foo>=3.5` and the new version `4.7.2`,
 the constraint would be updated to `foo>=4.7`.
 
 **Options:**
 
+* `--lockfile FILE`
+  Where to load versions from. Required.
 * `--backup PATH`
   Store a backup in this file.
 * `--help`
   Show this help message and exit.
 
 
-### ganzua remove-constraints
+### ganzua constraints remove
 
-Usage: `ganzua remove-constraints [OPTIONS] PYPROJECT`
+Usage: `ganzua constraints remove [OPTIONS] PYPROJECT`
 
 Remove any dependency version constraints from the `pyproject.toml`.
 
@@ -123,10 +144,10 @@ This can be useful for allowing uv/Poetry to update to the most recent versions,
 ignoring the previous constraints. Approximate recipe:
 
 ```bash
-ganzua remove-constraints --backup=pyproject.toml.bak pyproject.toml
+ganzua constraints remove --backup=pyproject.toml.bak pyproject.toml
 uv lock --upgrade  # perform the upgrade
 mv pyproject.toml.bak pyproject.toml  # restore old constraints
-ganzua update-constraints uv.lock pyproject.toml
+ganzua constraints bump --lockfile=uv.lock pyproject.toml
 uv lock
 ```
 
