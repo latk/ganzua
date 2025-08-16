@@ -28,6 +28,8 @@ Inspect Python dependency lockfiles (uv and Poetry).
 
 <!-- options -->
 
+For more information, see the Ganzua website at "<https://github.com/latk/ganzua>".
+
 Ganzua is licensed under the Apache-2.0 license.
 """,
 )

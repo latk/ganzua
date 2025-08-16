@@ -37,6 +37,29 @@ $ ganzua diff --format=markdown tests/{old,new}-uv-project/uv.lock
 | typing-extensions | 3.10.0.2 | 4.14.1 |
 ```
 
+## Installation
+
+Ganzua is available on PyPI: <https://pypi.org/project/ganzua/>
+
+Recommended: run or install via the [`uv` package manager](https://docs.astral.sh/uv/):
+
+* `uv tool run ganzua` to try Ganzua without installation
+* `uv tool install ganzua` to install Ganzua on your machine
+
+Alternative: run or install via the [`pipx` tool](https://pipx.pypa.io/):
+
+* `pipx run ganzua` to try Ganzua without installation
+* `pipx install ganzua` to install Ganzua on your machine
+
+Because Ganzua is an ordinary Python package, you can also install it into an existing virtual environment (venv).
+You can use your usual Python dependency management tools like uv, Poetry, or pip for this.
+However, it is recommended that you use `uv tool` or `pipx` to install Ganzua into its own venv, which prevents version conflicts.
+
+To preview a bleeding-edge version without waiting for a PyPI release, you can install directly from the Ganzua repository on GitHub. For example:
+
+* `uv tool run git+https://github.com/latk/ganzua.git`
+* `pipx run git+https://github.com/latk/ganzua.git`
+
 ## Usage
 
 <!-- begin usage -->
@@ -62,6 +85,8 @@ Inspect Python dependency lockfiles (uv and Poetry).
   Work with `pyproject.toml` constraints.
 * `schema`
   Show the JSON schema for the output of the given command.
+
+For more information, see the Ganzua website at "<https://github.com/latk/ganzua>".
 
 Ganzua is licensed under the Apache-2.0 license.
 
@@ -189,6 +214,33 @@ Show the JSON schema for the output of the given command.
   Show this help message and exit.
 
 <!-- end usage -->
+
+## Support
+
+Ganzua is Open Source software, provided to you free of charge and on an "as is" basis.
+You are not entitled to support, help, or bugfixes of any kind.
+
+Nevertheless, the Ganzua project may occasionally offer help.
+
+* If you have questions about using Ganzua, you may search existing posts at <https://github.com/latk/ganzua/discussions> and start a new discussion if necessary.
+* If you have discovered a bug in Ganzua, please report it at <https://github.com/latk/ganzua/issues>.
+
+Ganzua intends to maintain a backwards-compatible command line interface, and intends to use SemVer version numbers.
+
+Only those parts of the CLI that are relevant for scripting are covered by this stability policy:
+
+* commands that inspect or modify files
+* machine-readable output, e.g. the schema of JSON output
+
+For example, Ganzua might increment the "minor" version number if a new field is added to JSON output or if new command line options are added, and increment the "major" version if output fields are removed or new required command line arguments are added.
+
+Out of scope are:
+
+* interacting with the `ganzua` Python module
+* Python versions or dependency versions used by Ganzua
+* formatting of human-readable output (e.g. Markdown)
+* formatting of error messages
+* commands and flags that relate to help messages
 
 ##  What does Ganzua mean?
 
