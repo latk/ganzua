@@ -20,68 +20,62 @@ LOCKFILE_SCHEMA = pydantic.TypeAdapter[Lockfile](Lockfile)
 
 
 def lockfile_from(path: PathLike) -> Lockfile:
-    if path.name == "uv.lock":
-        with error_context(f"while parsing {path}"):
-            return _lockfile_from_uv(path)
-    if path.name == "poetry.lock":
-        with error_context(f"while parsing {path}"):
-            return _lockfile_from_poetry(path)
+    if path.name not in ("uv.lock", "poetry.lock"):
+        raise ValueError(f"unsupported lockfile format in {path}")
 
-    raise ValueError(f"unsupported lockfile format in {path}")
+    with error_context(f"while parsing {path}"):
+        input_lockfile = _ANY_LOCKFILE_SCHEMA.validate_python(
+            tomllib.loads(path.read_text())
+        )
 
-
-class UvLockfilePackage(t.TypedDict):
-    name: str
-    version: str
-
-
-class UvLockfile(t.TypedDict):
-    version: t.Literal[1]
-    package: list[UvLockfilePackage]
-
-
-_UV_LOCKFILE_SCHEMA = pydantic.TypeAdapter(UvLockfile)
-
-
-def _lockfile_from_uv(path: PathLike) -> Lockfile:
-    uv_lockfile = _UV_LOCKFILE_SCHEMA.validate_python(tomllib.loads(path.read_text()))
-    return {
-        p["name"]: {
-            "version": p["version"],
+        return {
+            p["name"]: {
+                "version": p["version"],
+            }
+            for p in input_lockfile["package"]
         }
-        for p in uv_lockfile["package"]
-    }
 
 
-class PoetryLockfilePackage(t.TypedDict):
+class UvLockfileV1Package(t.TypedDict):
     name: str
     version: str
 
 
-PoetryLockfileMetadata = t.TypedDict(
-    "PoetryLockfileMetadata",
+class UvLockfileV1(t.TypedDict):
+    # UV has some lockfile compatibility guarantees:
+    # <https://docs.astral.sh/uv/concepts/resolution/#lockfile-versioning>
+    # Therefore, we pin this model to only match the v1 schema.
+    # Future changes should get their own model.
+    version: t.Literal[1]
+    package: list[UvLockfileV1Package]
+
+
+class PoetryLockfileV2Package(t.TypedDict):
+    name: str
+    version: str
+
+
+# Must use the functional form of declaring TypedDicts
+# because the keys are not valid Python identifiers.
+PoetryLockfileV2Metadata = t.TypedDict(
+    "PoetryLockfileV2Metadata",
     {
         "lock-version": str,
+        "content-hash": str,
     },
 )
 
 
-class PoetryLockfile(t.TypedDict):
-    metadata: PoetryLockfileMetadata
-    package: list[PoetryLockfilePackage]
+class PoetryLockfileV2(t.TypedDict):
+    # There is no official documentaton for this lockfile format.
+    # The `Locker` class comes close:
+    # <https://github.com/python-poetry/poetry/blob/1c059eadbb4c2bf29e01a61979b7f50263c9e506/src/poetry/packages/locker.py#L53>
+    metadata: PoetryLockfileV2Metadata
+    package: list[PoetryLockfileV2Package]
 
 
-_POETRY_LOCKFILE_SCHEMA = pydantic.TypeAdapter(PoetryLockfile)
+AnyLockfile = t.Annotated[
+    UvLockfileV1 | PoetryLockfileV2, pydantic.Field(union_mode="left_to_right")
+]
 
-
-def _lockfile_from_poetry(path: PathLike) -> Lockfile:
-    poetry_lockfile = _POETRY_LOCKFILE_SCHEMA.validate_python(
-        tomllib.loads(path.read_text())
-    )
-
-    return {
-        p["name"]: {
-            "version": p["version"],
-        }
-        for p in poetry_lockfile["package"]
-    }
+_ANY_LOCKFILE_SCHEMA = pydantic.TypeAdapter[AnyLockfile](AnyLockfile)
