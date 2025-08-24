@@ -18,11 +18,18 @@ lint:
   ruff check .
 
 # automatically fix formatting and some ruff violations
-fix:
-  ruff format .
-  ruff check --fix-only --show-fixes .
-  ./scripts/readme-usage.py update
-  for cmd in diff inspect; do ganzua schema $cmd >tests/schema.$cmd.json; done
+fix *files='.':
+  #!/usr/bin/env -S uv run bash
+  set -euo pipefail
+  explicitly() { echo "{{BOLD}}${@@K}{{NORMAL}}" >&2; "$@"; }
+  explicitly ruff format -- "$@"
+  explicitly ruff check --fix-only --show-fixes -- "$@"
+  if [[ "$*" == "." ]]; then
+    explicitly ./scripts/readme-usage.py update
+    for cmd in diff inspect; do
+      explicitly ganzua schema $cmd >tests/schema.$cmd.json
+    done
+  fi
 
 # check types
 types:
