@@ -67,7 +67,6 @@ def test_inspect_markdown() -> None:
 |-------------------|----------|
 | example           | 0.1.0    |
 | typing-extensions | 3.10.0.2 |
-
 """
     )
 
@@ -102,7 +101,6 @@ def test_diff_markdown() -> None:
 |-------------------|----------|--------|
 | annotated-types   | -        | 0.7.0  |
 | typing-extensions | 3.10.0.2 | 4.14.1 |
-
 """
     )
 
@@ -231,7 +229,6 @@ def test_constraints_inspect_markdown() -> None:
 |-------------------|---------|
 | annotated-types   | >=0.7.0 |
 | typing-extensions | >=4     |
-
 """)
 
 

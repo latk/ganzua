@@ -49,20 +49,18 @@ def _table[Row: tuple[str, ...]](header: Row, values: t.Sequence[Row]) -> str:
     |-----|-----|
     | 111 | 2   |
     | 3   | 4   |
-    <BLANKLINE>
-
     """
     cols = tuple(zip(header, *values, strict=True))
     col_widths = tuple(
         max((len(cell) for cell in column), default=0) for column in cols
     )
     lines = []
-    lines.append("| " + " | ".join(_justify_cols(header, col_widths)) + " |\n")
-    lines.append("|-" + "-|-".join("-" * width for width in col_widths) + "-|\n")
+    lines.append("| " + " | ".join(_justify_cols(header, col_widths)) + " |")
+    lines.append("|-" + "-|-".join("-" * width for width in col_widths) + "-|")
     lines.extend(
-        "| " + " | ".join(_justify_cols(row, col_widths)) + " |\n" for row in values
+        "| " + " | ".join(_justify_cols(row, col_widths)) + " |" for row in values
     )
-    return "".join(lines)
+    return "\n".join(lines)
 
 
 def _justify_cols(row: tuple[str, ...], widths: tuple[int, ...]) -> tuple[str, ...]:
