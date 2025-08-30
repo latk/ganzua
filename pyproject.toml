@@ -99,6 +99,9 @@ addopts = [
 ]
 testpaths = ["src", "tests"]
 
+[tool.inline-snapshot]
+format-command = "ruff format --stdin-filename {filename}"
+
 [tool.coverage]
 run.source_dirs = ["src", "tests"]
 run.branch = true
