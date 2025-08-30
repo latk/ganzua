@@ -53,76 +53,70 @@ def parse_requirement_from_pep508(req: Pep508Requirement | str) -> Requirement:
     # return data
 
 
-class MapRequirement(t.Protocol):  # pragma: no cover
-    def pep508(self, req: Requirement) -> Requirement: ...
-    def poetry(self, req: Requirement) -> Requirement: ...
+class EditRequirement(t.Protocol):  # pragma: no cover
+    def pep508(self, req: Requirement) -> None: ...
+    def poetry(self, req: Requirement) -> None: ...
 
 
 @dataclass
-class UpdateRequirement(MapRequirement):
+class UpdateRequirement(EditRequirement):
     """Update a requirement constraint to match the locked version."""
 
     lockfile: Lockfile
 
     @t.override
-    def pep508(self, req: Requirement) -> Requirement:
+    def pep508(self, req: Requirement) -> None:
         target = self.lockfile["packages"].get(req["name"])
         if not target:
-            return req
+            return
 
         target_version = Version(target["version"])
-        updated_specifier = _update_specifier_set(
-            SpecifierSet(req["specifier"]), target_version
-        )
-        if req["specifier"] == updated_specifier:
-            return req
+        old_specifier = SpecifierSet(req["specifier"])
+        updated_specifier = _update_specifier_set(old_specifier, target_version)
+        if old_specifier == updated_specifier:
+            return
 
-        return {**req, "specifier": str(updated_specifier)}
+        req["specifier"] = str(updated_specifier)
 
     @t.override
-    def poetry(self, req: Requirement) -> Requirement:
+    def poetry(self, req: Requirement) -> None:
         target = self.lockfile["packages"].get(req["name"])
         if not target:
-            return req
+            return
 
         target_version = Version(target["version"])
         updated_specifier = _update_poetry_specifier(req["specifier"], target_version)
         if req["specifier"] == updated_specifier:
-            return req
+            return
 
-        return {**req, "specifier": updated_specifier}
+        req["specifier"] = updated_specifier
 
 
 @dataclass
-class UnconstrainRequirement(MapRequirement):
+class UnconstrainRequirement(EditRequirement):
     @t.override
-    def pep508(self, req: Requirement) -> Requirement:
+    def pep508(self, req: Requirement) -> None:
         """Remove any constraints from the requirement."""
-        if not req["specifier"]:
-            return req
-
-        return {**req, "specifier": ""}
+        req["specifier"] = ""
 
     @t.override
-    def poetry(self, req: Requirement) -> Requirement:
-        return {**req, "specifier": "*"}
+    def poetry(self, req: Requirement) -> None:
+        req["specifier"] = "*"
 
 
 @dataclass
-class CollectRequirement(MapRequirement):
+class CollectRequirement(EditRequirement):
     """Collect all requirements into an array, without changing them."""
 
     reqs: list[Requirement]
 
     @t.override
-    def pep508(self, req: Requirement) -> Requirement:
+    def pep508(self, req: Requirement) -> None:
         self.reqs.append(req)
-        return req
 
     @t.override
-    def poetry(self, req: Requirement) -> Requirement:
+    def poetry(self, req: Requirement) -> None:
         self.reqs.append(req)
-        return req
 
 
 def _update_poetry_specifier(spec: str, target: Version) -> str:

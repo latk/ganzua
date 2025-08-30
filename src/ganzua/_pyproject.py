@@ -1,4 +1,3 @@
-import copy
 import typing as t
 from dataclasses import dataclass
 
@@ -8,7 +7,7 @@ import tomlkit.items
 from packaging.requirements import Requirement as Pep508Requirement
 from tomlkit.exceptions import NonExistentKey
 
-from ._constraints import MapRequirement, Requirement, parse_requirement_from_pep508
+from ._constraints import EditRequirement, Requirement, parse_requirement_from_pep508
 from ._pretty_specifier_set import PrettySpecifierSet
 
 _TomlDict: t.TypeAlias = (
@@ -18,7 +17,7 @@ _TomlDict: t.TypeAlias = (
 )
 
 
-def edit_pyproject(pyproject: tomlkit.TOMLDocument, mapper: MapRequirement) -> None:
+def edit_pyproject(pyproject: tomlkit.TOMLDocument, mapper: EditRequirement) -> None:
     """Apply the callback to each requirement specifier in the pyproject.toml file."""
     _Editor(pyproject).apply(mapper)
 
@@ -36,60 +35,54 @@ class _Editor:
         self.project = _toml_get_table(self.pyproject, "project")
         self.poetry = _toml_get_table(_toml_get_table(self.pyproject, "tool"), "poetry")
 
-    def apply(self, mapper: MapRequirement) -> None:
-        self._apply_all_pep621(mapper)
-        self._apply_all_poetry(mapper)
+    def apply(self, edit: EditRequirement) -> None:
+        self._apply_all_pep621(edit)
+        self._apply_all_poetry(edit)
 
-    def _apply_all_pep621(self, mapper: MapRequirement) -> None:
+    def _apply_all_pep621(self, edit: EditRequirement) -> None:
         self._apply_requirements_array(
-            _toml_get_array(self.project, "dependencies"), mapper
+            _toml_get_array(self.project, "dependencies"), edit
         )
 
         optional_dependencies = _toml_get_table(self.project, "optional-dependencies")
         for extra in optional_dependencies:
             extra_dependencies = _toml_get_array(optional_dependencies, extra)
-            self._apply_requirements_array(extra_dependencies, mapper)
+            self._apply_requirements_array(extra_dependencies, edit)
 
         # dependency groups, see <https://peps.python.org/pep-0735/>
         dependency_groups = _toml_get_table(self.pyproject, "dependency-groups")
         for group in dependency_groups:
             group_dependencies = _toml_get_array(dependency_groups, group)
-            self._apply_requirements_array(group_dependencies, mapper)
+            self._apply_requirements_array(group_dependencies, edit)
 
     def _apply_requirements_array(
-        self, reqs: tomlkit.items.Array, mapper: MapRequirement
+        self, reqs: tomlkit.items.Array, edit: EditRequirement
     ) -> None:
-        for i, old in enumerate(list(reqs)):
-            if not isinstance(old, str):
+        for i, item in enumerate(list(reqs)):
+            if not isinstance(item, str):
                 continue
-            old_req = Pep508Requirement(old)
-            new_req = self._apply_pep508(old_req, mapper)
-            if old_req != new_req:
-                reqs[i] = str(new_req)
+            req = Pep508Requirement(item)
+            data = parse_requirement_from_pep508(req)
+            edit.pep508(data)
+            new_specifier = PrettySpecifierSet(data["specifier"])
+            if req.specifier != new_specifier:
+                req.specifier = new_specifier
+                reqs[i] = str(req)
 
-    def _apply_pep508(
-        self, req: Pep508Requirement, mapper: MapRequirement
-    ) -> Pep508Requirement:
-        old = parse_requirement_from_pep508(req)
-        new = mapper.pep508(old)
-        req = copy.copy(req)
-        req.specifier = PrettySpecifierSet(new["specifier"])
-        return req
-
-    def _apply_all_poetry(self, mapper: MapRequirement) -> None:
+    def _apply_all_poetry(self, edit: EditRequirement) -> None:
         # cf https://python-poetry.org/docs/pyproject/#dependencies-and-dependency-groups
         dependencies = _toml_get_table(self.poetry, "dependencies")
-        self._apply_poetry_dependency_table(dependencies, mapper)
+        self._apply_poetry_dependency_table(dependencies, edit)
 
         groups = _toml_get_table(self.poetry, "group")
         for group in groups:
             group_dependencies = _toml_get_table(
                 _toml_get_table(groups, group), "dependencies"
             )
-            self._apply_poetry_dependency_table(group_dependencies, mapper)
+            self._apply_poetry_dependency_table(group_dependencies, edit)
 
     def _apply_poetry_dependency_table(
-        self, reqs: _TomlDict, mapper: MapRequirement
+        self, reqs: _TomlDict, edit: EditRequirement
     ) -> None:
         name: str
         for name in list(reqs.keys()):
@@ -102,10 +95,10 @@ class _Editor:
                 value = value["version"]
             if not isinstance(value, tomlkit.items.String):
                 continue
-            old_req = Requirement(name=name, specifier=value.value)
-            new_req = mapper.poetry(old_req)
-            if old_req != new_req:
-                target_table[target_key] = new_req["specifier"]
+            req = Requirement(name=name, specifier=value.value)
+            edit.poetry(req)
+            if value.value != req["specifier"]:
+                target_table[target_key] = req["specifier"]
 
 
 def _toml_get_table(container: _TomlDict, key: str) -> _TomlDict:

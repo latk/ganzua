@@ -1,7 +1,7 @@
 from ._constraints import (
     REQUIREMENTS_SCHEMA,
     CollectRequirement,
-    MapRequirement,
+    EditRequirement,
     UnconstrainRequirement,
     UpdateRequirement,
 )
@@ -15,7 +15,7 @@ __all__ = [
     "LOCKFILE_SCHEMA",
     "REQUIREMENTS_SCHEMA",
     "Lockfile",
-    "MapRequirement",
+    "EditRequirement",
     "UnconstrainRequirement",
     "UpdateRequirement",
     "diff",
