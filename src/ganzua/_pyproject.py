@@ -1,4 +1,5 @@
 import typing as t
+from dataclasses import dataclass
 
 import tomlkit
 import tomlkit.container
@@ -17,65 +18,83 @@ _TomlDict: t.TypeAlias = (
 
 def edit_pyproject(pyproject: tomlkit.TOMLDocument, mapper: MapRequirement) -> None:
     """Apply the callback to each requirement specifier in the pyproject.toml file."""
+    _Editor(pyproject).apply(mapper)
+
+
+@dataclass
+class _Editor:
     # TODO skip path dependencies?
     # TODO support Poetry-specific fields
     # TODO check if there are uv-specific fields
     # TODO support build dependencies?
 
-    project = _toml_get_table(pyproject, "project")
+    pyproject: tomlkit.TOMLDocument
 
-    _update_requirements_array(_toml_get_array(project, "dependencies"), mapper)
+    def __post_init__(self) -> None:
+        self.project = _toml_get_table(self.pyproject, "project")
+        self.poetry = _toml_get_table(_toml_get_table(self.pyproject, "tool"), "poetry")
 
-    optional_dependencies = _toml_get_table(project, "optional-dependencies")
-    for extra in optional_dependencies:
-        _update_requirements_array(
-            _toml_get_array(optional_dependencies, extra), mapper
+    def apply(self, mapper: MapRequirement) -> None:
+        self._apply_all_pep621(mapper)
+        self._apply_all_poetry(mapper)
+
+    def _apply_all_pep621(self, mapper: MapRequirement) -> None:
+        self._apply_requirements_array(
+            _toml_get_array(self.project, "dependencies"), mapper
         )
 
-    dependency_groups = _toml_get_table(pyproject, "dependency-groups")
-    for group in dependency_groups:
-        _update_requirements_array(_toml_get_array(dependency_groups, group), mapper)
+        optional_dependencies = _toml_get_table(self.project, "optional-dependencies")
+        for extra in optional_dependencies:
+            extra_dependencies = _toml_get_array(optional_dependencies, extra)
+            self._apply_requirements_array(extra_dependencies, mapper)
 
-    # cf https://python-poetry.org/docs/pyproject/#dependencies-and-dependency-groups
-    poetry = _toml_get_table(_toml_get_table(pyproject, "tool"), "poetry")
-    _update_poetry_dependency_table(_toml_get_table(poetry, "dependencies"), mapper)
+        # dependency groups, see <https://peps.python.org/pep-0735/>
+        dependency_groups = _toml_get_table(self.pyproject, "dependency-groups")
+        for group in dependency_groups:
+            group_dependencies = _toml_get_array(dependency_groups, group)
+            self._apply_requirements_array(group_dependencies, mapper)
 
-    poetry_dependency_groups = _toml_get_table(poetry, "group")
-    for group in poetry_dependency_groups:
-        poetry_group = _toml_get_table(poetry_dependency_groups, group)
-        _update_poetry_dependency_table(
-            _toml_get_table(poetry_group, "dependencies"), mapper
-        )
+    def _apply_requirements_array(
+        self, reqs: tomlkit.items.Array, mapper: MapRequirement
+    ) -> None:
+        for i, old in enumerate(list(reqs)):
+            if not isinstance(old, str):
+                continue
+            old_req = Requirement(old)
+            new_req = mapper.pep508(old_req)
+            if old_req != new_req:
+                reqs[i] = str(new_req)
 
+    def _apply_all_poetry(self, mapper: MapRequirement) -> None:
+        # cf https://python-poetry.org/docs/pyproject/#dependencies-and-dependency-groups
+        dependencies = _toml_get_table(self.poetry, "dependencies")
+        self._apply_poetry_dependency_table(dependencies, mapper)
 
-def _update_requirements_array(
-    reqs: tomlkit.items.Array, mapper: MapRequirement
-) -> None:
-    for i, old in enumerate(list(reqs)):
-        if not isinstance(old, str):
-            continue
-        old_req = Requirement(old)
-        new_req = mapper.pep508(old_req)
-        if old_req != new_req:
-            reqs[i] = str(new_req)
+        groups = _toml_get_table(self.poetry, "group")
+        for group in groups:
+            group_dependencies = _toml_get_table(
+                _toml_get_table(groups, group), "dependencies"
+            )
+            self._apply_poetry_dependency_table(group_dependencies, mapper)
 
-
-def _update_poetry_dependency_table(reqs: _TomlDict, mapper: MapRequirement) -> None:
-    name: str
-    for name in list(reqs.keys()):
-        target_table = reqs
-        target_key = name
-        value = reqs[name]
-        if isinstance(value, tomlkit.items.AbstractTable) and "version" in value:
-            target_table = value
-            target_key = "version"
-            value = value["version"]
-        if not isinstance(value, tomlkit.items.String):
-            continue
-        old_req = PoetryRequirement(name=name, specifier=value.value)
-        new_req = mapper.poetry(old_req)
-        if old_req != new_req:
-            target_table[target_key] = new_req.specifier
+    def _apply_poetry_dependency_table(
+        self, reqs: _TomlDict, mapper: MapRequirement
+    ) -> None:
+        name: str
+        for name in list(reqs.keys()):
+            target_table = reqs
+            target_key = name
+            value = reqs[name]
+            if isinstance(value, tomlkit.items.AbstractTable) and "version" in value:
+                target_table = value
+                target_key = "version"
+                value = value["version"]
+            if not isinstance(value, tomlkit.items.String):
+                continue
+            old_req = PoetryRequirement(name=name, specifier=value.value)
+            new_req = mapper.poetry(old_req)
+            if old_req != new_req:
+                target_table[target_key] = new_req.specifier
 
 
 def _toml_get_table(container: _TomlDict, key: str) -> _TomlDict:
