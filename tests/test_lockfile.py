@@ -1,13 +1,19 @@
+import pathlib
+import secrets
+import shutil
+
+import pydantic
 import pytest
 from inline_snapshot import snapshot
 
 import ganzua
 
 from . import resources
+from .helpers import parametrized
 
 
-def test_cannot_load_empty_file() -> None:
-    with pytest.raises(ValueError, match="unsupported lockfile format"):
+def test_can_load_empty_file() -> None:
+    with pytest.raises(pydantic.ValidationError):
         ganzua.lockfile_from(resources.EMPTY)
 
 
@@ -49,3 +55,23 @@ def test_can_load_new_poetry() -> None:
             "typing-extensions": {"version": "4.14.1"},
         }
     )
+
+
+@parametrized(
+    "orig",
+    {
+        "poetry": resources.NEW_POETRY_LOCKFILE,
+        "uv": resources.NEW_UV_LOCKFILE,
+    },
+)
+def test_does_not_care_about_filename(
+    orig: pathlib.Path, tmp_path: pathlib.Path
+) -> None:
+    # save the lockfile under a randomized name
+    randomized = tmp_path / secrets.token_hex(5)
+    shutil.copy(orig, randomized)
+    for word in ("uv", "poetry", "lock", "toml"):
+        assert word not in randomized.name
+
+    # we get the same result, regardless of filename
+    assert ganzua.lockfile_from(randomized) == ganzua.lockfile_from(orig)

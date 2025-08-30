@@ -78,7 +78,8 @@ select = [
 ]
 ignore = [
   "D104",  # undocumented-public-package
-  "S603"  # subprocess-without-shell-equals-true  # usually safe
+  "S603",  # subprocess-without-shell-equals-true  # usually safe
+  "E501",  # line-too-long # should be handled by `ruff format`
 ]
 pydocstyle.convention = "google"
 

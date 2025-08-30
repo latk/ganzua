@@ -20,9 +20,6 @@ LOCKFILE_SCHEMA = pydantic.TypeAdapter[Lockfile](Lockfile)
 
 
 def lockfile_from(path: PathLike) -> Lockfile:
-    if path.name not in ("uv.lock", "poetry.lock"):
-        raise ValueError(f"unsupported lockfile format in {path}")
-
     with error_context(f"while parsing {path}"):
         input_lockfile = _ANY_LOCKFILE_SCHEMA.validate_python(
             tomllib.loads(path.read_text())
