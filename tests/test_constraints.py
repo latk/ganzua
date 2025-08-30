@@ -1,12 +1,11 @@
 # TODO test semver idioms with 0.x versions
 
-from packaging.requirements import Requirement as Pep508Requirement
-
 from ganzua import Lockfile
 from ganzua._constraints import (
     Requirement,
     UnconstrainRequirement,
     UpdateRequirement,
+    parse_requirement_from_pep508,
 )
 
 _LOCKFILE: Lockfile = {
@@ -19,9 +18,9 @@ _LOCKFILE: Lockfile = {
 
 def _assert_updated_req(input: str, expected: str) -> None:
     __tracebackhide__ = True  # better Pytest errors
-    updated = UpdateRequirement(_LOCKFILE).pep508(Pep508Requirement(input))
-    # compare normalized form
-    assert str(Pep508Requirement(str(updated))) == str(Pep508Requirement(expected))
+    updated = UpdateRequirement(_LOCKFILE).pep508(parse_requirement_from_pep508(input))
+    # TODO compare normalized form
+    assert updated == parse_requirement_from_pep508(expected)
 
 
 def _assert_updated_poetry_req(name: str, input: str, expected: str) -> None:
@@ -32,9 +31,9 @@ def _assert_updated_poetry_req(name: str, input: str, expected: str) -> None:
 
 def _assert_unconstrained_req(input: str, expected: str) -> None:
     __tracebackhide__ = True
-    updated = UnconstrainRequirement().pep508(Pep508Requirement(input))
-    # compare normalized form
-    assert str(Pep508Requirement(str(updated))) == str(Pep508Requirement(expected))
+    updated = UnconstrainRequirement().pep508(parse_requirement_from_pep508(input))
+    # TODO compare normalized form
+    assert updated == parse_requirement_from_pep508(expected)
 
 
 def test_update_requirement_not_found() -> None:

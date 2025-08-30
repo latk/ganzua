@@ -1,3 +1,4 @@
+import copy
 import typing as t
 from dataclasses import dataclass
 
@@ -7,7 +8,8 @@ import tomlkit.items
 from packaging.requirements import Requirement as Pep508Requirement
 from tomlkit.exceptions import NonExistentKey
 
-from ._constraints import MapRequirement, Requirement
+from ._constraints import MapRequirement, Requirement, parse_requirement_from_pep508
+from ._pretty_specifier_set import PrettySpecifierSet
 
 _TomlDict: t.TypeAlias = (
     tomlkit.container.Container
@@ -61,9 +63,18 @@ class _Editor:
             if not isinstance(old, str):
                 continue
             old_req = Pep508Requirement(old)
-            new_req = mapper.pep508(old_req)
+            new_req = self._apply_pep508(old_req, mapper)
             if old_req != new_req:
                 reqs[i] = str(new_req)
+
+    def _apply_pep508(
+        self, req: Pep508Requirement, mapper: MapRequirement
+    ) -> Pep508Requirement:
+        old = parse_requirement_from_pep508(req)
+        new = mapper.pep508(old)
+        req = copy.copy(req)
+        req.specifier = PrettySpecifierSet(new["specifier"])
+        return req
 
     def _apply_all_poetry(self, mapper: MapRequirement) -> None:
         # cf https://python-poetry.org/docs/pyproject/#dependencies-and-dependency-groups
