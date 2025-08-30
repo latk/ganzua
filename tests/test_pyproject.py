@@ -91,6 +91,8 @@ _OLD_POETRY_PYPROJECT = """\
 typing-extensions = "^3.2"
 ignored-garbage = { not-a-version = true }
 
+[build-system]
+
 [tool.poetry.group.poetry-a.dependencies]
 typing-extensions = { version = "^3.4" }
 already-unconstrained = "*"
@@ -101,6 +103,8 @@ _EXPECTED_POETRY_PYPROJECT = """\
 typing-extensions = "^4.14"
 ignored-garbage = { not-a-version = true }
 
+[build-system]
+
 [tool.poetry.group.poetry-a.dependencies]
 typing-extensions = { version = "^4.14" }
 already-unconstrained = "*"
@@ -110,6 +114,8 @@ _UNCONSTRAINED_POETRY_PYPROJECT = """\
 [tool.poetry.dependencies]
 typing-extensions = "*"
 ignored-garbage = { not-a-version = true }
+
+[build-system]
 
 [tool.poetry.group.poetry-a.dependencies]
 typing-extensions = { version = "*" }

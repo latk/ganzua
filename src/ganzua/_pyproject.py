@@ -1,10 +1,18 @@
+import typing as t
+
 import tomlkit
+import tomlkit.container
 import tomlkit.items
 from packaging.requirements import Requirement
-from tomlkit.container import Container as _TomlContainer
 from tomlkit.exceptions import NonExistentKey
 
 from ._constraints import MapRequirement, PoetryRequirement
+
+_TomlDict: t.TypeAlias = (
+    tomlkit.container.Container
+    | tomlkit.container.OutOfOrderTableProxy
+    | tomlkit.items.AbstractTable
+)
 
 
 def edit_pyproject(pyproject: tomlkit.TOMLDocument, mapper: MapRequirement) -> None:
@@ -52,9 +60,7 @@ def _update_requirements_array(
             reqs[i] = str(new_req)
 
 
-def _update_poetry_dependency_table(
-    reqs: tomlkit.items.AbstractTable, mapper: MapRequirement
-) -> None:
+def _update_poetry_dependency_table(reqs: _TomlDict, mapper: MapRequirement) -> None:
     name: str
     for name in list(reqs.keys()):
         target_table = reqs
@@ -72,9 +78,7 @@ def _update_poetry_dependency_table(
             target_table[target_key] = new_req.specifier
 
 
-def _toml_get_table(
-    container: _TomlContainer | tomlkit.items.AbstractTable, key: str
-) -> tomlkit.items.AbstractTable:
+def _toml_get_table(container: _TomlDict, key: str) -> _TomlDict:
     r"""Extract the table at that key, or return a null object table.
 
     >>> doc = tomlkit.parse("a = 1\nb = {c = 3}")
@@ -84,19 +88,31 @@ def _toml_get_table(
     {}
     >>> _toml_get_table(doc, "nonexistent")
     {}
+
+    This function can also extract interrupted tables, which involves a proxy type.
+    >>> doc = tomlkit.parse(
+    ...     '''\
+    ...     [table.a]
+    ...     content = 1
+    ...     [interrupted]
+    ...     [table.b]
+    ...     content = 2
+    ...     '''
+    ... )
+    >>> _toml_get_table(doc, "table")
+    {'a': {'content': 1}, 'b': {'content': 2}}
+
     """
     try:
-        value = container.item(key)
+        value = container[key]
     except NonExistentKey:
         return tomlkit.table()
-    if not isinstance(value, tomlkit.items.AbstractTable):
+    if not isinstance(value, _TomlDict):
         return tomlkit.table()
     return value
 
 
-def _toml_get_array(
-    container: _TomlContainer | tomlkit.items.AbstractTable, key: str
-) -> tomlkit.items.Array:
+def _toml_get_array(container: _TomlDict, key: str) -> tomlkit.items.Array:
     r"""Extract the array at that key, or return a null object array.
 
     >>> doc = tomlkit.parse("a = 1\nb = [42]")
@@ -108,7 +124,7 @@ def _toml_get_array(
     []
     """
     try:
-        value = container.item(key)
+        value = container[key]
     except NonExistentKey:
         return tomlkit.array()
     if not isinstance(value, tomlkit.items.Array):
