@@ -1,4 +1,5 @@
 import tomlkit
+from inline_snapshot import snapshot
 
 import ganzua
 from ganzua._lockfile import Lockfile
@@ -117,29 +118,63 @@ already-unconstrained = "*"
 
 def test_update_pep621() -> None:
     doc = tomlkit.parse(_OLD_PYPROJECT)
-    ganzua.update_pyproject(doc, _LOCKFILE)
+    ganzua.edit_pyproject(doc, ganzua.UpdateRequirement(_LOCKFILE))
     assert doc.as_string() == _EXPECTED_PYPROJECT
 
 
 def test_update_poetry() -> None:
     doc = tomlkit.parse(_OLD_POETRY_PYPROJECT)
-    ganzua.update_pyproject(doc, _LOCKFILE)
+    ganzua.edit_pyproject(doc, ganzua.UpdateRequirement(_LOCKFILE))
     assert doc.as_string() == _EXPECTED_POETRY_PYPROJECT
 
 
 def test_update_empty() -> None:
     doc = tomlkit.document()
-    ganzua.update_pyproject(doc, _LOCKFILE)
+    ganzua.edit_pyproject(doc, ganzua.UpdateRequirement(_LOCKFILE))
     assert doc.as_string() == ""
 
 
 def test_unconstrain_pep621() -> None:
     doc = tomlkit.parse(_OLD_PYPROJECT)
-    ganzua.unconstrain_pyproject(doc)
+    ganzua.edit_pyproject(doc, ganzua.UnconstrainRequirement())
     assert doc.as_string() == _UNCONSTRAINED_PYPROJECT
 
 
 def test_unconstrain_poetry() -> None:
     doc = tomlkit.parse(_OLD_POETRY_PYPROJECT)
-    ganzua.unconstrain_pyproject(doc)
+    ganzua.edit_pyproject(doc, ganzua.UnconstrainRequirement())
     assert doc.as_string() == _UNCONSTRAINED_POETRY_PYPROJECT
+
+
+def _collect_requirements(pyproject_contents: str) -> list[str]:
+    doc = tomlkit.parse(pyproject_contents)
+    collector = ganzua.CollectRequirement([])
+    ganzua.edit_pyproject(doc, collector)
+    return [repr(r) for r in collector.reqs]
+
+
+def test_list_pep621() -> None:
+    assert _collect_requirements(_OLD_PYPROJECT) == snapshot(
+        [
+            "<Requirement('typing-extensions<4,>=3')>",
+            "<Requirement('merrily-ignored')>",
+            "<Requirement('annotated-types==0.6.*,>=0.6.1')>",
+            "<Requirement('ndr')>",
+            "<Requirement('typing-extensions~=3.4')>",
+            "<Requirement('annotated-types~=0.6.1')>",
+        ]
+    )
+
+
+def test_list_empty() -> None:
+    assert _collect_requirements("") == []
+
+
+def test_list_poetry() -> None:
+    assert _collect_requirements(_OLD_POETRY_PYPROJECT) == snapshot(
+        [
+            "PoetryRequirement(name='typing-extensions', specifier='^3.2')",
+            "PoetryRequirement(name='typing-extensions', specifier='^3.4')",
+            "PoetryRequirement(name='already-unconstrained', specifier='*')",
+        ]
+    )

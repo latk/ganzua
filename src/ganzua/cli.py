@@ -152,7 +152,7 @@ def constraints_bump(
 
     locked = ganzua.lockfile_from(lockfile)
     with _toml_edit_scope(pyproject) as doc:
-        ganzua.update_pyproject(doc, locked)
+        ganzua.edit_pyproject(doc, ganzua.UpdateRequirement(locked))
 
 
 @constraints.command("remove")
@@ -176,7 +176,7 @@ def constraints_remove(pyproject: pathlib.Path, backup: pathlib.Path | None) -> 
         shutil.copy(pyproject, backup)
 
     with _toml_edit_scope(pyproject) as doc:
-        ganzua.unconstrain_pyproject(doc)
+        ganzua.edit_pyproject(doc, ganzua.UnconstrainRequirement())
 
 
 @contextlib.contextmanager

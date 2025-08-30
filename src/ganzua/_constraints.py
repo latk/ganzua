@@ -73,6 +73,23 @@ class UnconstrainRequirement(MapRequirement):
         return PoetryRequirement(name=req.name, specifier="*")
 
 
+@dataclass
+class CollectRequirement(MapRequirement):
+    """Collect all requirements into an array, without changing them."""
+
+    reqs: list[Requirement | PoetryRequirement]
+
+    @t.override
+    def pep508(self, req: Requirement) -> Requirement:
+        self.reqs.append(req)
+        return req
+
+    @t.override
+    def poetry(self, req: PoetryRequirement) -> PoetryRequirement:
+        self.reqs.append(req)
+        return req
+
+
 def _update_poetry_specifier(spec: str, target: Version) -> str:
     """Update a Poetry version specifier.
 

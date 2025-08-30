@@ -4,31 +4,16 @@ from packaging.requirements import Requirement
 from tomlkit.container import Container as _TomlContainer
 from tomlkit.exceptions import NonExistentKey
 
-from ._constraints import (
-    MapRequirement,
-    PoetryRequirement,
-    UnconstrainRequirement,
-    UpdateRequirement,
-)
-from ._lockfile import Lockfile
+from ._constraints import MapRequirement, PoetryRequirement
 
 
-def update_pyproject(doc: tomlkit.TOMLDocument, lockfile: Lockfile) -> None:
+def edit_pyproject(pyproject: tomlkit.TOMLDocument, mapper: MapRequirement) -> None:
+    """Apply the callback to each requirement specifier in the pyproject.toml file."""
     # TODO skip path dependencies?
     # TODO support Poetry-specific fields
     # TODO check if there are uv-specific fields
     # TODO support build dependencies?
-    _update_all_requirements(doc, UpdateRequirement(lockfile))
 
-
-def unconstrain_pyproject(doc: tomlkit.TOMLDocument) -> None:
-    _update_all_requirements(doc, UnconstrainRequirement())
-
-
-def _update_all_requirements(
-    pyproject: tomlkit.TOMLDocument, mapper: MapRequirement
-) -> None:
-    """Apply the callback to each requirement specifier in the pyproject.toml file."""
     project = _toml_get_table(pyproject, "project")
 
     _update_requirements_array(_toml_get_array(project, "dependencies"), mapper)
