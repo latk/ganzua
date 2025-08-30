@@ -1,10 +1,10 @@
 # TODO test semver idioms with 0.x versions
 
-from packaging.requirements import Requirement
+from packaging.requirements import Requirement as Pep508Requirement
 
 from ganzua import Lockfile
 from ganzua._constraints import (
-    PoetryRequirement,
+    Requirement,
     UnconstrainRequirement,
     UpdateRequirement,
 )
@@ -19,22 +19,22 @@ _LOCKFILE: Lockfile = {
 
 def _assert_updated_req(input: str, expected: str) -> None:
     __tracebackhide__ = True  # better Pytest errors
-    updated = UpdateRequirement(_LOCKFILE).pep508(Requirement(input))
+    updated = UpdateRequirement(_LOCKFILE).pep508(Pep508Requirement(input))
     # compare normalized form
-    assert str(Requirement(str(updated))) == str(Requirement(expected))
+    assert str(Pep508Requirement(str(updated))) == str(Pep508Requirement(expected))
 
 
 def _assert_updated_poetry_req(name: str, input: str, expected: str) -> None:
     __tracebackhide__ = True
-    updated = UpdateRequirement(_LOCKFILE).poetry(PoetryRequirement(name, input))
-    assert updated.specifier == expected
+    updated = UpdateRequirement(_LOCKFILE).poetry({"name": name, "specifier": input})
+    assert updated["specifier"] == expected
 
 
 def _assert_unconstrained_req(input: str, expected: str) -> None:
     __tracebackhide__ = True
-    updated = UnconstrainRequirement().pep508(Requirement(input))
+    updated = UnconstrainRequirement().pep508(Pep508Requirement(input))
     # compare normalized form
-    assert str(Requirement(str(updated))) == str(Requirement(expected))
+    assert str(Pep508Requirement(str(updated))) == str(Pep508Requirement(expected))
 
 
 def test_update_requirement_not_found() -> None:
@@ -176,5 +176,7 @@ def test_unconstrain_requirement() -> None:
 
 
 def test_unconstrain_requirement_poetry() -> None:
-    old = PoetryRequirement("foo", "^1.2.3")
-    assert UnconstrainRequirement().poetry(old) == PoetryRequirement("foo", "*")
+    old = Requirement(name="foo", specifier="^1.2.3")
+    assert UnconstrainRequirement().poetry(old) == Requirement(
+        name="foo", specifier="*"
+    )

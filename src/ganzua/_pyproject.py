@@ -4,10 +4,10 @@ from dataclasses import dataclass
 import tomlkit
 import tomlkit.container
 import tomlkit.items
-from packaging.requirements import Requirement
+from packaging.requirements import Requirement as Pep508Requirement
 from tomlkit.exceptions import NonExistentKey
 
-from ._constraints import MapRequirement, PoetryRequirement
+from ._constraints import MapRequirement, Requirement
 
 _TomlDict: t.TypeAlias = (
     tomlkit.container.Container
@@ -60,7 +60,7 @@ class _Editor:
         for i, old in enumerate(list(reqs)):
             if not isinstance(old, str):
                 continue
-            old_req = Requirement(old)
+            old_req = Pep508Requirement(old)
             new_req = mapper.pep508(old_req)
             if old_req != new_req:
                 reqs[i] = str(new_req)
@@ -91,10 +91,10 @@ class _Editor:
                 value = value["version"]
             if not isinstance(value, tomlkit.items.String):
                 continue
-            old_req = PoetryRequirement(name=name, specifier=value.value)
+            old_req = Requirement(name=name, specifier=value.value)
             new_req = mapper.poetry(old_req)
             if old_req != new_req:
-                target_table[target_key] = new_req.specifier
+                target_table[target_key] = new_req["specifier"]
 
 
 def _toml_get_table(container: _TomlDict, key: str) -> _TomlDict:

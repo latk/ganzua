@@ -11,12 +11,6 @@ from packaging.version import Version
 from ._lockfile import Lockfile
 
 
-@dataclass(frozen=True, slots=True)
-class PoetryRequirement:
-    name: str
-    specifier: str
-
-
 @pydantic.with_config(use_attribute_docstrings=True)
 class Requirement(t.TypedDict):
     # compare: https://github.com/pypa/packaging/blob/e9b9d09ebc5992ecad1799da22ee5faefb9cc7cb/src/packaging/requirements.py#L21
@@ -60,15 +54,9 @@ def _requirement_from_pep508(
     # return data
 
 
-def _requirement_from_poetry(
-    req: PoetryRequirement,  # *, groups: frozenset[str] = frozenset()
-) -> Requirement:
-    return Requirement(name=req.name, specifier=req.specifier)
-
-
 class MapRequirement(t.Protocol):  # pragma: no cover
     def pep508(self, req: Pep508Requirement) -> Pep508Requirement: ...
-    def poetry(self, req: PoetryRequirement) -> PoetryRequirement: ...
+    def poetry(self, req: Requirement) -> Requirement: ...
 
 
 @dataclass
@@ -93,17 +81,17 @@ class UpdateRequirement(MapRequirement):
         return updated
 
     @t.override
-    def poetry(self, req: PoetryRequirement) -> PoetryRequirement:
-        target = self.lockfile["packages"].get(req.name)
+    def poetry(self, req: Requirement) -> Requirement:
+        target = self.lockfile["packages"].get(req["name"])
         if not target:
             return req
 
         target_version = Version(target["version"])
-        updated_specifier = _update_poetry_specifier(req.specifier, target_version)
-        if req.specifier == updated_specifier:
+        updated_specifier = _update_poetry_specifier(req["specifier"], target_version)
+        if req["specifier"] == updated_specifier:
             return req
 
-        return PoetryRequirement(req.name, updated_specifier)
+        return {**req, "specifier": updated_specifier}
 
 
 @dataclass
@@ -119,8 +107,8 @@ class UnconstrainRequirement(MapRequirement):
         return updated
 
     @t.override
-    def poetry(self, req: PoetryRequirement) -> PoetryRequirement:
-        return PoetryRequirement(name=req.name, specifier="*")
+    def poetry(self, req: Requirement) -> Requirement:
+        return {**req, "specifier": "*"}
 
 
 @dataclass
@@ -135,8 +123,8 @@ class CollectRequirement(MapRequirement):
         return req
 
     @t.override
-    def poetry(self, req: PoetryRequirement) -> PoetryRequirement:
-        self.reqs.append(_requirement_from_poetry(req))
+    def poetry(self, req: Requirement) -> Requirement:
+        self.reqs.append(req)
         return req
 
 
