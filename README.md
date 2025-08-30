@@ -146,10 +146,26 @@ Work with `pyproject.toml` constraints.
 
 **Commands:**
 
+* `inspect`
+  List all constraints in the `pyproject.toml` file.
 * `bump`
   Update `pyproject.toml` dependency constraints to match the lockfile.
 * `remove`
   Remove any dependency version constraints from the `pyproject.toml`.
+
+
+### ganzua constraints inspect
+
+Usage: `ganzua constraints inspect [OPTIONS] PYPROJECT`
+
+List all constraints in the `pyproject.toml` file.
+
+**Options:**
+
+* `--format [json|markdown]`
+  Choose the output format, e.g. Markdown. [default: json]
+* `--help`
+  Show this help message and exit.
 
 
 ### ganzua constraints bump
@@ -204,7 +220,7 @@ uv lock
 
 ### ganzua schema
 
-Usage: `ganzua schema [OPTIONS] {inspect|diff}`
+Usage: `ganzua schema [OPTIONS] {inspect|diff|constraints-inspect}`
 
 Show the JSON schema for the output of the given command.
 

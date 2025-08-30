@@ -1,0 +1,67 @@
+{
+  "$defs": {
+    "Requirement": {
+      "description": "A resolver-agnostic Requirement model.",
+      "properties": {
+        "name": {
+          "description": "The name of the required package.",
+          "title": "Name",
+          "type": "string"
+        },
+        "specifier": {
+          "description": "Version specifier for the required package, may use PEP-508 or Poetry syntax.",
+          "title": "Specifier",
+          "type": "string"
+        },
+        "url": {
+          "description": "URL for an URL-dependency.",
+          "title": "Url",
+          "type": "string"
+        },
+        "extras": {
+          "description": "Extras enabled for the required package.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Extras",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "marker": {
+          "description": "Environment marker expression describing when this requirement should be installed.",
+          "title": "Marker",
+          "type": "string"
+        },
+        "groups": {
+          "description": "Dependency groups that this requirement is part of.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Groups",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "name",
+        "specifier"
+      ],
+      "title": "Requirement",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "requirements": {
+      "items": {
+        "$ref": "#/$defs/Requirement"
+      },
+      "title": "Requirements",
+      "type": "array"
+    }
+  },
+  "required": [
+    "requirements"
+  ],
+  "title": "Requirements",
+  "type": "object"
+}

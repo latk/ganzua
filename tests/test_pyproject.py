@@ -2,6 +2,7 @@ import tomlkit
 from inline_snapshot import snapshot
 
 import ganzua
+from ganzua._constraints import Requirement
 from ganzua._lockfile import Lockfile
 
 _LOCKFILE: Lockfile = {
@@ -146,22 +147,22 @@ def test_unconstrain_poetry() -> None:
     assert doc.as_string() == _UNCONSTRAINED_POETRY_PYPROJECT
 
 
-def _collect_requirements(pyproject_contents: str) -> list[str]:
+def _collect_requirements(pyproject_contents: str) -> list[Requirement]:
     doc = tomlkit.parse(pyproject_contents)
     collector = ganzua.CollectRequirement([])
     ganzua.edit_pyproject(doc, collector)
-    return [repr(r) for r in collector.reqs]
+    return collector.reqs
 
 
 def test_list_pep621() -> None:
     assert _collect_requirements(_OLD_PYPROJECT) == snapshot(
         [
-            "<Requirement('typing-extensions<4,>=3')>",
-            "<Requirement('merrily-ignored')>",
-            "<Requirement('annotated-types==0.6.*,>=0.6.1')>",
-            "<Requirement('ndr')>",
-            "<Requirement('typing-extensions~=3.4')>",
-            "<Requirement('annotated-types~=0.6.1')>",
+            Requirement(name="typing-extensions", specifier="<4,>=3"),
+            Requirement(name="merrily-ignored", specifier=""),
+            Requirement(name="annotated-types", specifier="==0.6.*,>=0.6.1"),
+            Requirement(name="ndr", specifier=""),
+            Requirement(name="typing-extensions", specifier="~=3.4"),
+            Requirement(name="annotated-types", specifier="~=0.6.1"),
         ]
     )
 
@@ -173,8 +174,8 @@ def test_list_empty() -> None:
 def test_list_poetry() -> None:
     assert _collect_requirements(_OLD_POETRY_PYPROJECT) == snapshot(
         [
-            "PoetryRequirement(name='typing-extensions', specifier='^3.2')",
-            "PoetryRequirement(name='typing-extensions', specifier='^3.4')",
-            "PoetryRequirement(name='already-unconstrained', specifier='*')",
+            Requirement(name="typing-extensions", specifier="^3.2"),
+            Requirement(name="typing-extensions", specifier="^3.4"),
+            Requirement(name="already-unconstrained", specifier="*"),
         ]
     )

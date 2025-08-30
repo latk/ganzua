@@ -26,7 +26,7 @@ fix *files='.':
   explicitly ruff check --fix-only --show-fixes -- "$@"
   if [[ "$*" == "." ]]; then
     explicitly ./scripts/readme-usage.py update
-    for cmd in diff inspect; do
+    for cmd in diff inspect constraints-inspect; do
       explicitly ganzua schema $cmd >tests/schema.$cmd.json
     done
   fi

@@ -26,6 +26,7 @@ _WELL_KNOWN_SUBCOMMANDS = [
     *_WELL_KNOWN_COMMANDS,
     "constraints bump",
     "constraints remove",
+    "constraints inspect",
 ]
 
 
@@ -209,7 +210,32 @@ dependencies = [
         assert not backup.exists()
 
 
-@pytest.mark.parametrize("command", ["inspect", "diff"])
+def test_constraints_inspect() -> None:
+    result = _run(["constraints", "inspect", str(resources.NEW_UV_PYPROJECT)])
+    assert json.loads(result.stdout) == snapshot(
+        {
+            "requirements": [
+                {"name": "annotated-types", "specifier": ">=0.7.0"},
+                {"name": "typing-extensions", "specifier": ">=4"},
+            ]
+        }
+    )
+
+
+def test_constraints_inspect_markdown() -> None:
+    result = _run(
+        ["constraints", "inspect", "--format=markdown", str(resources.NEW_UV_PYPROJECT)]
+    )
+    assert result.stdout == snapshot("""\
+| package           | version |
+|-------------------|---------|
+| annotated-types   | >=0.7.0 |
+| typing-extensions | >=4     |
+
+""")
+
+
+@pytest.mark.parametrize("command", ["inspect", "diff", "constraints-inspect"])
 def test_schema(command: str) -> None:
     """Can output a JSON schema for a given command."""
     # But we only test that the output is something json-ish

@@ -2,7 +2,8 @@ import copy
 import typing as t
 from dataclasses import dataclass
 
-from packaging.requirements import Requirement
+import pydantic
+from packaging.requirements import Requirement as Pep508Requirement
 from packaging.specifiers import Specifier, SpecifierSet
 from packaging.utils import canonicalize_version
 from packaging.version import Version
@@ -16,8 +17,56 @@ class PoetryRequirement:
     specifier: str
 
 
+@pydantic.with_config(use_attribute_docstrings=True)
+class Requirement(t.TypedDict):
+    # compare: https://github.com/pypa/packaging/blob/e9b9d09ebc5992ecad1799da22ee5faefb9cc7cb/src/packaging/requirements.py#L21
+    """A resolver-agnostic Requirement model."""
+
+    name: str
+    """The name of the required package."""
+    specifier: str
+    """Version specifier for the required package, may use PEP-508 or Poetry syntax."""
+    url: t.NotRequired[str]
+    """URL for an URL-dependency."""
+    extras: t.NotRequired[frozenset[str]]
+    """Extras enabled for the required package."""
+    marker: t.NotRequired[str]
+    """Environment marker expression describing when this requirement should be installed."""
+    groups: t.NotRequired[frozenset[str]]
+    """Dependency groups that this requirement is part of."""
+
+
+class Requirements(t.TypedDict):
+    requirements: t.Sequence[Requirement]
+
+
+REQUIREMENTS_SCHEMA = pydantic.TypeAdapter(Requirements)
+
+
+def _requirement_from_pep508(
+    req: Pep508Requirement,  # *, groups: frozenset[str] = frozenset()
+) -> Requirement:
+    return Requirement(name=req.name, specifier=str(req.specifier))
+    # TODO support additional fields
+    # if req.url:
+    #     data["url"] = req.url
+    # if req.extras:
+    #     data["extras"] = frozenset(req.extras)
+    # if req.marker:
+    #     data["marker"] = str(req.marker)
+    # if groups:
+    #     data["groups"] = groups
+    # return data
+
+
+def _requirement_from_poetry(
+    req: PoetryRequirement,  # *, groups: frozenset[str] = frozenset()
+) -> Requirement:
+    return Requirement(name=req.name, specifier=req.specifier)
+
+
 class MapRequirement(t.Protocol):  # pragma: no cover
-    def pep508(self, req: Requirement) -> Requirement: ...
+    def pep508(self, req: Pep508Requirement) -> Pep508Requirement: ...
     def poetry(self, req: PoetryRequirement) -> PoetryRequirement: ...
 
 
@@ -28,7 +77,7 @@ class UpdateRequirement(MapRequirement):
     lockfile: Lockfile
 
     @t.override
-    def pep508(self, req: Requirement) -> Requirement:
+    def pep508(self, req: Pep508Requirement) -> Pep508Requirement:
         target = self.lockfile.get(req.name)
         if not target:
             return req
@@ -59,7 +108,7 @@ class UpdateRequirement(MapRequirement):
 @dataclass
 class UnconstrainRequirement(MapRequirement):
     @t.override
-    def pep508(self, req: Requirement) -> Requirement:
+    def pep508(self, req: Pep508Requirement) -> Pep508Requirement:
         """Remove any constraints from the requirement."""
         if not req.specifier:
             return req
@@ -77,16 +126,16 @@ class UnconstrainRequirement(MapRequirement):
 class CollectRequirement(MapRequirement):
     """Collect all requirements into an array, without changing them."""
 
-    reqs: list[Requirement | PoetryRequirement]
+    reqs: list[Requirement]
 
     @t.override
-    def pep508(self, req: Requirement) -> Requirement:
-        self.reqs.append(req)
+    def pep508(self, req: Pep508Requirement) -> Pep508Requirement:
+        self.reqs.append(_requirement_from_pep508(req))
         return req
 
     @t.override
     def poetry(self, req: PoetryRequirement) -> PoetryRequirement:
-        self.reqs.append(req)
+        self.reqs.append(_requirement_from_poetry(req))
         return req
 
 

@@ -1,5 +1,7 @@
 import typing as t
 
+from ganzua._constraints import Requirements
+
 from ._diff import Diff
 from ._lockfile import LockedPackage, Lockfile
 
@@ -26,6 +28,14 @@ def md_from_diff(diff: Diff) -> str:
             (package, pick_version(data["old"]), pick_version(data["new"]))
             for (package, data) in diff.items()
         ),
+    )
+
+
+def md_from_requirements(reqs: Requirements) -> str:
+    """Summarize Requirements as a Markdown table."""
+    return _table(
+        ("package", "version"),
+        sorted((r["name"], r["specifier"]) for r in reqs["requirements"]),
     )
 
 

@@ -14,11 +14,12 @@ import rich
 import tomlkit
 
 import ganzua
+from ganzua._constraints import Requirements
 
 from ._cli_help import App
 from ._diff import Diff
 from ._lockfile import Lockfile
-from ._markdown import md_from_diff, md_from_lockfile
+from ._markdown import md_from_diff, md_from_lockfile, md_from_requirements
 from ._utils import error_context
 
 app = App(
@@ -77,23 +78,6 @@ class _with_print_json[R: _Jsonish]:  # noqa: N801  # invalid-name
         return command_with_json_output
 
 
-class _CommmandWithSchema(enum.StrEnum):
-    schema: pydantic.TypeAdapter[t.Any]
-
-    inspect = "inspect", ganzua.LOCKFILE_SCHEMA
-    diff = "diff", ganzua.DIFF_SCHEMA
-
-    def __new__(cls, discriminator: str, schema: pydantic.TypeAdapter[t.Any]) -> t.Self:
-        # Overriding __new__() of an enum is a bit tricky,
-        # see <https://docs.python.org/3/howto/enum.html#when-to-use-new-vs-init>.
-        # We cannot use super() and must invoke the underlying type directly.
-        # We must assign the special `_value_` field.
-        self = str.__new__(cls, discriminator)
-        self._value_ = discriminator
-        self.schema = schema
-        return self
-
-
 _ExistingFilePath = click.Path(
     exists=True, path_type=pathlib.Path, file_okay=True, dir_okay=False
 )
@@ -122,6 +106,18 @@ def diff(old: pathlib.Path, new: pathlib.Path) -> Diff:
 @app.group()
 def constraints() -> None:
     """Work with `pyproject.toml` constraints."""
+
+
+@constraints.command("inspect")
+@click.argument("pyproject", type=_ExistingFilePath)
+@_with_print_json(md_from_requirements)
+def constraints_inspect(pyproject: pathlib.Path) -> Requirements:
+    """List all constraints in the `pyproject.toml` file."""
+    with error_context(f"while parsing {pyproject}"):
+        doc = tomlkit.parse(pyproject.read_text())
+    collector = ganzua.CollectRequirement([])
+    ganzua.edit_pyproject(doc, collector)
+    return Requirements(requirements=collector.reqs)
 
 
 @constraints.command("bump")
@@ -193,9 +189,22 @@ def _toml_edit_scope(path: pathlib.Path) -> t.Iterator[tomlkit.TOMLDocument]:
         path.write_text(new_contents)
 
 
+SchemaName = t.Literal["inspect", "diff", "constraints-inspect"]
+
+
 @app.command()
-@click.argument("command", type=click.Choice(_CommmandWithSchema))
-def schema(command: _CommmandWithSchema) -> None:
+@click.argument("command", type=click.Choice(t.get_args(SchemaName)))
+def schema(command: SchemaName) -> None:
     """Show the JSON schema for the output of the given command."""
-    schema = command.schema.json_schema(mode="serialization")
+    adapter: pydantic.TypeAdapter[t.Any]
+    match command:
+        case "inspect":
+            adapter = ganzua.LOCKFILE_SCHEMA
+        case "diff":
+            adapter = ganzua.DIFF_SCHEMA
+        case "constraints-inspect":
+            adapter = ganzua.REQUIREMENTS_SCHEMA
+        case other:  # pragma: no cover
+            t.assert_never(other)
+    schema = adapter.json_schema(mode="serialization")
     rich.print_json(data=schema)
