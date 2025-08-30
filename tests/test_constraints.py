@@ -10,8 +10,10 @@ from ganzua._constraints import (
 )
 
 _LOCKFILE: Lockfile = {
-    "foo": {"version": "7.1.2"},
-    "minor": {"version": "4.5.6"},
+    "packages": {
+        "foo": {"version": "7.1.2"},
+        "minor": {"version": "4.5.6"},
+    },
 }
 
 

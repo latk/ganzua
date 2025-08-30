@@ -9,11 +9,13 @@ from ._utils import error_context
 
 type PathLike = pathlib.Path | importlib.resources.abc.Traversable
 
-type Lockfile = dict[str, LockedPackage]
-
 
 class LockedPackage(t.TypedDict):
     version: str
+
+
+class Lockfile(t.TypedDict):
+    packages: dict[str, LockedPackage]
 
 
 LOCKFILE_SCHEMA = pydantic.TypeAdapter[Lockfile](Lockfile)
@@ -26,10 +28,12 @@ def lockfile_from(path: PathLike) -> Lockfile:
         )
 
         return {
-            p["name"]: {
-                "version": p["version"],
+            "packages": {
+                p["name"]: {
+                    "version": p["version"],
+                }
+                for p in input_lockfile["package"]
             }
-            for p in input_lockfile["package"]
         }
 
 

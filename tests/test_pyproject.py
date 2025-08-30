@@ -6,9 +6,11 @@ from ganzua._constraints import Requirement
 from ganzua._lockfile import Lockfile
 
 _LOCKFILE: Lockfile = {
-    "annotated-types": {"version": "0.7.0"},
-    "example": {"version": "0.2.0"},
-    "typing-extensions": {"version": "4.14.1"},
+    "packages": {
+        "annotated-types": {"version": "0.7.0"},
+        "example": {"version": "0.2.0"},
+        "typing-extensions": {"version": "4.14.1"},
+    }
 }
 
 _OLD_PYPROJECT = """\

@@ -14,8 +14,18 @@
       "type": "object"
     }
   },
-  "additionalProperties": {
-    "$ref": "#/$defs/LockedPackage"
+  "properties": {
+    "packages": {
+      "additionalProperties": {
+        "$ref": "#/$defs/LockedPackage"
+      },
+      "title": "Packages",
+      "type": "object"
+    }
   },
+  "required": [
+    "packages"
+  ],
+  "title": "Lockfile",
   "type": "object"
 }

@@ -53,8 +53,10 @@ def test_inspect() -> None:
     result = _run(["inspect", str(resources.OLD_UV_LOCKFILE)])
     assert json.loads(result.stdout) == snapshot(
         {
-            "example": {"version": "0.1.0"},
-            "typing-extensions": {"version": "3.10.0.2"},
+            "packages": {
+                "example": {"version": "0.1.0"},
+                "typing-extensions": {"version": "3.10.0.2"},
+            }
         }
     )
 

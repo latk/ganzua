@@ -78,7 +78,7 @@ class UpdateRequirement(MapRequirement):
 
     @t.override
     def pep508(self, req: Pep508Requirement) -> Pep508Requirement:
-        target = self.lockfile.get(req.name)
+        target = self.lockfile["packages"].get(req.name)
         if not target:
             return req
 
@@ -93,7 +93,7 @@ class UpdateRequirement(MapRequirement):
 
     @t.override
     def poetry(self, req: PoetryRequirement) -> PoetryRequirement:
-        target = self.lockfile.get(req.name)
+        target = self.lockfile["packages"].get(req.name)
         if not target:
             return req
 

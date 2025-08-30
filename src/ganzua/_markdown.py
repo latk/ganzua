@@ -10,7 +10,10 @@ def md_from_lockfile(lockfile: Lockfile) -> str:
     """Summarize the Lockfile as a Markdown table."""
     return _table(
         ("package", "version"),
-        sorted((package, data["version"]) for (package, data) in lockfile.items()),
+        sorted(
+            (package, data["version"])
+            for (package, data) in lockfile["packages"].items()
+        ),
     )
 
 

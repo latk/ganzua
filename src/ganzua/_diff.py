@@ -31,9 +31,9 @@ def diff(old: Lockfile, new: Lockfile) -> Diff:
         "stat": DiffStat(total=0, added=0, removed=0, updated=0),
         "packages": {},
     }
-    for package in sorted({*old, *new}):
-        old_version = old.get(package)
-        new_version = new.get(package)
+    for package in sorted({*old["packages"], *new["packages"]}):
+        old_version = old["packages"].get(package)
+        new_version = new["packages"].get(package)
         if old_version == new_version:
             continue
         is_added: bool = old_version is None
