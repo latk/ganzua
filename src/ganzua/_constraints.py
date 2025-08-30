@@ -26,14 +26,17 @@ class Requirement(t.TypedDict):
     """The name of the required package."""
     specifier: str
     """Version specifier for the required package, may use PEP-508 or Poetry syntax."""
-    url: t.NotRequired[str]
-    """URL for an URL-dependency."""
     extras: t.NotRequired[frozenset[str]]
     """Extras enabled for the required package."""
     marker: t.NotRequired[str]
     """Environment marker expression describing when this requirement should be installed."""
     groups: t.NotRequired[frozenset[str]]
     """Dependency groups that this requirement is part of."""
+
+    # TODO instead of directly supporting URLs,
+    # should develop a more general concept of sources.
+    # url: t.NotRequired[str]
+    # """URL for an URL-dependency."""
 
 
 class Requirements(t.TypedDict):
@@ -48,8 +51,6 @@ def _requirement_from_pep508(
 ) -> Requirement:
     return Requirement(name=req.name, specifier=str(req.specifier))
     # TODO support additional fields
-    # if req.url:
-    #     data["url"] = req.url
     # if req.extras:
     #     data["extras"] = frozenset(req.extras)
     # if req.marker:

@@ -13,11 +13,6 @@
           "title": "Specifier",
           "type": "string"
         },
-        "url": {
-          "description": "URL for an URL-dependency.",
-          "title": "Url",
-          "type": "string"
-        },
         "extras": {
           "description": "Extras enabled for the required package.",
           "items": {
