@@ -11,7 +11,10 @@ from . import resources
 
 @pytest.mark.parametrize("path", [resources.OLD_UV_LOCKFILE, resources.NEW_UV_LOCKFILE])
 def test_comparing_self_is_empty(path: Traversable) -> None:
-    assert diff(lockfile_from(path), lockfile_from(path)) == {}
+    assert diff(lockfile_from(path), lockfile_from(path)) == {
+        "packages": {},
+        "stat": {"total": 0, "added": 0, "removed": 0, "updated": 0},
+    }
 
 
 def test_uv() -> None:
@@ -19,13 +22,16 @@ def test_uv() -> None:
     new = lockfile_from(resources.NEW_UV_LOCKFILE)
     assert diff(old, new) == snapshot(
         {
-            "annotated-types": {
-                "old": None,
-                "new": {"version": "0.7.0"},
+            "packages": {
+                "annotated-types": {
+                    "old": None,
+                    "new": {"version": "0.7.0"},
+                },
+                "typing-extensions": {
+                    "old": {"version": "3.10.0.2"},
+                    "new": {"version": "4.14.1"},
+                },
             },
-            "typing-extensions": {
-                "old": {"version": "3.10.0.2"},
-                "new": {"version": "4.14.1"},
-            },
+            "stat": {"total": 2, "added": 1, "removed": 0, "updated": 1},
         }
     )

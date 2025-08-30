@@ -30,6 +30,34 @@
       "title": "DiffEntry",
       "type": "object"
     },
+    "DiffStat": {
+      "properties": {
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        },
+        "added": {
+          "title": "Added",
+          "type": "integer"
+        },
+        "removed": {
+          "title": "Removed",
+          "type": "integer"
+        },
+        "updated": {
+          "title": "Updated",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "total",
+        "added",
+        "removed",
+        "updated"
+      ],
+      "title": "DiffStat",
+      "type": "object"
+    },
     "LockedPackage": {
       "properties": {
         "version": {
@@ -44,8 +72,22 @@
       "type": "object"
     }
   },
-  "additionalProperties": {
-    "$ref": "#/$defs/DiffEntry"
+  "properties": {
+    "packages": {
+      "additionalProperties": {
+        "$ref": "#/$defs/DiffEntry"
+      },
+      "title": "Packages",
+      "type": "object"
+    },
+    "stat": {
+      "$ref": "#/$defs/DiffStat"
+    }
   },
+  "required": [
+    "packages",
+    "stat"
+  ],
+  "title": "Diff",
   "type": "object"
 }

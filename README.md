@@ -10,18 +10,26 @@ By default, we get JSON output:
 ```console
 $ ganzua diff tests/{old,new}-uv-project/uv.lock
 {
-  "annotated-types": {
-    "old": null,
-    "new": {
-      "version": "0.7.0"
-    }
+  "stat": {
+    "total": 2,
+    "added": 1,
+    "removed": 0,
+    "updated": 1
   },
-  "typing-extensions": {
-    "old": {
-      "version": "3.10.0.2"
+  "packages": {
+    "annotated-types": {
+      "old": null,
+      "new": {
+        "version": "0.7.0"
+      }
     },
-    "new": {
-      "version": "4.14.1"
+    "typing-extensions": {
+      "old": {
+        "version": "3.10.0.2"
+      },
+      "new": {
+        "version": "4.14.1"
+      }
     }
   }
 }

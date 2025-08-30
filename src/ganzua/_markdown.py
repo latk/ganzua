@@ -1,5 +1,4 @@
 import typing as t
-from dataclasses import dataclass
 
 from ganzua._constraints import Requirements
 
@@ -23,17 +22,19 @@ def md_from_diff(diff: Diff) -> str:
             return "-"
         return p["version"]
 
-    stat = DiffStat.from_diff(diff)
+    summary = f"{diff['stat']['total']} changed packages"
+    if summary_details := ", ".join(_diff_summary_details(diff)):
+        summary += f" ({summary_details})"
 
-    sections: list[str] = [stat.to_markdown()]
+    sections: list[str] = [summary]
 
-    if stat.total > 0:
+    if diff["stat"]["total"] > 0:
         sections.append(
             _table(
                 ("package", "old", "new"),
                 sorted(
                     (package, pick_version(data["old"]), pick_version(data["new"]))
-                    for (package, data) in diff.items()
+                    for (package, data) in diff["packages"].items()
                 ),
             )
         )
@@ -41,39 +42,14 @@ def md_from_diff(diff: Diff) -> str:
     return "\n\n".join(sections)
 
 
-@dataclass
-class DiffStat:
-    total: int = 0
-    added: int = 0
-    removed: int = 0
-    updated: int = 0
-
-    @classmethod
-    def from_diff(cls, diff: Diff) -> t.Self:
-        stat = cls()
-        for package in diff.values():
-            stat.total += 1
-            if package["old"] is None:
-                stat.added += 1
-            elif package["new"] is None:
-                stat.removed += 1
-            else:
-                stat.updated += 1
-        return stat
-
-    def to_markdown(self) -> str:
-        details = {
-            "added": self.added,
-            "updated": self.updated,
-            "removed": self.removed,
-        }
-        details_str = ", ".join(
-            f"{count} {status}" for status, count in details.items() if count > 0
-        )
-        msg = f"{self.total} changed packages"
-        if details_str:
-            msg += f" ({details_str})"
-        return msg
+def _diff_summary_details(diff: Diff) -> t.Iterator[str]:
+    stat = diff["stat"]
+    if count := stat["added"]:
+        yield f"{count} added"
+    if count := stat["updated"]:
+        yield f"{count} updated"
+    if count := stat["removed"]:
+        yield f"{count} removed"
 
 
 def md_from_requirements(reqs: Requirements) -> str:
