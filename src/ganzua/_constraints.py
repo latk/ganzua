@@ -53,9 +53,11 @@ def parse_requirement_from_pep508(req: Pep508Requirement | str) -> Requirement:
     # return data
 
 
+Kind = t.Literal["pep508", "poetry"]
+
+
 class EditRequirement(t.Protocol):  # pragma: no cover
-    def pep508(self, req: Requirement) -> None: ...
-    def poetry(self, req: Requirement) -> None: ...
+    def apply(self, req: Requirement, *, kind: Kind) -> None: ...
 
 
 @dataclass
@@ -65,43 +67,47 @@ class UpdateRequirement(EditRequirement):
     lockfile: Lockfile
 
     @t.override
-    def pep508(self, req: Requirement) -> None:
+    def apply(self, req: Requirement, *, kind: Kind) -> None:
         target = self.lockfile["packages"].get(req["name"])
         if not target:
             return
-
         target_version = Version(target["version"])
-        old_specifier = SpecifierSet(req["specifier"])
-        updated_specifier = _update_specifier_set(old_specifier, target_version)
-        if old_specifier == updated_specifier:
-            return
 
-        req["specifier"] = str(updated_specifier)
+        match kind:
+            case "pep508":
+                old_specifier = SpecifierSet(req["specifier"])
+                updated_specifier = _update_specifier_set(old_specifier, target_version)
+                if old_specifier == updated_specifier:
+                    return
 
-    @t.override
-    def poetry(self, req: Requirement) -> None:
-        target = self.lockfile["packages"].get(req["name"])
-        if not target:
-            return
+                req["specifier"] = str(updated_specifier)
 
-        target_version = Version(target["version"])
-        updated_specifier = _update_poetry_specifier(req["specifier"], target_version)
-        if req["specifier"] == updated_specifier:
-            return
+            case "poetry":
+                updated_poetry_specifier = _update_poetry_specifier(
+                    req["specifier"], target_version
+                )
+                if req["specifier"] == updated_poetry_specifier:
+                    return
 
-        req["specifier"] = updated_specifier
+                req["specifier"] = updated_poetry_specifier
+
+            case other:  # pragma: no cover
+                t.assert_never(other)
 
 
 @dataclass
 class UnconstrainRequirement(EditRequirement):
-    @t.override
-    def pep508(self, req: Requirement) -> None:
-        """Remove any constraints from the requirement."""
-        req["specifier"] = ""
+    """Remove any constraints from the requirement."""
 
     @t.override
-    def poetry(self, req: Requirement) -> None:
-        req["specifier"] = "*"
+    def apply(self, req: Requirement, *, kind: Kind) -> None:
+        match kind:
+            case "pep508":
+                req["specifier"] = ""
+            case "poetry":
+                req["specifier"] = "*"
+            case other:  # pragma: no cover
+                t.assert_never(other)
 
 
 @dataclass
@@ -111,11 +117,7 @@ class CollectRequirement(EditRequirement):
     reqs: list[Requirement]
 
     @t.override
-    def pep508(self, req: Requirement) -> None:
-        self.reqs.append(req)
-
-    @t.override
-    def poetry(self, req: Requirement) -> None:
+    def apply(self, req: Requirement, *, kind: Kind) -> None:
         self.reqs.append(req)
 
 

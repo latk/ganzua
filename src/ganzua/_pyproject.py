@@ -63,7 +63,7 @@ class _Editor:
                 continue
             req = Pep508Requirement(item)
             data = parse_requirement_from_pep508(req)
-            edit.pep508(data)
+            edit.apply(data, kind="pep508")
             new_specifier = PrettySpecifierSet(data["specifier"])
             if req.specifier != new_specifier:
                 req.specifier = new_specifier
@@ -96,7 +96,7 @@ class _Editor:
             if not isinstance(value, tomlkit.items.String):
                 continue
             req = Requirement(name=name, specifier=value.value)
-            edit.poetry(req)
+            edit.apply(req, kind="poetry")
             if value.value != req["specifier"]:
                 target_table[target_key] = req["specifier"]
 

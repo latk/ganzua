@@ -19,7 +19,7 @@ _LOCKFILE: Lockfile = {
 def _assert_updated_req(input: str, expected: str) -> None:
     __tracebackhide__ = True  # better Pytest errors
     req = parse_requirement_from_pep508(input)
-    UpdateRequirement(_LOCKFILE).pep508(req)
+    UpdateRequirement(_LOCKFILE).apply(req, kind="pep508")
     # TODO compare normalized form
     assert req == parse_requirement_from_pep508(expected)
 
@@ -27,14 +27,14 @@ def _assert_updated_req(input: str, expected: str) -> None:
 def _assert_updated_poetry_req(name: str, input: str, expected: str) -> None:
     __tracebackhide__ = True
     req = Requirement(name=name, specifier=input)
-    UpdateRequirement(_LOCKFILE).poetry(req)
+    UpdateRequirement(_LOCKFILE).apply(req, kind="poetry")
     assert req == Requirement(name=name, specifier=expected)
 
 
 def _assert_unconstrained_req(input: str, expected: str) -> None:
     __tracebackhide__ = True
     req = parse_requirement_from_pep508(input)
-    UnconstrainRequirement().pep508(req)
+    UnconstrainRequirement().apply(req, kind="pep508")
     # TODO compare normalized form
     assert req == parse_requirement_from_pep508(expected)
 
@@ -179,5 +179,5 @@ def test_unconstrain_requirement() -> None:
 
 def test_unconstrain_requirement_poetry() -> None:
     req = Requirement(name="foo", specifier="^1.2.3")
-    UnconstrainRequirement().poetry(req)
+    UnconstrainRequirement().apply(req, kind="poetry")
     assert req == Requirement(name="foo", specifier="*")
