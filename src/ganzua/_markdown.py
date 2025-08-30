@@ -1,4 +1,5 @@
 import typing as t
+from dataclasses import dataclass
 
 from ganzua._constraints import Requirements
 
@@ -22,13 +23,57 @@ def md_from_diff(diff: Diff) -> str:
             return "-"
         return p["version"]
 
-    return _table(
-        ("package", "old", "new"),
-        sorted(
-            (package, pick_version(data["old"]), pick_version(data["new"]))
-            for (package, data) in diff.items()
-        ),
-    )
+    stat = DiffStat.from_diff(diff)
+
+    sections: list[str] = [stat.to_markdown()]
+
+    if stat.total > 0:
+        sections.append(
+            _table(
+                ("package", "old", "new"),
+                sorted(
+                    (package, pick_version(data["old"]), pick_version(data["new"]))
+                    for (package, data) in diff.items()
+                ),
+            )
+        )
+
+    return "\n\n".join(sections)
+
+
+@dataclass
+class DiffStat:
+    total: int = 0
+    added: int = 0
+    removed: int = 0
+    updated: int = 0
+
+    @classmethod
+    def from_diff(cls, diff: Diff) -> t.Self:
+        stat = cls()
+        for package in diff.values():
+            stat.total += 1
+            if package["old"] is None:
+                stat.added += 1
+            elif package["new"] is None:
+                stat.removed += 1
+            else:
+                stat.updated += 1
+        return stat
+
+    def to_markdown(self) -> str:
+        details = {
+            "added": self.added,
+            "updated": self.updated,
+            "removed": self.removed,
+        }
+        details_str = ", ".join(
+            f"{count} {status}" for status, count in details.items() if count > 0
+        )
+        msg = f"{self.total} changed packages"
+        if details_str:
+            msg += f" ({details_str})"
+        return msg
 
 
 def md_from_requirements(reqs: Requirements) -> str:

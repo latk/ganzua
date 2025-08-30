@@ -87,22 +87,41 @@ def test_diff() -> None:
 
 
 def test_diff_markdown() -> None:
-    result = _run(
-        [
-            "diff",
-            "--format=markdown",
-            str(resources.OLD_UV_LOCKFILE),
-            str(resources.NEW_UV_LOCKFILE),
-        ]
-    )
-    assert result.stdout == snapshot(
-        """\
+    old = str(resources.OLD_UV_LOCKFILE)
+    new = str(resources.NEW_UV_LOCKFILE)
+
+    result = _run(["diff", "--format=markdown", old, new])
+    assert result.stdout == snapshot("""\
+2 changed packages (1 added, 1 updated)
+
 | package           | old      | new    |
 |-------------------|----------|--------|
 | annotated-types   | -        | 0.7.0  |
 | typing-extensions | 3.10.0.2 | 4.14.1 |
-"""
+""")
+
+    # the same diff in reverse
+    result = _run(["diff", "--format=markdown", new, old])
+    assert result.stdout == snapshot("""\
+2 changed packages (1 updated, 1 removed)
+
+| package           | old    | new      |
+|-------------------|--------|----------|
+| annotated-types   | 0.7.0  | -        |
+| typing-extensions | 4.14.1 | 3.10.0.2 |
+""")
+
+
+def test_diff_markdown_empty() -> None:
+    result = _run(
+        [
+            "diff",
+            "--format=markdown",
+            str(resources.NEW_UV_LOCKFILE),
+            str(resources.NEW_UV_LOCKFILE),
+        ]
     )
+    assert result.stdout == snapshot("0 changed packages\n")
 
 
 @pytest.mark.parametrize(
