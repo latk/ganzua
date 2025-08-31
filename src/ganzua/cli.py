@@ -47,9 +47,10 @@ class OutputFormat(enum.Enum):
 
 
 @dataclass
-class _with_print_json[R: _Jsonish]:  # noqa: N801  # invalid-name
+class _with_print_json[R]:  # noqa: N801  # invalid-name
     """Decorator for pretty-printing returned data from a Click command."""
 
+    adapter: pydantic.TypeAdapter[R]
     markdown: t.Callable[[R], str]
 
     def __call__[**P](
@@ -69,7 +70,7 @@ class _with_print_json[R: _Jsonish]:  # noqa: N801  # invalid-name
             data = command(*args, **kwargs)
             match format:
                 case OutputFormat.JSON:
-                    rich.print_json(data=data)
+                    rich.print_json(data=self.adapter.dump_python(data, mode="json"))
                 case OutputFormat.MARKDOWN:
                     click.echo(self.markdown(data))
                 case other:  # pragma: no cover
@@ -85,7 +86,7 @@ _ExistingFilePath = click.Path(
 
 @app.command()
 @click.argument("lockfile", type=_ExistingFilePath)
-@_with_print_json(md_from_lockfile)
+@_with_print_json(ganzua.LOCKFILE_SCHEMA, md_from_lockfile)
 def inspect(lockfile: pathlib.Path) -> Lockfile:
     """Inspect a lockfile."""
     return ganzua.lockfile_from(lockfile)
@@ -94,7 +95,7 @@ def inspect(lockfile: pathlib.Path) -> Lockfile:
 @app.command()
 @click.argument("old", type=_ExistingFilePath)
 @click.argument("new", type=_ExistingFilePath)
-@_with_print_json(md_from_diff)
+@_with_print_json(ganzua.DIFF_SCHEMA, md_from_diff)
 def diff(old: pathlib.Path, new: pathlib.Path) -> Diff:
     """Compare two lockfiles."""
     return ganzua.diff(
@@ -110,7 +111,7 @@ def constraints() -> None:
 
 @constraints.command("inspect")
 @click.argument("pyproject", type=_ExistingFilePath)
-@_with_print_json(md_from_requirements)
+@_with_print_json(ganzua.REQUIREMENTS_SCHEMA, md_from_requirements)
 def constraints_inspect(pyproject: pathlib.Path) -> Requirements:
     """List all constraints in the `pyproject.toml` file."""
     with error_context(f"while parsing {pyproject}"):
