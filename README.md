@@ -5,7 +5,7 @@ A tool for picking dependency information from Python lockfiles,
 and manipulating the version constraints in `pyproject.toml` files.
 
 For example, we can summarize the differences between two `uv.lock` files.
-By default, we get JSON output:
+Ganzua is designed for scripting, so by default we get JSON output:
 
 ```console
 $ ganzua diff tests/{old,new}-uv-project/uv.lock
@@ -35,7 +35,7 @@ $ ganzua diff tests/{old,new}-uv-project/uv.lock
 }
 ```
 
-We can also opt in to Markdown output, which will produce a table:
+We can also opt in to Markdown (GFM) output, which will produce a summary and a table:
 
 ```console
 $ ganzua diff --format=markdown tests/{old,new}-uv-project/uv.lock
@@ -45,6 +45,17 @@ $ ganzua diff --format=markdown tests/{old,new}-uv-project/uv.lock
 |-------------------|----------|--------|
 | annotated-types   | -        | 0.7.0  |
 | typing-extensions | 3.10.0.2 | 4.14.1 |
+```
+
+Aside from inspecting or diffing lockfiles,
+we can extract and manipulate constraints from `pyproject.toml` files:
+
+```console
+$ ganzua constraints inspect --format=markdown tests/new-uv-project/pyproject.toml
+| package           | version |
+|-------------------|---------|
+| annotated-types   | >=0.7.0 |
+| typing-extensions | >=4     |
 ```
 
 ## Installation
