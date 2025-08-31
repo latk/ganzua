@@ -2,12 +2,33 @@ import typing as t
 from dataclasses import dataclass
 
 import pydantic
+from packaging.markers import Marker
 from packaging.requirements import Requirement as Pep508Requirement
 from packaging.specifiers import Specifier, SpecifierSet
 from packaging.utils import canonicalize_version
 from packaging.version import Version
+from pydantic_core import core_schema
 
 from ._lockfile import Lockfile
+
+
+@dataclass
+class FromToString:
+    """Pydantic annotation to serialize the contents as a string."""
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source: type[t.Any], _handler: pydantic.GetCoreSchemaHandler
+    ) -> core_schema.CoreSchema:
+        return core_schema.union_schema(
+            [
+                core_schema.is_instance_schema(source),
+                core_schema.no_info_after_validator_function(
+                    source, core_schema.str_schema()
+                ),
+            ],
+            serialization=core_schema.to_string_ser_schema(),
+        )
 
 
 @pydantic.with_config(use_attribute_docstrings=True)
@@ -21,7 +42,7 @@ class Requirement(t.TypedDict):
     """Version specifier for the required package, may use PEP-508 or Poetry syntax."""
     extras: t.NotRequired[frozenset[str]]
     """Extras enabled for the required package."""
-    marker: t.NotRequired[str]
+    marker: t.NotRequired[t.Annotated[Marker, FromToString]]
     """Environment marker expression describing when this requirement should be installed."""
     groups: t.NotRequired[frozenset[str]]
     """Dependency groups that this requirement is part of."""
@@ -47,11 +68,10 @@ def parse_requirement_from_pep508(
     if isinstance(req, str):
         req = Pep508Requirement(req)
     data = Requirement(name=req.name, specifier=str(req.specifier))
-    # TODO support additional fields
     if req.extras:
         data["extras"] = frozenset(req.extras)
-    # if req.marker:
-    #     data["marker"] = str(req.marker)
+    if req.marker:
+        data["marker"] = req.marker
     if groups:
         data["groups"] = groups
     return data

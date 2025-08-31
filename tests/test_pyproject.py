@@ -1,5 +1,6 @@
 import tomlkit
 from inline_snapshot import snapshot
+from packaging.markers import Marker
 
 import ganzua
 from ganzua._constraints import Requirement
@@ -255,5 +256,26 @@ b = ["bar"]
                 name="foo", specifier="~=3.0", extras=frozenset(("xtra", "xtrb"))
             ),
             Requirement(name="bar", specifier="^3", extras=frozenset(("xtra", "xtrb"))),
+        ]
+    )
+
+
+def test_list_markers() -> None:
+    pyproject = """\
+[project]
+dependencies = ["foo >= 3 ; python_version <= '3.11'"]
+
+[tool.poetry.dependencies]
+bar = { version = "^3", markers = "python_version <= '3.11'" }
+"""
+
+    assert _collect_requirements(pyproject) == snapshot(
+        [
+            Requirement(
+                name="foo", specifier=">=3", marker=Marker("python_version <= '3.11'")
+            ),
+            Requirement(
+                name="bar", specifier="^3", marker=Marker("python_version <= '3.11'")
+            ),
         ]
     )

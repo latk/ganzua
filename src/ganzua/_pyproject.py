@@ -1,10 +1,11 @@
 import typing as t
 from dataclasses import dataclass
 
+import packaging.markers
+import packaging.requirements
 import tomlkit
 import tomlkit.container
 import tomlkit.items
-from packaging.requirements import Requirement as Pep508Requirement
 
 from ._constraints import EditRequirement, Requirement, parse_requirement_from_pep508
 from ._pretty_specifier_set import PrettySpecifierSet
@@ -60,7 +61,7 @@ class _Editor:
         raw_requirement = ref.value_as_str()
         if raw_requirement is None:
             return
-        req = Pep508Requirement(raw_requirement)
+        req = packaging.requirements.Requirement(raw_requirement)
 
         groups = frozenset[str]()
         if group:
@@ -104,6 +105,9 @@ class _Editor:
                 if (e := ref.value_as_str()) is not None
             ):
                 req["extras"] = extras
+
+            if marker := item_ref["markers"].value_as_str():
+                req["marker"] = packaging.markers.Marker(marker)
 
             if group:
                 req["groups"] = frozenset((group,))
