@@ -1,5 +1,6 @@
 import contextlib
 import inspect
+import re
 import textwrap
 import typing as t
 from dataclasses import dataclass
@@ -73,9 +74,8 @@ def help_command(
             ctx = stack.enter_context(click.Context(cmd, info_name=name, parent=ctx))
         help_items = format_command_help(ctx, recursive=recursive)
         if markdown:
-            click.echo(
-                "\n".join(line for item in help_items for line in _as_markdown(item))
-            )
+            for item in help_items:
+                click.echo("\n".join(_as_markdown(item, showlinks=recursive)))
         else:
             rich.print(_as_rich_group(help_items))
 
@@ -134,44 +134,71 @@ type _MarkdownOrRich = (
 )
 
 
-def _as_markdown(item: _MarkdownOrRich, *, level: int = 3) -> t.Iterable[str]:
+def _as_markdown(  # noqa: C901  # complexity
+    item: _MarkdownOrRich, *, level: int = 3, showlinks: bool = False
+) -> t.Iterable[str]:
     r"""Convert the help content to Markdown.
 
     Example: can emit headings.
 
-    >>> doc = [
+    >>> def print_markdown_doc(*items, showlinks=False):
+    ...     for item in items:
+    ...         print("\n".join(_as_markdown(item, showlinks=showlinks)))
+    >>> print_markdown_doc(
     ...     _Markdown("content"),
     ...     _SubcommandHeading("some info"),
     ...     _Markdown("more content"),
-    ... ]
-    >>> print("\n".join(line for item in doc for line in _as_markdown(item)))
+    ... )
     content
     <BLANKLINE>
     <BLANKLINE>
     ### some info
     <BLANKLINE>
     more content
+
+    Example: can emit links to anchors.
+
+    >>> print_markdown_doc(
+    ...     _DefinitionList(
+    ...         [_DefinitionListItem("key", _Markdown("value"), xref="some-anchor")]
+    ...     ),
+    ...     _SubcommandHeading("some anchor"),
+    ...     showlinks=True,
+    ... )
+    * [`key`](#some-anchor)
+      value
+    <BLANKLINE>
+    <BLANKLINE>
+    ### some anchor<a id="some-anchor"></a>
+    <BLANKLINE>
     """
     match item:
         case str():
             yield item
         case _DefinitionList():
-            for key, description in item.items:
-                yield f"* `{key}`"
-                yield textwrap.indent(description.content, "  ")
+            for dl_item in item.items:
+                key = f"`{dl_item.key}`"
+                if showlinks and dl_item.xref:
+                    key = f"[{key}](#{dl_item.xref})"
+                yield f"* {key}"
+                yield textwrap.indent(dl_item.description.content, "  ")
         case _Usage():
             yield f"Usage: `{item.usage}`"
         case _HelpHeading():
             yield f"**{item.text}**\n"
         case _SubcommandHeading():
             atx_prefix = "#" * level
+            text = item.text
+            if showlinks:
+                # workaround per <https://github.com/pypa/readme_renderer/issues/169#issuecomment-808577486>
+                text += f'<a id="{_github_slugify(text)}"></a>'
             yield "\n"
-            yield f"{atx_prefix} {item.text}"
+            yield f"{atx_prefix} {text}"
             yield ""
         case _Markdown():
             yield item.content
         case _Indent():
-            yield from _as_markdown(item.content, level=level)
+            yield from _as_markdown(item.content, level=level, showlinks=showlinks)
         case other:  # pragma: no cover
             t.assert_never(other)
 
@@ -240,7 +267,12 @@ def format_command_help(
         yield _HelpHeading("Options:")
         yield _Indent(
             _DefinitionList(
-                [(_option_opts(opt, ctx), _Markdown(opt.help or "")) for opt in options]
+                [
+                    _DefinitionListItem(
+                        _option_opts(opt, ctx), _Markdown(opt.help or "")
+                    )
+                    for opt in options
+                ]
             )
         )
 
@@ -250,7 +282,11 @@ def format_command_help(
         yield _Indent(
             _DefinitionList(
                 [
-                    (Text(name, style=_OPT_STYLE), _command_short_help(cmd))
+                    _DefinitionListItem(
+                        Text(name, style=_OPT_STYLE),
+                        _command_short_help(cmd),
+                        xref=_github_slugify(f"{ctx.command_path} {name}"),
+                    )
                     for name, cmd in commands.items()
                 ]
             )
@@ -271,6 +307,18 @@ def format_command_help(
             command_path = ctx_cmd.command_path
             yield _SubcommandHeading(command_path)
             yield from format_command_help(ctx_cmd, recursive=recursive)
+
+
+def _github_slugify(text: str) -> str:
+    """Convert the link anchor text into a slug, as per the GFM rules.
+
+    The code here is not actually correct, but is good enough for ASCII.
+
+    >>> _github_slugify("foo [bar]")
+    'foo-bar'
+    """
+    text = text.lower().replace(" ", "-")
+    return re.sub(r"[^\w-]+", "", text)
 
 
 class _Usage:
@@ -342,7 +390,6 @@ def _render(
     *,
     width: int = 80,
 ) -> None:
-    import re  # noqa: PLC0415
     from io import StringIO  # noqa: PLC0415
 
     if isinstance(renderable, str | Text):
@@ -356,6 +403,13 @@ def _render(
 
 
 @dataclass
+class _DefinitionListItem:
+    key: Text
+    description: _Markdown
+    xref: str | None = None
+
+
+@dataclass
 class _DefinitionList:
     """A list that tries to render as a compact table, if space is available.
 
@@ -363,8 +417,10 @@ class _DefinitionList:
 
     >>> dl = _DefinitionList(
     ...     [
-    ...         (Text("some-key"), _Markdown("description")),
-    ...         (Text("another-key"), _Markdown("another description")),
+    ...         _DefinitionListItem(Text("some-key"), _Markdown("description")),
+    ...         _DefinitionListItem(
+    ...             Text("another-key"), _Markdown("another description")
+    ...         ),
     ...     ]
     ... )
     >>> _render(dl, width=100)
@@ -377,11 +433,11 @@ class _DefinitionList:
         another description
     """
 
-    items: list[tuple[Text, _Markdown]]
+    items: list[_DefinitionListItem]
 
     def _max_key_len(self) -> int:
         """The terminal cell size of the longest key."""
-        return max(key.cell_len for key, _description in self.items)
+        return max(item.key.cell_len for item in self.items)
 
     def _should_render_nextline(self, *, max_width: int) -> bool:
         """Decide whether the definition list items should be split onto 2 lines."""
@@ -393,9 +449,9 @@ class _DefinitionList:
         self, console: rich.console.Console, options: rich.console.ConsoleOptions
     ) -> rich.console.RenderResult:
         if self._should_render_nextline(max_width=options.max_width):
-            for key, description in self.items:
-                yield key
-                yield _as_rich(_Indent(description))
+            for item in self.items:
+                yield item.key
+                yield _as_rich(_Indent(item.description))
             return
 
         import rich.table  # noqa: PLC0415  # lazy import
@@ -404,6 +460,6 @@ class _DefinitionList:
         table.add_column(no_wrap=True)
         table.add_column(width=2)
         table.add_column()
-        for key, description in self.items:
-            table.add_row(key, "", _as_rich(description))
+        for item in self.items:
+            table.add_row(item.key, "", _as_rich(item.description))
         yield table

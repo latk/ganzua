@@ -96,15 +96,15 @@ Inspect Python dependency lockfiles (uv and Poetry).
 
 **Commands:**
 
-* `help`
+* [`help`](#ganzua-help)
   Show help for the application or a specific subcommand.
-* `inspect`
+* [`inspect`](#ganzua-inspect)
   Inspect a lockfile.
-* `diff`
+* [`diff`](#ganzua-diff)
   Compare two lockfiles.
-* `constraints`
+* [`constraints`](#ganzua-constraints)
   Work with `pyproject.toml` constraints.
-* `schema`
+* [`schema`](#ganzua-schema)
   Show the JSON schema for the output of the given command.
 
 For more information, see the Ganzua website at "<https://github.com/latk/ganzua>".
@@ -112,7 +112,7 @@ For more information, see the Ganzua website at "<https://github.com/latk/ganzua
 Ganzua is licensed under the Apache-2.0 license.
 
 
-### ganzua help
+### ganzua help<a id="ganzua-help"></a>
 
 Usage: `ganzua help [OPTIONS] [SUBCOMMAND]...`
 
@@ -126,7 +126,7 @@ Show help for the application or a specific subcommand.
   Output help in Markdown format.
 
 
-### ganzua inspect
+### ganzua inspect<a id="ganzua-inspect"></a>
 
 Usage: `ganzua inspect [OPTIONS] LOCKFILE`
 
@@ -140,7 +140,7 @@ Inspect a lockfile.
   Show this help message and exit.
 
 
-### ganzua diff
+### ganzua diff<a id="ganzua-diff"></a>
 
 Usage: `ganzua diff [OPTIONS] OLD NEW`
 
@@ -154,7 +154,7 @@ Compare two lockfiles.
   Show this help message and exit.
 
 
-### ganzua constraints
+### ganzua constraints<a id="ganzua-constraints"></a>
 
 Usage: `ganzua constraints [OPTIONS] COMMAND [ARGS]...`
 
@@ -167,15 +167,15 @@ Work with `pyproject.toml` constraints.
 
 **Commands:**
 
-* `inspect`
+* [`inspect`](#ganzua-constraints-inspect)
   List all constraints in the `pyproject.toml` file.
-* `bump`
+* [`bump`](#ganzua-constraints-bump)
   Update `pyproject.toml` dependency constraints to match the lockfile.
-* `remove`
+* [`remove`](#ganzua-constraints-remove)
   Remove any dependency version constraints from the `pyproject.toml`.
 
 
-### ganzua constraints inspect
+### ganzua constraints inspect<a id="ganzua-constraints-inspect"></a>
 
 Usage: `ganzua constraints inspect [OPTIONS] PYPROJECT`
 
@@ -189,7 +189,7 @@ List all constraints in the `pyproject.toml` file.
   Show this help message and exit.
 
 
-### ganzua constraints bump
+### ganzua constraints bump<a id="ganzua-constraints-bump"></a>
 
 Usage: `ganzua constraints bump [OPTIONS] PYPROJECT`
 
@@ -214,7 +214,7 @@ the constraint would be updated to `foo>=4.7`.
   Show this help message and exit.
 
 
-### ganzua constraints remove
+### ganzua constraints remove<a id="ganzua-constraints-remove"></a>
 
 Usage: `ganzua constraints remove [OPTIONS] PYPROJECT`
 
@@ -239,7 +239,7 @@ uv lock
   Show this help message and exit.
 
 
-### ganzua schema
+### ganzua schema<a id="ganzua-schema"></a>
 
 Usage: `ganzua schema [OPTIONS] {inspect|diff|constraints-inspect}`
 
