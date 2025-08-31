@@ -1,7 +1,6 @@
 import typing as t
 
-from ganzua._constraints import Requirements
-
+from ._constraints import Requirements
 from ._diff import Diff
 from ._lockfile import LockedPackage, Lockfile
 

@@ -14,9 +14,9 @@ import rich
 import tomlkit
 
 import ganzua
-from ganzua._constraints import Requirements
 
 from ._cli_help import App
+from ._constraints import Requirements
 from ._diff import Diff
 from ._lockfile import Lockfile
 from ._markdown import md_from_diff, md_from_lockfile, md_from_requirements
