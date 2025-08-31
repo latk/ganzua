@@ -39,7 +39,11 @@ class Requirements(t.TypedDict):
 REQUIREMENTS_SCHEMA = pydantic.TypeAdapter(Requirements)
 
 
-def parse_requirement_from_pep508(req: Pep508Requirement | str) -> Requirement:
+def parse_requirement_from_pep508(
+    req: Pep508Requirement | str,
+    *,
+    groups: frozenset[str] = frozenset(),
+) -> Requirement:
     if isinstance(req, str):
         req = Pep508Requirement(req)
     data = Requirement(name=req.name, specifier=str(req.specifier))
@@ -48,8 +52,8 @@ def parse_requirement_from_pep508(req: Pep508Requirement | str) -> Requirement:
         data["extras"] = frozenset(req.extras)
     # if req.marker:
     #     data["marker"] = str(req.marker)
-    # if groups:
-    #     data["groups"] = groups
+    if groups:
+        data["groups"] = groups
     return data
 
 

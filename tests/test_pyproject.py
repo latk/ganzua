@@ -169,8 +169,16 @@ def test_list_pep621() -> None:
             Requirement(name="merrily-ignored", specifier=""),
             Requirement(name="annotated-types", specifier="==0.6.*,>=0.6.1"),
             Requirement(name="ndr", specifier=""),
-            Requirement(name="typing-extensions", specifier="~=3.4"),
-            Requirement(name="annotated-types", specifier="~=0.6.1"),
+            Requirement(
+                name="typing-extensions",
+                specifier="~=3.4",
+                groups=frozenset(("group-a", "group-b")),
+            ),
+            Requirement(
+                name="annotated-types",
+                specifier="~=0.6.1",
+                groups=frozenset(("group-b",)),
+            ),
         ]
     )
 
@@ -183,8 +191,48 @@ def test_list_poetry() -> None:
     assert _collect_requirements(_OLD_POETRY_PYPROJECT) == snapshot(
         [
             Requirement(name="typing-extensions", specifier="^3.2"),
-            Requirement(name="typing-extensions", specifier="^3.4"),
-            Requirement(name="already-unconstrained", specifier="*"),
+            Requirement(
+                name="typing-extensions",
+                specifier="^3.4",
+                groups=frozenset(("poetry-a",)),
+            ),
+            Requirement(
+                name="already-unconstrained",
+                specifier="*",
+                groups=frozenset(("poetry-a",)),
+            ),
+        ]
+    )
+
+
+def test_list_groups() -> None:
+    pyproject = """\
+[dependency-groups]
+a = [{include-group = "c"}]
+d = ["other"]
+b = ["example-pep735 >=3"]
+c = [{include-group = "b"}]
+
+[tool.poetry.group.pa.dependencies]
+example-poetry = "^3"
+[tool.poetry.group.pb.dependencies]
+example-poetry = ">=3"
+"""
+
+    assert _collect_requirements(pyproject) == snapshot(
+        [
+            Requirement(name="other", specifier="", groups=frozenset(("d",))),
+            Requirement(
+                name="example-pep735",
+                specifier=">=3",
+                groups=frozenset(("a", "b", "c")),
+            ),
+            Requirement(
+                name="example-poetry", specifier="^3", groups=frozenset(("pa",))
+            ),
+            Requirement(
+                name="example-poetry", specifier=">=3", groups=frozenset(("pb",))
+            ),
         ]
     )
 
