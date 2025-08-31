@@ -81,7 +81,16 @@ class _Editor:
             version = version_ref.value_as_str()
             if version is None:
                 continue
+
             req = Requirement(name=name, specifier=version)
+
+            if extras := frozenset(
+                e
+                for ref in item_ref["extras"].array_items()
+                if (e := ref.value_as_str()) is not None
+            ):
+                req["extras"] = extras
+
             edit.apply(req, kind="poetry")
             if version != req["specifier"]:
                 version_ref.replace(req["specifier"])

@@ -42,15 +42,15 @@ REQUIREMENTS_SCHEMA = pydantic.TypeAdapter(Requirements)
 def parse_requirement_from_pep508(req: Pep508Requirement | str) -> Requirement:
     if isinstance(req, str):
         req = Pep508Requirement(req)
-    return Requirement(name=req.name, specifier=str(req.specifier))
+    data = Requirement(name=req.name, specifier=str(req.specifier))
     # TODO support additional fields
-    # if req.extras:
-    #     data["extras"] = frozenset(req.extras)
+    if req.extras:
+        data["extras"] = frozenset(req.extras)
     # if req.marker:
     #     data["marker"] = str(req.marker)
     # if groups:
     #     data["groups"] = groups
-    # return data
+    return data
 
 
 Kind = t.Literal["pep508", "poetry"]

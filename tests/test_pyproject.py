@@ -187,3 +187,25 @@ def test_list_poetry() -> None:
             Requirement(name="already-unconstrained", specifier="*"),
         ]
     )
+
+
+def test_list_extras() -> None:
+    pyproject = """\
+[project.optional-dependencies]
+a = ["foo[xtra,xtrb] ~=3.0"]
+
+[tool.poetry.dependencies]
+bar = { version = "^3", optional = true, extras = ["xtra", "xtrb"] }
+
+[tool.poetry.extras]
+b = ["bar"]
+"""
+
+    assert _collect_requirements(pyproject) == snapshot(
+        [
+            Requirement(
+                name="foo", specifier="~=3.0", extras=frozenset(("xtra", "xtrb"))
+            ),
+            Requirement(name="bar", specifier="^3", extras=frozenset(("xtra", "xtrb"))),
+        ]
+    )
