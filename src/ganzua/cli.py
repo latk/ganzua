@@ -152,17 +152,17 @@ def constraints_bump(
         ganzua.edit_pyproject(doc, ganzua.UpdateRequirement(locked))
 
 
-@constraints.command("remove")
+@constraints.command("reset")
 @click.argument("pyproject", type=_ExistingFilePath)
 @click.option("--backup", type=click.Path(), help="Store a backup in this file.")
-def constraints_remove(pyproject: pathlib.Path, backup: pathlib.Path | None) -> None:
-    """Remove any dependency version constraints from the `pyproject.toml`.
+def constraints_reset(pyproject: pathlib.Path, backup: pathlib.Path | None) -> None:
+    """Remove or relax any dependency version constraints from the `pyproject.toml`.
 
     This can be useful for allowing uv/Poetry to update to the most recent versions,
     ignoring the previous constraints. Approximate recipe:
 
     ```bash
-    ganzua constraints remove --backup=pyproject.toml.bak pyproject.toml
+    ganzua constraints reset --backup=pyproject.toml.bak pyproject.toml
     uv lock --upgrade  # perform the upgrade
     mv pyproject.toml.bak pyproject.toml  # restore old constraints
     ganzua constraints bump --lockfile=uv.lock pyproject.toml

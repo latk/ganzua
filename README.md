@@ -171,8 +171,8 @@ Work with `pyproject.toml` constraints.
   List all constraints in the `pyproject.toml` file.
 * [`bump`](#ganzua-constraints-bump)
   Update `pyproject.toml` dependency constraints to match the lockfile.
-* [`remove`](#ganzua-constraints-remove)
-  Remove any dependency version constraints from the `pyproject.toml`.
+* [`reset`](#ganzua-constraints-reset)
+  Remove or relax any dependency version constraints from the `pyproject.toml`.
 
 
 ### ganzua constraints inspect<a id="ganzua-constraints-inspect"></a>
@@ -214,17 +214,17 @@ the constraint would be updated to `foo>=4.7`.
   Show this help message and exit.
 
 
-### ganzua constraints remove<a id="ganzua-constraints-remove"></a>
+### ganzua constraints reset<a id="ganzua-constraints-reset"></a>
 
-Usage: `ganzua constraints remove [OPTIONS] PYPROJECT`
+Usage: `ganzua constraints reset [OPTIONS] PYPROJECT`
 
-Remove any dependency version constraints from the `pyproject.toml`.
+Remove or relax any dependency version constraints from the `pyproject.toml`.
 
 This can be useful for allowing uv/Poetry to update to the most recent versions,
 ignoring the previous constraints. Approximate recipe:
 
 ```bash
-ganzua constraints remove --backup=pyproject.toml.bak pyproject.toml
+ganzua constraints reset --backup=pyproject.toml.bak pyproject.toml
 uv lock --upgrade  # perform the upgrade
 mv pyproject.toml.bak pyproject.toml  # restore old constraints
 ganzua constraints bump --lockfile=uv.lock pyproject.toml

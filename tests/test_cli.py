@@ -25,7 +25,7 @@ _WELL_KNOWN_COMMANDS = [
 _WELL_KNOWN_SUBCOMMANDS = [
     *_WELL_KNOWN_COMMANDS,
     "constraints bump",
-    "constraints remove",
+    "constraints reset",
     "constraints inspect",
 ]
 
@@ -196,7 +196,7 @@ def test_constraints_bump_noop(tmp_path: pathlib.Path) -> None:
         pytest.param(False, id="nobackup"),
     ],
 )
-def test_constraints_remove(tmp_path: pathlib.Path, want_backup: bool) -> None:
+def test_constraints_reset(tmp_path: pathlib.Path, want_backup: bool) -> None:
     backup = tmp_path / "backup.pyproject.toml"
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_bytes(resources.NEW_UV_PYPROJECT.read_bytes())
@@ -204,7 +204,7 @@ def test_constraints_remove(tmp_path: pathlib.Path, want_backup: bool) -> None:
     result = _run(
         [
             "constraints",
-            "remove",
+            "reset",
             *([f"--backup={backup}"] * want_backup),
             str(pyproject),
         ]
