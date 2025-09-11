@@ -232,6 +232,90 @@ dependencies = [
         assert not backup.exists()
 
 
+@pytest.mark.parametrize("example", ["uv", "poetry"])
+def test_constraints_reset_to_minimum(
+    tmp_path: pathlib.Path, example: t.Literal["uv", "poetry"]
+) -> None:
+    pyproject = tmp_path / "pyproject.toml"
+    if example == "uv":
+        lockfile = resources.OLD_POETRY_LOCKFILE
+        pyproject.write_bytes(resources.OLD_UV_PYPROJECT.read_bytes())
+    elif example == "poetry":
+        lockfile = resources.NEW_POETRY_LOCKFILE
+        pyproject.write_bytes(resources.NEW_POETRY_PYPROJECT.read_bytes())
+    else:  # pragma: no cover
+        t.assert_never(example)
+
+    result = _run(
+        [
+            "constraints",
+            "reset",
+            "--to=minimum",
+            f"--lockfile={lockfile}",
+            str(pyproject),
+        ]
+    )
+    assert result.stdout == ""
+
+    expected = snapshot(
+        {
+            "uv": """\
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "typing-extensions>=3.10.0.2",
+]
+""",
+            "poetry": """\
+[project]
+name = "example"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Your Name",email = "you@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "annotated-types>=0.7.0",
+    "typing-extensions>=4.14.1",
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+""",
+        }
+    )
+    assert pyproject.read_text() == expected[example]
+
+
+def test_constraints_reset_to_minimum_requires_lockfile(tmp_path: pathlib.Path) -> None:
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(resources.NEW_POETRY_PYPROJECT.read_bytes())
+    lockfile = resources.NEW_POETRY_LOCKFILE
+
+    cmd = ["constraints", "reset", "--to=minimum", str(pyproject)]
+
+    # fails without --lockfile
+    result = _run([*cmd], expect_exit=2)
+    assert result.output == snapshot("""\
+Usage: ganzua constraints reset [OPTIONS] PYPROJECT
+Try 'ganzua constraints reset --help' for help.
+
+Error: using `--to=minimum` requires a `--lockfile`
+""")
+
+    # succeeds
+    result = _run([*cmd, f"--lockfile={lockfile}"], expect_exit=0)
+    assert result.output == ""
+
+
 def test_constraints_inspect() -> None:
     result = _run(["constraints", "inspect", str(resources.NEW_UV_PYPROJECT)])
     assert json.loads(result.stdout) == snapshot(

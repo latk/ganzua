@@ -9,4 +9,5 @@ OLD_UV_PYPROJECT = _RESOURCES / "old-uv-project/pyproject.toml"
 NEW_UV_PYPROJECT = _RESOURCES / "new-uv-project/pyproject.toml"
 OLD_POETRY_LOCKFILE = _RESOURCES / "old-poetry-project/poetry.lock"
 NEW_POETRY_LOCKFILE = _RESOURCES / "new-poetry-project/poetry.lock"
+NEW_POETRY_PYPROJECT = _RESOURCES / "new-poetry-project/pyproject.toml"
 EMPTY = pathlib.Path("/dev/null")

@@ -135,6 +135,20 @@ class UnconstrainRequirement(EditRequirement):
 
 
 @dataclass
+class SetMinimumRequirement(EditRequirement):
+    """Set the constraints to the minimum locked version."""
+
+    lockfile: Lockfile
+
+    @t.override
+    def apply(self, req: Requirement, *, kind: Kind) -> None:
+        target = self.lockfile["packages"].get(req["name"])
+        if not target:
+            return
+        req["specifier"] = f">={target['version']}"
+
+
+@dataclass
 class CollectRequirement(EditRequirement):
     """Collect all requirements into an array, without changing them."""
 

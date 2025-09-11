@@ -235,6 +235,12 @@ uv lock
 
 * `--backup PATH`
   Store a backup in this file.
+* `--to [none|minimum]`
+  How to reset constraints.
+  * `none` (default): remove all constraints
+  * `minimum`: set constraints to the currently locked minimum, removing upper bounds
+* `--lockfile FILE`
+  Where to load current versions from (for `--to=minimum`).
 * `--help`
   Show this help message and exit.
 

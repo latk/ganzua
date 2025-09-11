@@ -156,6 +156,35 @@ def test_unconstrain_poetry() -> None:
     assert doc.as_string() == _UNCONSTRAINED_POETRY_PYPROJECT
 
 
+def test_set_minimum_pep621() -> None:
+    doc = tomlkit.parse(_OLD_PYPROJECT)
+    ganzua.edit_pyproject(doc, ganzua.SetMinimumRequirement(_LOCKFILE))
+    assert doc.as_string() == snapshot("""\
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "typing-extensions>=4.14.1",  # moar type annotations
+    "merrily-ignored",
+    [42, "also ignored"],  # we ignore invalid junk
+]
+
+[project.optional-dependencies]
+extra1 = [
+    "annotated-types>=0.7.0",
+]
+extra2 = false  # known invalid
+extra3 = ["ndr"]
+
+[dependency-groups]
+group-a = ["typing-extensions>=4.14.1"]
+group-b = [{include-group = "group-a"}, "annotated-types>=0.7.0"]
+""")
+
+
 def _collect_requirements(pyproject_contents: str) -> list[Requirement]:
     doc = tomlkit.parse(pyproject_contents)
     collector = ganzua.CollectRequirement([])

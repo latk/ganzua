@@ -2,6 +2,7 @@ from ._constraints import (
     REQUIREMENTS_SCHEMA,
     CollectRequirement,
     EditRequirement,
+    SetMinimumRequirement,
     UnconstrainRequirement,
     UpdateRequirement,
 )
@@ -12,10 +13,11 @@ from ._pyproject import edit_pyproject
 __all__ = [
     "CollectRequirement",
     "DIFF_SCHEMA",
-    "LOCKFILE_SCHEMA",
-    "REQUIREMENTS_SCHEMA",
-    "Lockfile",
     "EditRequirement",
+    "LOCKFILE_SCHEMA",
+    "Lockfile",
+    "REQUIREMENTS_SCHEMA",
+    "SetMinimumRequirement",
     "UnconstrainRequirement",
     "UpdateRequirement",
     "diff",

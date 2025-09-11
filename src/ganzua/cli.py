@@ -152,10 +152,44 @@ def constraints_bump(
         ganzua.edit_pyproject(doc, ganzua.UpdateRequirement(locked))
 
 
+class ConstraintResetGoal(enum.Enum):
+    """Intended result for `ganzua constraints reset` operations."""
+
+    NONE = enum.auto()
+    """Remove all constraints."""
+
+    MINIMUM = enum.auto()
+    """Set constraints constraints to the currently locked minimum, removing upper bounds."""
+
+
 @constraints.command("reset")
 @click.argument("pyproject", type=_ExistingFilePath)
 @click.option("--backup", type=click.Path(), help="Store a backup in this file.")
-def constraints_reset(pyproject: pathlib.Path, backup: pathlib.Path | None) -> None:
+@click.option(
+    "--to",
+    type=click.Choice(ConstraintResetGoal, case_sensitive=False),
+    default=ConstraintResetGoal.NONE,
+    help="""\
+How to reset constraints.
+* `none` (default): remove all constraints
+* `minimum`: set constraints to the currently locked minimum, removing upper bounds
+""",
+)
+@click.option(
+    "--lockfile",
+    type=_ExistingFilePath,
+    required=False,
+    help="Where to load current versions from (for `--to=minimum`).",
+)
+@click.pass_context
+def constraints_reset(
+    ctx: click.Context,
+    pyproject: pathlib.Path,
+    *,
+    backup: pathlib.Path | None,
+    lockfile: pathlib.Path | None,
+    to: ConstraintResetGoal,
+) -> None:
     """Remove or relax any dependency version constraints from the `pyproject.toml`.
 
     This can be useful for allowing uv/Poetry to update to the most recent versions,
@@ -169,11 +203,22 @@ def constraints_reset(pyproject: pathlib.Path, backup: pathlib.Path | None) -> N
     uv lock
     ```
     """
+    edit: ganzua.EditRequirement
+    match to:
+        case ConstraintResetGoal.NONE:
+            edit = ganzua.UnconstrainRequirement()
+        case ConstraintResetGoal.MINIMUM:
+            if lockfile is None:
+                ctx.fail("using `--to=minimum` requires a `--lockfile`")
+            edit = ganzua.SetMinimumRequirement(ganzua.lockfile_from(lockfile))
+        case other:  # pragma: no cover
+            t.assert_never(other)
+
     if backup is not None:
         shutil.copy(pyproject, backup)
 
     with _toml_edit_scope(pyproject) as doc:
-        ganzua.edit_pyproject(doc, ganzua.UnconstrainRequirement())
+        ganzua.edit_pyproject(doc, edit)
 
 
 @contextlib.contextmanager
