@@ -177,9 +177,12 @@ Work with `pyproject.toml` constraints.
 
 ### ganzua constraints inspect<a id="ganzua-constraints-inspect"></a>
 
-Usage: `ganzua constraints inspect [OPTIONS] PYPROJECT`
+Usage: `ganzua constraints inspect [OPTIONS] [PYPROJECT]`
 
 List all constraints in the `pyproject.toml` file.
+
+If no `pyproject.toml` is specified explicitly,
+the one in the current working directory will be used.
 
 **Options:**
 
@@ -191,7 +194,7 @@ List all constraints in the `pyproject.toml` file.
 
 ### ganzua constraints bump<a id="ganzua-constraints-bump"></a>
 
-Usage: `ganzua constraints bump [OPTIONS] PYPROJECT`
+Usage: `ganzua constraints bump [OPTIONS] [PYPROJECT]`
 
 Update `pyproject.toml` dependency constraints to match the lockfile.
 
@@ -203,6 +206,9 @@ Specifically, the locked version becomes a lower bound for the constraint.
 This tool will try to be as granular as the original constraint.
 For example, given the old constraint `foo>=3.5` and the new version `4.7.2`,
 the constraint would be updated to `foo>=4.7`.
+
+If no `pyproject.toml` is specified explicitly,
+the one in the current working directory will be used.
 
 **Options:**
 
@@ -216,7 +222,7 @@ the constraint would be updated to `foo>=4.7`.
 
 ### ganzua constraints reset<a id="ganzua-constraints-reset"></a>
 
-Usage: `ganzua constraints reset [OPTIONS] PYPROJECT`
+Usage: `ganzua constraints reset [OPTIONS] [PYPROJECT]`
 
 Remove or relax any dependency version constraints from the `pyproject.toml`.
 
@@ -224,12 +230,15 @@ This can be useful for allowing uv/Poetry to update to the most recent versions,
 ignoring the previous constraints. Approximate recipe:
 
 ```bash
-ganzua constraints reset --backup=pyproject.toml.bak pyproject.toml
+ganzua constraints reset --backup=pyproject.toml.bak
 uv lock --upgrade  # perform the upgrade
 mv pyproject.toml.bak pyproject.toml  # restore old constraints
-ganzua constraints bump --lockfile=uv.lock pyproject.toml
+ganzua constraints bump --lockfile=uv.lock
 uv lock
 ```
+
+If no `pyproject.toml` is specified explicitly,
+the one in the current working directory will be used.
 
 **Options:**
 

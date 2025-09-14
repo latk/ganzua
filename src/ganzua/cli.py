@@ -109,11 +109,28 @@ def constraints() -> None:
     """Work with `pyproject.toml` constraints."""
 
 
+def _find_pyproject_toml(ctx: click.Context) -> pathlib.Path:
+    path = pathlib.Path("pyproject.toml")
+    if not (path.exists() and path.is_file()):
+        ctx.fail("Did not find default `pyproject.toml`.")
+    return path
+
+
 @constraints.command("inspect")
-@click.argument("pyproject", type=_ExistingFilePath)
+@click.argument("pyproject", type=_ExistingFilePath, required=False)
 @_with_print_json(ganzua.REQUIREMENTS_SCHEMA, md_from_requirements)
-def constraints_inspect(pyproject: pathlib.Path) -> Requirements:
-    """List all constraints in the `pyproject.toml` file."""
+@click.pass_context
+def constraints_inspect(
+    ctx: click.Context, pyproject: pathlib.Path | None
+) -> Requirements:
+    """List all constraints in the `pyproject.toml` file.
+
+    If no `pyproject.toml` is specified explicitly,
+    the one in the current working directory will be used.
+    """
+    if pyproject is None:
+        pyproject = _find_pyproject_toml(ctx)
+
     with error_context(f"while parsing {pyproject}"):
         doc = tomlkit.parse(pyproject.read_text())
     collector = ganzua.CollectRequirement([])
@@ -122,7 +139,7 @@ def constraints_inspect(pyproject: pathlib.Path) -> Requirements:
 
 
 @constraints.command("bump")
-@click.argument("pyproject", type=_ExistingFilePath)
+@click.argument("pyproject", type=_ExistingFilePath, required=False)
 @click.option(
     "--lockfile",
     type=_ExistingFilePath,
@@ -130,8 +147,12 @@ def constraints_inspect(pyproject: pathlib.Path) -> Requirements:
     help="Where to load versions from. Required.",
 )
 @click.option("--backup", type=click.Path(), help="Store a backup in this file.")
+@click.pass_context
 def constraints_bump(
-    lockfile: pathlib.Path, pyproject: pathlib.Path, backup: pathlib.Path | None
+    ctx: click.Context,
+    pyproject: pathlib.Path | None,
+    lockfile: pathlib.Path,
+    backup: pathlib.Path | None,
 ) -> None:
     """Update `pyproject.toml` dependency constraints to match the lockfile.
 
@@ -143,7 +164,13 @@ def constraints_bump(
     This tool will try to be as granular as the original constraint.
     For example, given the old constraint `foo>=3.5` and the new version `4.7.2`,
     the constraint would be updated to `foo>=4.7`.
+
+    If no `pyproject.toml` is specified explicitly,
+    the one in the current working directory will be used.
     """
+    if pyproject is None:
+        pyproject = _find_pyproject_toml(ctx)
+
     if backup is not None:
         shutil.copy(pyproject, backup)
 
@@ -163,7 +190,7 @@ class ConstraintResetGoal(enum.Enum):
 
 
 @constraints.command("reset")
-@click.argument("pyproject", type=_ExistingFilePath)
+@click.argument("pyproject", type=_ExistingFilePath, required=False)
 @click.option("--backup", type=click.Path(), help="Store a backup in this file.")
 @click.option(
     "--to",
@@ -184,7 +211,7 @@ How to reset constraints.
 @click.pass_context
 def constraints_reset(
     ctx: click.Context,
-    pyproject: pathlib.Path,
+    pyproject: pathlib.Path | None,
     *,
     backup: pathlib.Path | None,
     lockfile: pathlib.Path | None,
@@ -196,13 +223,19 @@ def constraints_reset(
     ignoring the previous constraints. Approximate recipe:
 
     ```bash
-    ganzua constraints reset --backup=pyproject.toml.bak pyproject.toml
+    ganzua constraints reset --backup=pyproject.toml.bak
     uv lock --upgrade  # perform the upgrade
     mv pyproject.toml.bak pyproject.toml  # restore old constraints
-    ganzua constraints bump --lockfile=uv.lock pyproject.toml
+    ganzua constraints bump --lockfile=uv.lock
     uv lock
     ```
+
+    If no `pyproject.toml` is specified explicitly,
+    the one in the current working directory will be used.
     """
+    if pyproject is None:
+        pyproject = _find_pyproject_toml(ctx)
+
     edit: ganzua.EditRequirement
     match to:
         case ConstraintResetGoal.NONE:

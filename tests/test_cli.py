@@ -1,3 +1,4 @@
+import contextlib
 import json
 import pathlib
 import re
@@ -173,6 +174,22 @@ dependencies = [
         assert not backup.exists()
 
 
+def test_constraints_bump_has_default_pyproject(tmp_path: pathlib.Path) -> None:
+    cmd = ["constraints", "bump", f"--lockfile={resources.NEW_UV_LOCKFILE}"]
+    with contextlib.chdir(tmp_path):
+        # running in an empty tempdir fails
+        result = _run(cmd, expect_exit=_CLICK_ERROR)
+        assert "Did not find default `pyproject.toml`." in result.output
+
+        # but a `pyproject.toml` in the CWD is picked up automatically
+        pathlib.Path("pyproject.toml").write_bytes(
+            resources.OLD_UV_PYPROJECT.read_bytes()
+        )
+        output = _run(cmd).output
+        expected_output = _run([*cmd, "pyproject.toml"]).output
+        assert output == expected_output
+
+
 def test_constraints_bump_noop(tmp_path: pathlib.Path) -> None:
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_bytes(resources.NEW_UV_PYPROJECT.read_bytes())
@@ -306,7 +323,7 @@ def test_constraints_reset_to_minimum_requires_lockfile(tmp_path: pathlib.Path) 
     # fails without --lockfile
     result = _run([*cmd], expect_exit=2)
     assert result.output == snapshot("""\
-Usage: ganzua constraints reset [OPTIONS] PYPROJECT
+Usage: ganzua constraints reset [OPTIONS] [PYPROJECT]
 Try 'ganzua constraints reset --help' for help.
 
 Error: using `--to=minimum` requires a `--lockfile`
@@ -315,6 +332,22 @@ Error: using `--to=minimum` requires a `--lockfile`
     # succeeds
     result = _run([*cmd, f"--lockfile={lockfile}"], expect_exit=0)
     assert result.output == ""
+
+
+def test_constraints_reset_has_default_pyproject(tmp_path: pathlib.Path) -> None:
+    cmd = ["constraints", "reset", f"--lockfile={resources.NEW_UV_LOCKFILE}"]
+    with contextlib.chdir(tmp_path):
+        # running in an empty tempdir fails
+        result = _run(cmd, expect_exit=_CLICK_ERROR)
+        assert "Did not find default `pyproject.toml`." in result.output
+
+        # but a `pyproject.toml` in the CWD is picked up automatically
+        pathlib.Path("pyproject.toml").write_bytes(
+            resources.OLD_UV_PYPROJECT.read_bytes()
+        )
+        output = _run(cmd).output
+        expected_output = _run([*cmd, "pyproject.toml"]).output
+        assert output == expected_output
 
 
 def test_constraints_inspect() -> None:
@@ -339,6 +372,22 @@ def test_constraints_inspect_markdown() -> None:
 | annotated-types   | >=0.7.0 |
 | typing-extensions | >=4     |
 """)
+
+
+def test_constraints_inspect_has_default_pyproject(tmp_path: pathlib.Path) -> None:
+    cmd = ["constraints", "inspect"]
+    with contextlib.chdir(tmp_path):
+        # running in an empty tempdir fails
+        result = _run(cmd, expect_exit=_CLICK_ERROR)
+        assert "Did not find default `pyproject.toml`." in result.output
+
+        # but a `pyproject.toml` in the CWD is picked up automatically
+        pathlib.Path("pyproject.toml").write_bytes(
+            resources.NEW_UV_PYPROJECT.read_bytes()
+        )
+        output = _run(cmd).output
+        expected_output = _run([*cmd, "pyproject.toml"]).output
+        assert output == expected_output
 
 
 @pytest.mark.parametrize("command", ["inspect", "diff", "constraints-inspect"])
