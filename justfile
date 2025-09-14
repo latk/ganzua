@@ -26,9 +26,9 @@ fix *files='.':
   explicitly ruff check --fix-only --show-fixes -- "$@"
   if [[ "$*" == "." ]]; then
     explicitly ./scripts/readme-usage.py update
-    for cmd in diff inspect constraints-inspect; do
-      explicitly ganzua schema $cmd >tests/schema.$cmd.json
-    done
+    explicitly ./scripts/par.py --shell \
+      'ganzua schema {} >tests/schema.{}.json' \
+      ::: diff inspect constraints-inspect
   fi
 
 # check types
@@ -48,10 +48,10 @@ dist:
     explicitly uv build
 
     # run smoke tests for the build artifacts
-    for dist in dist/ganzua-*.{whl,tar.gz}; do
-      echo "{{BOLD}}running smoke test for ${dist}{{NORMAL}}"
-      explicitly uv run --isolated --no-sync --with "$dist" bash -c 'ganzua help >/dev/null'
-    done
+    echo "{{BOLD}}running smoke tests{{NORMAL}}"
+    ./scripts/par.py \
+      uv run --isolated --no-sync --no-progress --with {} bash -c 'ganzua help >/dev/null' \
+      ::: dist/ganzua-*.{whl,tar.gz}
     echo "{{BOLD}}all smoke tests succeeded{{NORMAL}}"
 
 # serve a HTML page with code coverage on a random port

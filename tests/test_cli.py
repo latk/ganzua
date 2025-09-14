@@ -15,19 +15,19 @@ _CLICK_ERROR = 2
 """The exit code used by Click by default."""
 
 
-_WELL_KNOWN_COMMANDS = [
+_WELL_KNOWN_COMMANDS = (
     "inspect",
     "diff",
     "constraints",
     "schema",
-]
+)
 
-_WELL_KNOWN_SUBCOMMANDS = [
+_WELL_KNOWN_SUBCOMMANDS = (
     *_WELL_KNOWN_COMMANDS,
     "constraints bump",
     "constraints reset",
     "constraints inspect",
-]
+)
 
 
 def _run(args: t.Sequence[str], *, expect_exit: int = 0) -> click.testing.Result:
