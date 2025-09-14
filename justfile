@@ -60,3 +60,14 @@ coverage-serve:
 # check that all shell examples in the README are up to date
 check-readme-examples *args:
   TERM=dumb byexample --language shell README.md "$@"
+
+# perform a dependency upgrade using Ganzua
+upgrade-deps:
+  cp uv.lock old.uv.lock
+  ganzua constraints reset --to=minimum --lockfile=uv.lock --backup=old.pyproject.toml pyproject.toml
+  uv lock --upgrade  # perform the upgrade
+  mv old.pyproject.toml pyproject.toml  # restore original constraints
+  ganzua constraints bump --lockfile=uv.lock pyproject.toml
+  uv lock
+  ganzua diff --format=markdown old.uv.lock uv.lock
+  rm old.uv.lock
