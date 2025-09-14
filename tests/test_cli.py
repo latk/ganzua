@@ -1,5 +1,6 @@
 import json
 import pathlib
+import re
 import typing as t
 
 import click.testing
@@ -409,3 +410,16 @@ Show help for the application or a specific subcommand.
   Output help in Markdown format.
 """
     )
+
+
+def test_readme() -> None:
+    """Test to ensure that the README is in sync with `ganzua help`."""
+    begin = "\n<!-- begin usage -->\n"
+    end = "\n<!-- end usage -->\n"
+    pattern = re.compile(re.escape(begin) + "(.*)" + re.escape(end), flags=re.S)
+    up_to_date_usage = _run(["help", "--all", "--markdown"]).output.strip()
+    current_readme = external_file(str(resources.README), format=".txt")
+    expected_readme = pattern.sub(
+        f"{begin}\n{up_to_date_usage}\n{end}", resources.README.read_text()
+    )
+    assert current_readme == expected_readme

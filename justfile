@@ -5,7 +5,7 @@ set positional-arguments
 
 # keep in sync with .github/workflows/test.yaml
 [doc("run the entire QA suite")]
-qa *args: sync lint types (test args) check-readme-usage check-readme-examples dist
+qa *args: sync lint types (test args) check-readme-examples dist
 
 # install dependencies if necessary
 @sync:
@@ -25,7 +25,6 @@ fix *files='.':
   explicitly ruff format -- "$@"
   explicitly ruff check --fix-only --show-fixes -- "$@"
   if [[ "$*" == "." ]]; then
-    explicitly ./scripts/readme-usage.py update
     explicitly ./scripts/par.py --shell \
       'ganzua schema {} >tests/schema.{}.json' \
       ::: diff inspect constraints-inspect
@@ -58,10 +57,6 @@ dist:
 coverage-serve:
   coverage html
   python -m http.server -d htmlcov -b localhost 0
-
-# check that the README is up to date with the CLI help
-check-readme-usage:
-  ./scripts/readme-usage.py diff
 
 # check that all shell examples in the README are up to date
 check-readme-examples *args:
