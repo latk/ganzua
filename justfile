@@ -32,7 +32,7 @@ fix *files='.':
 
 # check types
 types:
-  mypy src tests
+  mypy .
 
 # run the test suite
 test *args:
@@ -42,11 +42,10 @@ test *args:
 dist:
     #!/usr/bin/env bash
     set -euo pipefail
-    explicitly() { printf '%s' "{{BOLD}}running:{{NORMAL}}"; echo " ${@@K}"; "$@"; }  # print command before running
 
-    explicitly uv build
+    echo "{{BOLD}}uv build{{NORMAL}}"
+    uv build
 
-    # run smoke tests for the build artifacts
     echo "{{BOLD}}running smoke tests{{NORMAL}}"
     ./scripts/par.py \
       uv run --isolated --no-sync --no-progress --with {} bash -c 'ganzua help >/dev/null' \
