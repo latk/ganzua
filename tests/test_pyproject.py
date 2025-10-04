@@ -269,10 +269,10 @@ example-poetry = ">=3"
 def test_list_extras() -> None:
     pyproject = """\
 [project.optional-dependencies]
-a = ["foo[xtra,xtrb] ~=3.0"]
+a = ["foo[xtra,XtRb] ~=3.0"]
 
 [tool.poetry.dependencies]
-bar = { version = "^3", optional = true, extras = ["xtra", "xtrb"] }
+bar = { version = "^3", optional = true, extras = ["xtra", "xTrB"] }
 
 [tool.poetry.extras]
 b = ["bar"]
@@ -280,10 +280,8 @@ b = ["bar"]
 
     assert _collect_requirements(pyproject) == snapshot(
         [
-            Requirement(
-                name="foo", specifier="~=3.0", extras=frozenset(("xtra", "xtrb"))
-            ),
-            Requirement(name="bar", specifier="^3", extras=frozenset(("xtra", "xtrb"))),
+            Requirement(name="foo", specifier="~=3.0", extras=_nameset("xtra", "xtrb")),
+            Requirement(name="bar", specifier="^3", extras=_nameset("xtra", "xtrb")),
         ]
     )
 

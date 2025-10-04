@@ -73,7 +73,7 @@ class Requirement(t.TypedDict):
     """The name of the required package."""
     specifier: str
     """Version specifier for the required package, may use PEP-508 or Poetry syntax."""
-    extras: t.NotRequired[frozenset[str]]
+    extras: t.NotRequired[frozenset[Name]]
     """Extras enabled for the required package."""
     marker: t.NotRequired[t.Annotated[Marker, FromToString]]
     """Environment marker expression describing when this requirement should be installed."""
@@ -102,7 +102,7 @@ def parse_requirement_from_pep508(
         req = Pep508Requirement(req)
     data = Requirement(name=req.name, specifier=str(req.specifier))
     if req.extras:
-        data["extras"] = frozenset(req.extras)
+        data["extras"] = frozenset(normalized_name(n) for n in req.extras)
     if req.marker:
         data["marker"] = req.marker
     if groups:

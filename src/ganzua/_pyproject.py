@@ -109,7 +109,7 @@ class _Editor:
             req = Requirement(name=name, specifier=version)
 
             if extras := frozenset(
-                e
+                normalized_name(e)
                 for ref in item_ref["extras"].array_items()
                 if (e := ref.value_as_str()) is not None
             ):
