@@ -40,7 +40,7 @@ We can also opt in to Markdown (GFM) output, which will produce a summary and a 
 ```console
 $ ganzua diff --format=markdown tests/{old,new}-uv-project/uv.lock
 2 changed packages (1 added, 1 updated)
-<BLANKLINE>
+
 | package           | old      | new    |
 |-------------------|----------|--------|
 | annotated-types   | -        | 0.7.0  |

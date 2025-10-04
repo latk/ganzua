@@ -5,7 +5,7 @@ set positional-arguments
 
 # keep in sync with .github/workflows/test.yaml
 [doc("run the entire QA suite")]
-qa *args: sync lint types (test args) check-readme-examples dist
+qa *args: sync lint types (test args) dist
 
 # install dependencies if necessary
 @sync:
@@ -56,10 +56,6 @@ dist:
 coverage-serve:
   coverage html
   python -m http.server -d htmlcov -b localhost 0
-
-# check that all shell examples in the README are up to date
-check-readme-examples *args:
-  TERM=dumb byexample --language shell README.md "$@"
 
 # perform a dependency upgrade using Ganzua
 upgrade-deps:

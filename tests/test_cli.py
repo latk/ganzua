@@ -2,12 +2,13 @@ import contextlib
 import json
 import pathlib
 import re
+import subprocess
 import typing as t
 
 import click.testing
 import dirty_equals
 import pytest
-from inline_snapshot import external_file, snapshot
+from inline_snapshot import external_file, get_snapshot_value, snapshot
 
 from ganzua.cli import app
 
@@ -461,7 +462,7 @@ Show help for the application or a specific subcommand.
     )
 
 
-def test_readme() -> None:
+def test_readme_usage() -> None:
     """Test to ensure that the README is in sync with `ganzua help`."""
     begin = "\n<!-- begin usage -->\n"
     end = "\n<!-- end usage -->\n"
@@ -472,3 +473,71 @@ def test_readme() -> None:
         f"{begin}\n{up_to_date_usage}\n{end}", resources.README.read_text()
     )
     assert current_readme == expected_readme
+
+
+def test_readme_examples() -> None:
+    fenced_example_pattern = re.compile(
+        r"""
+# start a fenced code block with `console` as the info string
+^ (?P<delim> [`]{3,}+) [ ]*+ console [ ]*+ \n
+
+# the next line must look like `$ command arg arg`
+[$] (?P<command> [^\n]++) \n
+
+# gobble up remaining contents of the fenced section as the output
+(?P<output> .*?) \n
+
+# match closing fence
+(?P=delim) $
+""",
+        flags=re.MULTILINE | re.VERBOSE | re.DOTALL,
+    )
+
+    executed_examples = 0
+
+    def run_example(m: re.Match) -> str:
+        nonlocal executed_examples
+
+        delim = m["delim"]
+        command = m["command"].strip()
+        assert command.startswith("ganzua ")
+        output = _run_shell_command(command).rstrip()
+        executed_examples += 1
+        return f"{delim}console\n$ {command}\n{output}\n{delim}"
+
+    current_readme = external_file(str(resources.README), format=".txt")
+    expected_readme = fenced_example_pattern.sub(
+        run_example, get_snapshot_value(current_readme)
+    )
+    assert current_readme == expected_readme
+    assert executed_examples == snapshot(3)
+
+
+def _run_shell_command(command: str) -> str:
+    with pytest.MonkeyPatch.context() as patcher:
+        patcher.setenv("TERM", "dumb")  # disable colors
+
+        result = subprocess.run(
+            # allow `bash` to be resolved via PATH
+            ["bash", "-eu", "-o", "braceexpand", "-c", command],  # noqa: S607
+            encoding="utf-8",
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+    if result.returncode != 0:  # pragma: no cover
+        pytest.fail(
+            f"""\
+Doctest shell command failed
+command: {command}
+exit code: {result.returncode}
+--- captured stdout
+{result.stdout}
+--- captured stderr
+{result.stderr}
+--- end
+"""
+        )
+
+    return result.stdout
