@@ -129,28 +129,36 @@ def _dependency_groups_rdeps(dependency_groups_ref: toml.Ref) -> dict[str, list[
     ... ''')
     >>> _dependency_groups_rdeps(ref)
     {'a': [], 'b': ['a', 'c', 'd'], 'c': ['a'], 'd': []}
-    """
-    # extract all direct dependencies
-    deps: dict[str, list[str]] = {}
-    for group_ref in dependency_groups_ref.table_entries():
-        group = group_ref.key
-        deps.setdefault(group, [])
-        for ref in group_ref.array_items():
-            if include := ref["include-group"].value_as_str():
-                deps[group].append(include)
 
-    def transitive_deps(start: str, *, seen: t.Set[str]) -> t.Iterator[str]:
+    The spec says that "Dependency Group Includes MUST NOT include cycles"[[1]],
+    but since we're only interested in the *set* of referencing groups,
+    detecting cycles is more difficult than just finding the transitive closure.
+
+    [1]: https://packaging.python.org/en/latest/specifications/dependency-groups/#dependency-group-include
+    """
+
+    def select_includes(items: t.Iterator[toml.Ref]) -> t.Iterator[str]:
+        for ref in items:
+            if include := ref["include-group"].value_as_str():
+                yield include
+
+    direct_includes = {
+        entry_ref.key: tuple(select_includes(entry_ref.array_items()))
+        for entry_ref in dependency_groups_ref.table_entries()
+    }
+
+    def transitive_includes(start: str, *, seen: t.Set[str]) -> t.Iterator[str]:
         seen.add(start)
-        for direct in deps.get(start, []):
+        for direct in direct_includes.get(start, ()):
             if direct in seen:
                 continue
             seen.add(direct)
             yield direct
-            yield from transitive_deps(direct, seen=seen)
+            yield from transitive_includes(direct, seen=seen)
 
     # build the reverse lookup table
-    rdeps: dict[str, list[str]] = {group: [] for group in deps}
-    for group in deps:
-        for dep in transitive_deps(group, seen=set()):
+    rdeps: dict[str, list[str]] = {group: [] for group in direct_includes}
+    for group in direct_includes:
+        for dep in transitive_includes(group, seen=set()):
             rdeps.setdefault(dep, []).append(group)
     return rdeps
