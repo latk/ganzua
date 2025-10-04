@@ -41,7 +41,30 @@ group-a = ["typing-extensions ~=3.4"]
 group-b = [{include-group = "group-a"}, "annotated-types ~=0.6.1"]
 """
 
-_EXPECTED_PYPROJECT = """\
+
+_OLD_POETRY_PYPROJECT = """\
+[tool.poetry.dependencies]
+typing-extensions = "^3.2"
+ignored-garbage = { not-a-version = true }
+
+[build-system]
+
+[tool.poetry.group.poetry-a.dependencies]
+typing-extensions = { version = "^3.4" }
+already-unconstrained = "*"
+"""
+
+
+def _apply_edit(edit: ganzua.EditRequirement, input: str) -> str:
+    doc = toml.RefRoot.parse(input)
+    ganzua.edit_pyproject(doc, edit)
+    return doc.dumps()
+
+
+def test_update_pep621() -> None:
+    edit = ganzua.UpdateRequirement(_LOCKFILE)
+    assert _apply_edit(edit, _OLD_PYPROJECT) == snapshot(
+        """\
 [project]
 name = "example"
 version = "0.1.0"
@@ -65,8 +88,35 @@ extra3 = ["ndr"]
 group-a = ["typing-extensions~=4.14"]
 group-b = [{include-group = "group-a"}, "annotated-types~=0.7.0"]
 """
+    )
 
-_UNCONSTRAINED_PYPROJECT = """\
+
+def test_update_poetry() -> None:
+    edit = ganzua.UpdateRequirement(_LOCKFILE)
+    assert _apply_edit(edit, _OLD_POETRY_PYPROJECT) == snapshot(
+        """\
+[tool.poetry.dependencies]
+typing-extensions = "^4.14"
+ignored-garbage = { not-a-version = true }
+
+[build-system]
+
+[tool.poetry.group.poetry-a.dependencies]
+typing-extensions = { version = "^4.14" }
+already-unconstrained = "*"
+"""
+    )
+
+
+def test_update_empty() -> None:
+    edit = ganzua.UpdateRequirement(_LOCKFILE)
+    assert _apply_edit(edit, "") == ""
+
+
+def test_unconstrain_pep621() -> None:
+    edit = ganzua.UnconstrainRequirement()
+    assert _apply_edit(edit, _OLD_PYPROJECT) == snapshot(
+        """\
 [project]
 name = "example"
 version = "0.1.0"
@@ -90,32 +140,13 @@ extra3 = ["ndr"]
 group-a = ["typing-extensions"]
 group-b = [{include-group = "group-a"}, "annotated-types"]
 """
+    )
 
-_OLD_POETRY_PYPROJECT = """\
-[tool.poetry.dependencies]
-typing-extensions = "^3.2"
-ignored-garbage = { not-a-version = true }
 
-[build-system]
-
-[tool.poetry.group.poetry-a.dependencies]
-typing-extensions = { version = "^3.4" }
-already-unconstrained = "*"
-"""
-
-_EXPECTED_POETRY_PYPROJECT = """\
-[tool.poetry.dependencies]
-typing-extensions = "^4.14"
-ignored-garbage = { not-a-version = true }
-
-[build-system]
-
-[tool.poetry.group.poetry-a.dependencies]
-typing-extensions = { version = "^4.14" }
-already-unconstrained = "*"
-"""
-
-_UNCONSTRAINED_POETRY_PYPROJECT = """\
+def test_unconstrain_poetry() -> None:
+    edit = ganzua.UnconstrainRequirement()
+    assert _apply_edit(edit, _OLD_POETRY_PYPROJECT) == snapshot(
+        """\
 [tool.poetry.dependencies]
 typing-extensions = "*"
 ignored-garbage = { not-a-version = true }
@@ -126,37 +157,7 @@ ignored-garbage = { not-a-version = true }
 typing-extensions = { version = "*" }
 already-unconstrained = "*"
 """
-
-
-def _apply_edit(edit: ganzua.EditRequirement, input: str) -> str:
-    doc = toml.RefRoot.parse(input)
-    ganzua.edit_pyproject(doc, edit)
-    return doc.dumps()
-
-
-def test_update_pep621() -> None:
-    edit = ganzua.UpdateRequirement(_LOCKFILE)
-    assert _apply_edit(edit, _OLD_PYPROJECT) == _EXPECTED_PYPROJECT
-
-
-def test_update_poetry() -> None:
-    edit = ganzua.UpdateRequirement(_LOCKFILE)
-    assert _apply_edit(edit, _OLD_POETRY_PYPROJECT) == _EXPECTED_POETRY_PYPROJECT
-
-
-def test_update_empty() -> None:
-    edit = ganzua.UpdateRequirement(_LOCKFILE)
-    assert _apply_edit(edit, "") == ""
-
-
-def test_unconstrain_pep621() -> None:
-    edit = ganzua.UnconstrainRequirement()
-    assert _apply_edit(edit, _OLD_PYPROJECT) == _UNCONSTRAINED_PYPROJECT
-
-
-def test_unconstrain_poetry() -> None:
-    edit = ganzua.UnconstrainRequirement()
-    assert _apply_edit(edit, _OLD_POETRY_PYPROJECT) == _UNCONSTRAINED_POETRY_PYPROJECT
+    )
 
 
 def test_set_minimum_pep621() -> None:
