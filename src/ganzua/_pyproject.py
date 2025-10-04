@@ -98,7 +98,7 @@ class _Editor:
         group: Name | None,
     ) -> None:
         for item_ref in dependency_table_ref.table_entries():
-            name = item_ref.key
+            name = normalized_name(item_ref.key)
             version_ref: toml.Ref = item_ref
             if "version" in item_ref:
                 version_ref = item_ref["version"]

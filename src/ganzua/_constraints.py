@@ -69,7 +69,7 @@ class Requirement(t.TypedDict):
     # compare: https://github.com/pypa/packaging/blob/e9b9d09ebc5992ecad1799da22ee5faefb9cc7cb/src/packaging/requirements.py#L21
     """A resolver-agnostic Requirement model."""
 
-    name: str
+    name: Name
     """The name of the required package."""
     specifier: str
     """Version specifier for the required package, may use PEP-508 or Poetry syntax."""
@@ -100,7 +100,7 @@ def parse_requirement_from_pep508(
 ) -> Requirement:
     if isinstance(req, str):
         req = Pep508Requirement(req)
-    data = Requirement(name=req.name, specifier=str(req.specifier))
+    data = Requirement(name=normalized_name(req.name), specifier=str(req.specifier))
     if req.extras:
         data["extras"] = frozenset(normalized_name(n) for n in req.extras)
     if req.marker:

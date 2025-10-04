@@ -1,10 +1,12 @@
 # TODO test semver idioms with 0.x versions
+import typing as t
 
 from ganzua import Lockfile
 from ganzua._constraints import (
     Requirement,
     UnconstrainRequirement,
     UpdateRequirement,
+    assert_normalized_name,
     parse_requirement_from_pep508,
 )
 
@@ -24,11 +26,13 @@ def _assert_updated_req(input: str, expected: str) -> None:
     assert req == parse_requirement_from_pep508(expected)
 
 
-def _assert_updated_poetry_req(name: str, input: str, expected: str) -> None:
+def _assert_updated_poetry_req(
+    name: t.LiteralString, input: str, expected: str
+) -> None:
     __tracebackhide__ = True
-    req = Requirement(name=name, specifier=input)
+    req = Requirement(name=assert_normalized_name(name), specifier=input)
     UpdateRequirement(_LOCKFILE).apply(req, kind="poetry")
-    assert req == Requirement(name=name, specifier=expected)
+    assert req == Requirement(name=assert_normalized_name(name), specifier=expected)
 
 
 def _assert_unconstrained_req(input: str, expected: str) -> None:
@@ -178,6 +182,6 @@ def test_unconstrain_requirement() -> None:
 
 
 def test_unconstrain_requirement_poetry() -> None:
-    req = Requirement(name="foo", specifier="^1.2.3")
+    req = Requirement(name=assert_normalized_name("foo"), specifier="^1.2.3")
     UnconstrainRequirement().apply(req, kind="poetry")
-    assert req == Requirement(name="foo", specifier="*")
+    assert req == Requirement(name=assert_normalized_name("foo"), specifier="*")

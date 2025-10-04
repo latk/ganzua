@@ -24,7 +24,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "typing-extensions>=3,<4",  # moar type annotations
+    "Typing.Extensions>=3,<4",  # moar type annotations
     "merrily-ignored",
     [42, "also ignored"],  # we ignore invalid junk
 ]
@@ -44,7 +44,7 @@ group-b = [{include-group = "group-a"}, "annotated-types ~=0.6.1"]
 
 _OLD_POETRY_PYPROJECT = """\
 [tool.poetry.dependencies]
-typing-extensions = "^3.2"
+Typing_Extensions = "^3.2"
 ignored-garbage = { not-a-version = true }
 
 [build-system]
@@ -72,7 +72,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "typing-extensions>=4,<5",  # moar type annotations
+    "Typing.Extensions>=4,<5",  # moar type annotations
     "merrily-ignored",
     [42, "also ignored"],  # we ignore invalid junk
 ]
@@ -96,7 +96,7 @@ def test_update_poetry() -> None:
     assert _apply_edit(edit, _OLD_POETRY_PYPROJECT) == snapshot(
         """\
 [tool.poetry.dependencies]
-typing-extensions = "^4.14"
+Typing_Extensions = "^4.14"
 ignored-garbage = { not-a-version = true }
 
 [build-system]
@@ -124,7 +124,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "typing-extensions",  # moar type annotations
+    "Typing.Extensions",  # moar type annotations
     "merrily-ignored",
     [42, "also ignored"],  # we ignore invalid junk
 ]
@@ -148,7 +148,7 @@ def test_unconstrain_poetry() -> None:
     assert _apply_edit(edit, _OLD_POETRY_PYPROJECT) == snapshot(
         """\
 [tool.poetry.dependencies]
-typing-extensions = "*"
+Typing_Extensions = "*"
 ignored-garbage = { not-a-version = true }
 
 [build-system]
@@ -171,7 +171,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "typing-extensions>=4.14.1",  # moar type annotations
+    "Typing.Extensions>=4.14.1",  # moar type annotations
     "merrily-ignored",
     [42, "also ignored"],  # we ignore invalid junk
 ]
@@ -199,17 +199,22 @@ def _collect_requirements(pyproject_contents: str) -> list[Requirement]:
 def test_list_pep621() -> None:
     assert _collect_requirements(_OLD_PYPROJECT) == snapshot(
         [
-            Requirement(name="typing-extensions", specifier="<4,>=3"),
-            Requirement(name="merrily-ignored", specifier=""),
-            Requirement(name="annotated-types", specifier="==0.6.*,>=0.6.1"),
-            Requirement(name="ndr", specifier=""),
             Requirement(
-                name="typing-extensions",
+                name=assert_normalized_name("typing-extensions"), specifier="<4,>=3"
+            ),
+            Requirement(name=assert_normalized_name("merrily-ignored"), specifier=""),
+            Requirement(
+                name=assert_normalized_name("annotated-types"),
+                specifier="==0.6.*,>=0.6.1",
+            ),
+            Requirement(name=assert_normalized_name("ndr"), specifier=""),
+            Requirement(
+                name=assert_normalized_name("typing-extensions"),
                 specifier="~=3.4",
                 groups=_nameset("group-a", "group-b"),
             ),
             Requirement(
-                name="annotated-types",
+                name=assert_normalized_name("annotated-types"),
                 specifier="~=0.6.1",
                 groups=_nameset("group-b"),
             ),
@@ -224,14 +229,16 @@ def test_list_empty() -> None:
 def test_list_poetry() -> None:
     assert _collect_requirements(_OLD_POETRY_PYPROJECT) == snapshot(
         [
-            Requirement(name="typing-extensions", specifier="^3.2"),
             Requirement(
-                name="typing-extensions",
+                name=assert_normalized_name("typing-extensions"), specifier="^3.2"
+            ),
+            Requirement(
+                name=assert_normalized_name("typing-extensions"),
                 specifier="^3.4",
                 groups=_nameset("poetry-a"),
             ),
             Requirement(
-                name="already-unconstrained",
+                name=assert_normalized_name("already-unconstrained"),
                 specifier="*",
                 groups=_nameset("poetry-a"),
             ),
@@ -255,14 +262,24 @@ example-poetry = ">=3"
 
     assert _collect_requirements(pyproject) == snapshot(
         [
-            Requirement(name="other", specifier="", groups=_nameset("d")),
             Requirement(
-                name="example-pep735",
+                name=assert_normalized_name("other"), specifier="", groups=_nameset("d")
+            ),
+            Requirement(
+                name=assert_normalized_name("example-pep735"),
                 specifier=">=3",
                 groups=_nameset("a", "b", "c"),
             ),
-            Requirement(name="example-poetry", specifier="^3", groups=_nameset("pa")),
-            Requirement(name="example-poetry", specifier=">=3", groups=_nameset("pb")),
+            Requirement(
+                name=assert_normalized_name("example-poetry"),
+                specifier="^3",
+                groups=_nameset("pa"),
+            ),
+            Requirement(
+                name=assert_normalized_name("example-poetry"),
+                specifier=">=3",
+                groups=_nameset("pb"),
+            ),
         ]
     )
 
@@ -281,8 +298,16 @@ b = ["bar"]
 
     assert _collect_requirements(pyproject) == snapshot(
         [
-            Requirement(name="foo", specifier="~=3.0", extras=_nameset("xtra", "xtrb")),
-            Requirement(name="bar", specifier="^3", extras=_nameset("xtra", "xtrb")),
+            Requirement(
+                name=assert_normalized_name("foo"),
+                specifier="~=3.0",
+                extras=_nameset("xtra", "xtrb"),
+            ),
+            Requirement(
+                name=assert_normalized_name("bar"),
+                specifier="^3",
+                extras=_nameset("xtra", "xtrb"),
+            ),
         ]
     )
 
@@ -299,10 +324,14 @@ bar = { version = "^3", markers = "python_version <= '3.11'" }
     assert _collect_requirements(pyproject) == snapshot(
         [
             Requirement(
-                name="foo", specifier=">=3", marker=Marker("python_version <= '3.11'")
+                name=assert_normalized_name("foo"),
+                specifier=">=3",
+                marker=Marker("python_version <= '3.11'"),
             ),
             Requirement(
-                name="bar", specifier="^3", marker=Marker("python_version <= '3.11'")
+                name=assert_normalized_name("bar"),
+                specifier="^3",
+                marker=Marker("python_version <= '3.11'"),
             ),
         ]
     )
