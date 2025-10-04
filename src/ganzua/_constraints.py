@@ -1,3 +1,4 @@
+import re
 import typing as t
 from dataclasses import dataclass
 
@@ -31,6 +32,38 @@ class FromToString:
         )
 
 
+Name = t.NewType("Name", str)
+"""A normalized name, e.g. for dependencies, extras, or groups."""
+
+
+def normalized_name(name: str) -> Name:
+    """Convert the Name to its canonical form.
+
+    See: <https://packaging.python.org/en/latest/specifications/name-normalization/>
+
+    >>> normalized_name("Friendly_Bard")
+    'friendly-bard'
+    """
+    return Name(re.sub(r"[-_.]+", "-", name).lower())
+
+
+def assert_normalized_name(name: str) -> Name:
+    """Checked cast to a `Name`, without performing normalization.
+
+    Raises `ValueError` upon failure.
+
+    >>> assert_normalized_name("foo-bar")
+    'foo-bar'
+    >>> assert_normalized_name("Foo.Bar")
+    Traceback (most recent call last):
+    ValueError: name is not normalized: 'Foo.Bar'
+    """
+    if name == normalized_name(name):
+        return Name(name)
+    msg = f"name is not normalized: {name!r}"
+    raise ValueError(msg)
+
+
 @pydantic.with_config(use_attribute_docstrings=True)
 class Requirement(t.TypedDict):
     # compare: https://github.com/pypa/packaging/blob/e9b9d09ebc5992ecad1799da22ee5faefb9cc7cb/src/packaging/requirements.py#L21
@@ -44,7 +77,7 @@ class Requirement(t.TypedDict):
     """Extras enabled for the required package."""
     marker: t.NotRequired[t.Annotated[Marker, FromToString]]
     """Environment marker expression describing when this requirement should be installed."""
-    groups: t.NotRequired[frozenset[str]]
+    groups: t.NotRequired[frozenset[Name]]
     """Dependency groups that this requirement is part of."""
 
     # TODO instead of directly supporting URLs,
@@ -63,7 +96,7 @@ REQUIREMENTS_SCHEMA = pydantic.TypeAdapter(Requirements)
 def parse_requirement_from_pep508(
     req: Pep508Requirement | str,
     *,
-    groups: frozenset[str] = frozenset(),
+    groups: frozenset[Name] = frozenset(),
 ) -> Requirement:
     if isinstance(req, str):
         req = Pep508Requirement(req)

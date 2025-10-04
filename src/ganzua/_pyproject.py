@@ -5,7 +5,13 @@ import packaging.markers
 import packaging.requirements
 
 from . import _toml as toml
-from ._constraints import EditRequirement, Requirement, parse_requirement_from_pep508
+from ._constraints import (
+    EditRequirement,
+    Name,
+    Requirement,
+    normalized_name,
+    parse_requirement_from_pep508,
+)
 from ._pretty_specifier_set import PrettySpecifierSet
 
 
@@ -50,17 +56,19 @@ class _Editor:
         # dependency groups, see <https://peps.python.org/pep-0735/>
         for group_ref in self.root["dependency-groups"].table_entries():
             for ref in group_ref.array_items():
-                self._apply_pep508_requirement(ref, edit, group=group_ref.key)
+                self._apply_pep508_requirement(
+                    ref, edit, group=normalized_name(group_ref.key)
+                )
 
     def _apply_pep508_requirement(
-        self, ref: toml.Ref, edit: EditRequirement, *, group: str | None = None
+        self, ref: toml.Ref, edit: EditRequirement, *, group: Name | None = None
     ) -> None:
         raw_requirement = ref.value_as_str()
         if raw_requirement is None:
             return
         req = packaging.requirements.Requirement(raw_requirement)
 
-        groups = frozenset[str]()
+        groups = frozenset[Name]()
         if group:
             groups = frozenset((group, *self.dependency_group_rdeps.get(group, ())))
         data = parse_requirement_from_pep508(req, groups=groups)
@@ -79,7 +87,7 @@ class _Editor:
 
         for group_ref in self.poetry["group"].table_entries():
             self._apply_poetry_dependency_table(
-                group_ref["dependencies"], edit, group=group_ref.key
+                group_ref["dependencies"], edit, group=normalized_name(group_ref.key)
             )
 
     def _apply_poetry_dependency_table(
@@ -87,7 +95,7 @@ class _Editor:
         dependency_table_ref: toml.Ref,
         edit: EditRequirement,
         *,
-        group: str | None,
+        group: Name | None,
     ) -> None:
         for item_ref in dependency_table_ref.table_entries():
             name = item_ref.key
@@ -118,17 +126,17 @@ class _Editor:
                 version_ref.replace(req["specifier"])
 
 
-def _dependency_groups_rdeps(dependency_groups_ref: toml.Ref) -> dict[str, list[str]]:
+def _dependency_groups_rdeps(dependency_groups_ref: toml.Ref) -> dict[Name, list[Name]]:
     """Build a reverse lookup table for the dependency group graph.
 
     >>> ref = toml.RefRoot.parse('''
-    ... a = ["ignored", { include-group = "c" }]
+    ... a = ["ignored", { include-group = "c-._._C" }]  # check name normalization
     ... b = ["foo", { include-group = "b" }]
-    ... c = [{ include-group = "b" }]
+    ... C-c = [{ include-group = "b" }]  # check name normalization
     ... d = [{ include-group = "b" }]
     ... ''')
     >>> _dependency_groups_rdeps(ref)
-    {'a': [], 'b': ['a', 'c', 'd'], 'c': ['a'], 'd': []}
+    {'a': [], 'b': ['a', 'c-c', 'd'], 'c-c': ['a'], 'd': []}
 
     The spec says that "Dependency Group Includes MUST NOT include cycles"[[1]],
     but since we're only interested in the *set* of referencing groups,
@@ -136,18 +144,20 @@ def _dependency_groups_rdeps(dependency_groups_ref: toml.Ref) -> dict[str, list[
 
     [1]: https://packaging.python.org/en/latest/specifications/dependency-groups/#dependency-group-include
     """
+    # TODO also support `tool.poetry` group includes?
+    # <https://python-poetry.org/docs/managing-dependencies/#including-dependencies-from-other-groups>
 
-    def select_includes(items: t.Iterator[toml.Ref]) -> t.Iterator[str]:
+    def select_includes(items: t.Iterator[toml.Ref]) -> t.Iterator[Name]:
         for ref in items:
             if include := ref["include-group"].value_as_str():
-                yield include
+                yield normalized_name(include)
 
     direct_includes = {
-        entry_ref.key: tuple(select_includes(entry_ref.array_items()))
+        normalized_name(entry_ref.key): tuple(select_includes(entry_ref.array_items()))
         for entry_ref in dependency_groups_ref.table_entries()
     }
 
-    def transitive_includes(start: str, *, seen: t.Set[str]) -> t.Iterator[str]:
+    def transitive_includes(start: Name, *, seen: t.Set[Name]) -> t.Iterator[Name]:
         seen.add(start)
         for direct in direct_includes.get(start, ()):
             if direct in seen:
@@ -157,7 +167,7 @@ def _dependency_groups_rdeps(dependency_groups_ref: toml.Ref) -> dict[str, list[
             yield from transitive_includes(direct, seen=seen)
 
     # build the reverse lookup table
-    rdeps: dict[str, list[str]] = {group: [] for group in direct_includes}
+    rdeps: dict[Name, list[Name]] = {group: [] for group in direct_includes}
     for group in direct_includes:
         for dep in transitive_includes(group, seen=set()):
             rdeps.setdefault(dep, []).append(group)
