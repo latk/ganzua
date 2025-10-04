@@ -11,10 +11,10 @@ from dataclasses import dataclass
 import click
 import pydantic
 import rich
-import tomlkit
 
 import ganzua
 
+from . import _toml as toml
 from ._cli_help import App
 from ._constraints import Requirements
 from ._diff import Diff
@@ -132,7 +132,7 @@ def constraints_inspect(
         pyproject = _find_pyproject_toml(ctx)
 
     with error_context(f"while parsing {pyproject}"):
-        doc = tomlkit.parse(pyproject.read_text())
+        doc = toml.RefRoot.parse(pyproject.read_text())
     collector = ganzua.CollectRequirement([])
     ganzua.edit_pyproject(doc, collector)
     return Requirements(requirements=collector.reqs)
@@ -255,15 +255,15 @@ def constraints_reset(
 
 
 @contextlib.contextmanager
-def _toml_edit_scope(path: pathlib.Path) -> t.Iterator[tomlkit.TOMLDocument]:
+def _toml_edit_scope(path: pathlib.Path) -> t.Iterator[toml.Ref]:
     """Load the TOML file and write it back afterwards."""
     with error_context(f"while parsing {path}"):
         old_contents = path.read_text()
-        doc = tomlkit.parse(old_contents)
+        doc = toml.RefRoot.parse(old_contents)
 
     yield doc
 
-    new_contents = doc.as_string()
+    new_contents = doc.dumps()
     if new_contents != old_contents:
         path.write_text(new_contents)
 

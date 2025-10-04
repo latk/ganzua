@@ -1,8 +1,8 @@
-import tomlkit
 from inline_snapshot import snapshot
 from packaging.markers import Marker
 
 import ganzua
+import ganzua._toml as toml
 from ganzua._constraints import Requirement
 from ganzua._lockfile import Lockfile
 
@@ -126,40 +126,41 @@ already-unconstrained = "*"
 """
 
 
+def _apply_edit(edit: ganzua.EditRequirement, input: str) -> str:
+    doc = toml.RefRoot.parse(input)
+    ganzua.edit_pyproject(doc, edit)
+    return doc.dumps()
+
+
 def test_update_pep621() -> None:
-    doc = tomlkit.parse(_OLD_PYPROJECT)
-    ganzua.edit_pyproject(doc, ganzua.UpdateRequirement(_LOCKFILE))
-    assert doc.as_string() == _EXPECTED_PYPROJECT
+    edit = ganzua.UpdateRequirement(_LOCKFILE)
+    assert _apply_edit(edit, _OLD_PYPROJECT) == _EXPECTED_PYPROJECT
 
 
 def test_update_poetry() -> None:
-    doc = tomlkit.parse(_OLD_POETRY_PYPROJECT)
-    ganzua.edit_pyproject(doc, ganzua.UpdateRequirement(_LOCKFILE))
-    assert doc.as_string() == _EXPECTED_POETRY_PYPROJECT
+    edit = ganzua.UpdateRequirement(_LOCKFILE)
+    assert _apply_edit(edit, _OLD_POETRY_PYPROJECT) == _EXPECTED_POETRY_PYPROJECT
 
 
 def test_update_empty() -> None:
-    doc = tomlkit.document()
-    ganzua.edit_pyproject(doc, ganzua.UpdateRequirement(_LOCKFILE))
-    assert doc.as_string() == ""
+    edit = ganzua.UpdateRequirement(_LOCKFILE)
+    assert _apply_edit(edit, "") == ""
 
 
 def test_unconstrain_pep621() -> None:
-    doc = tomlkit.parse(_OLD_PYPROJECT)
-    ganzua.edit_pyproject(doc, ganzua.UnconstrainRequirement())
-    assert doc.as_string() == _UNCONSTRAINED_PYPROJECT
+    edit = ganzua.UnconstrainRequirement()
+    assert _apply_edit(edit, _OLD_PYPROJECT) == _UNCONSTRAINED_PYPROJECT
 
 
 def test_unconstrain_poetry() -> None:
-    doc = tomlkit.parse(_OLD_POETRY_PYPROJECT)
-    ganzua.edit_pyproject(doc, ganzua.UnconstrainRequirement())
-    assert doc.as_string() == _UNCONSTRAINED_POETRY_PYPROJECT
+    edit = ganzua.UnconstrainRequirement()
+    assert _apply_edit(edit, _OLD_POETRY_PYPROJECT) == _UNCONSTRAINED_POETRY_PYPROJECT
 
 
 def test_set_minimum_pep621() -> None:
-    doc = tomlkit.parse(_OLD_PYPROJECT)
-    ganzua.edit_pyproject(doc, ganzua.SetMinimumRequirement(_LOCKFILE))
-    assert doc.as_string() == snapshot("""\
+    edit = ganzua.SetMinimumRequirement(_LOCKFILE)
+    assert _apply_edit(edit, _OLD_PYPROJECT) == snapshot(
+        """\
 [project]
 name = "example"
 version = "0.1.0"
@@ -182,13 +183,13 @@ extra3 = ["ndr"]
 [dependency-groups]
 group-a = ["typing-extensions>=4.14.1"]
 group-b = [{include-group = "group-a"}, "annotated-types>=0.7.0"]
-""")
+"""
+    )
 
 
 def _collect_requirements(pyproject_contents: str) -> list[Requirement]:
-    doc = tomlkit.parse(pyproject_contents)
     collector = ganzua.CollectRequirement([])
-    ganzua.edit_pyproject(doc, collector)
+    _apply_edit(collector, pyproject_contents)
     return collector.reqs
 
 

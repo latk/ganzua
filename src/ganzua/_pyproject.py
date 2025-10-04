@@ -3,16 +3,13 @@ from dataclasses import dataclass
 
 import packaging.markers
 import packaging.requirements
-import tomlkit
-import tomlkit.container
-import tomlkit.items
 
+from . import _toml as toml
 from ._constraints import EditRequirement, Requirement, parse_requirement_from_pep508
 from ._pretty_specifier_set import PrettySpecifierSet
-from ._toml import TomlRef, TomlRefRoot
 
 
-def edit_pyproject(pyproject: tomlkit.TOMLDocument, mapper: EditRequirement) -> None:
+def edit_pyproject(pyproject: toml.Ref, mapper: EditRequirement) -> None:
     """Apply the callback to each requirement specifier in the pyproject.toml file."""
     _Editor.new(pyproject).apply(mapper)
 
@@ -25,11 +22,11 @@ class _Editor:
     # TODO check if there are uv-specific fields
     # TODO support build dependencies?
 
-    root: TomlRef
+    root: toml.Ref
 
     @classmethod
-    def new(cls, pyproject: tomlkit.TOMLDocument) -> t.Self:
-        return cls(TomlRefRoot(pyproject))
+    def new(cls, pyproject: toml.Ref) -> t.Self:
+        return cls(pyproject)
 
     def __post_init__(self) -> None:
         self.project = self.root["project"]
@@ -56,7 +53,7 @@ class _Editor:
                 self._apply_pep508_requirement(ref, edit, group=group_ref.key)
 
     def _apply_pep508_requirement(
-        self, ref: TomlRef, edit: EditRequirement, *, group: str | None = None
+        self, ref: toml.Ref, edit: EditRequirement, *, group: str | None = None
     ) -> None:
         raw_requirement = ref.value_as_str()
         if raw_requirement is None:
@@ -86,11 +83,15 @@ class _Editor:
             )
 
     def _apply_poetry_dependency_table(
-        self, dependency_table_ref: TomlRef, edit: EditRequirement, *, group: str | None
+        self,
+        dependency_table_ref: toml.Ref,
+        edit: EditRequirement,
+        *,
+        group: str | None,
     ) -> None:
         for item_ref in dependency_table_ref.table_entries():
             name = item_ref.key
-            version_ref: TomlRef = item_ref
+            version_ref: toml.Ref = item_ref
             if "version" in item_ref:
                 version_ref = item_ref["version"]
             version = version_ref.value_as_str()
@@ -117,17 +118,15 @@ class _Editor:
                 version_ref.replace(req["specifier"])
 
 
-def _dependency_groups_rdeps(dependency_groups_ref: TomlRef) -> dict[str, list[str]]:
+def _dependency_groups_rdeps(dependency_groups_ref: toml.Ref) -> dict[str, list[str]]:
     """Build a reverse lookup table for the dependency group graph.
 
-    >>> ref = TomlRefRoot(
-    ...     tomlkit.parse('''
+    >>> ref = toml.RefRoot.parse('''
     ... a = ["ignored", { include-group = "c" }]
     ... b = ["foo", { include-group = "b" }]
     ... c = [{ include-group = "b" }]
     ... d = [{ include-group = "b" }]
     ... ''')
-    ... )
     >>> _dependency_groups_rdeps(ref)
     {'a': [], 'b': ['a', 'c', 'd'], 'c': ['a'], 'd': []}
     """

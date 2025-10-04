@@ -1,11 +1,11 @@
 r"""A kind of DOM for traversing and manipulating TOML documents.
 
-A `TomlRef` is a view onto part of a `tomlkit.TOMLDocument`.
+A `Ref` is a view onto part of a `tomlkit.TOMLDocument`.
 It knows its location, so the Ref can replace itself with a new value.
 
 Examples for traversing tables:
 
->>> ref = TomlRefRoot(tomlkit.parse("a = 1\nb = { c = 3 }"))
+>>> ref = RefRoot.parse("a = 1\nb = { c = 3 }")
 >>> ref["b"].value()
 {'c': 3}
 >>> ref["a"].value()
@@ -17,13 +17,13 @@ None
 
 We can also traverse interrupted tables, which internally involves a proxy type.
 
->>> ref = TomlRefRoot(tomlkit.parse('''\
+>>> ref = RefRoot.parse('''\
 ... [table.a]
 ... content = 1
 ... [interrupted]
 ... [table.b]
 ... content = 2
-... '''))
+... ''')
 >>> ref["table"].value()
 {'a': {'content': 1}, 'b': {'content': 2}}
 >>> ref["table"]["b"]["content"].value()
@@ -31,7 +31,7 @@ We can also traverse interrupted tables, which internally involves a proxy type.
 
 Cannot replace root objects:
 
->>> ref = TomlRefRoot(tomlkit.parse(""))
+>>> ref = RefRoot.parse("")
 >>> ref.replace({})
 Traceback (most recent call last):
 NotImplementedError
@@ -50,20 +50,20 @@ from dataclasses import dataclass
 import tomlkit.container
 import tomlkit.items
 
-type TomlRef = TomlRefRoot | TomlRefTableItem | TomlRefArrayItem | TomlRefNull
+type Ref = RefRoot | RefTableItem | RefArrayItem | RefNull
 
-TomlDict: t.TypeAlias = (
+_TomlDict: t.TypeAlias = (
     tomlkit.container.Container
     | tomlkit.container.OutOfOrderTableProxy
     | tomlkit.items.AbstractTable
 )
 
 
-TomlAny = TomlDict | tomlkit.items.Item
+_TomlAny = _TomlDict | tomlkit.items.Item
 
 
-class ITomlRef(t.Protocol):
-    def value(self) -> TomlAny | None:
+class IRef(t.Protocol):
+    def value(self) -> _TomlAny | None:
         """Get the value of this ref, if any."""
         ...
 
@@ -77,53 +77,60 @@ class ITomlRef(t.Protocol):
             return None
         return value.value
 
-    def __getitem__(self, key: str) -> "TomlRefTableItem | TomlRefNull":
+    def __getitem__(self, key: str) -> "RefTableItem | RefNull":
         container = self.value()
-        if isinstance(container, TomlDict) and key in container:
-            return TomlRefTableItem(container, key)
-        return TomlRefNull()
+        if isinstance(container, _TomlDict) and key in container:
+            return RefTableItem(container, key)
+        return RefNull()
 
     def __contains__(self, key: str) -> bool:
         container = self.value()
-        return isinstance(container, TomlDict) and key in container
+        return isinstance(container, _TomlDict) and key in container
 
-    def array_items(self) -> "t.Iterator[TomlRefArrayItem]":
+    def array_items(self) -> "t.Iterator[RefArrayItem]":
         """If this is an array, iterate over all items."""
         value = self.value()
         if not isinstance(value, tomlkit.items.Array):
             return
         for i in range(len(value)):
-            yield TomlRefArrayItem(container=value, key=i)
+            yield RefArrayItem(container=value, key=i)
 
-    def table_entries(self) -> "t.Iterator[TomlRefTableItem]":
+    def table_entries(self) -> "t.Iterator[RefTableItem]":
         """If this is a table, iterate over all entries."""
         value = self.value()
-        if not isinstance(value, TomlDict):
+        if not isinstance(value, _TomlDict):
             return
         for key in value:
-            yield TomlRefTableItem(container=value, key=key)
+            yield RefTableItem(container=value, key=key)
 
 
 @dataclass(frozen=True)
-class TomlRefRoot(ITomlRef):
-    root: TomlDict
+class RefRoot(IRef):
+    root: _TomlDict
 
     @t.override
-    def value(self) -> TomlDict:
+    def value(self) -> _TomlDict:
         return self.root
 
     @t.override
     def replace(self, _value: object, /) -> None:
         raise NotImplementedError
 
+    @classmethod
+    def parse(cls, toml: str) -> t.Self:
+        return cls(tomlkit.parse(toml))
+
+    def dumps(self) -> str:
+        return tomlkit.dumps(self.value())
+
 
 @dataclass(frozen=True)
-class TomlRefTableItem(ITomlRef):
-    container: TomlDict
+class RefTableItem(IRef):
+    container: _TomlDict
     key: str
 
     @t.override
-    def value(self) -> TomlAny:
+    def value(self) -> _TomlAny:
         return self.container[self.key]
 
     @t.override
@@ -132,12 +139,12 @@ class TomlRefTableItem(ITomlRef):
 
 
 @dataclass(frozen=True)
-class TomlRefArrayItem(ITomlRef):
+class RefArrayItem(IRef):
     container: tomlkit.items.Array
     key: int
 
     @t.override
-    def value(self) -> TomlAny:
+    def value(self) -> _TomlAny:
         return self.container[self.key]
 
     @t.override
@@ -146,7 +153,7 @@ class TomlRefArrayItem(ITomlRef):
 
 
 @dataclass(frozen=True)
-class TomlRefNull(ITomlRef):
+class RefNull(IRef):
     @t.override
     def value(self) -> None:
         return None
