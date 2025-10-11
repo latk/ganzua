@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+New features:
+
+* Arguments for `pyproject.toml` and lockfile paths are now optional in `ganzua constraints inspect`, `ganzua constraints bump`, and `ganzua constraints reset`. This simplifies Ganzua invocations in the common case where Ganzua is invoked in the project root.
+
+Fixes:
+
+* (https://github.com/latk/ganzua/issues/3) Normalize names of packages, extras, and dependency groups when loading `pyproject.toml` files, as required by the packaging specifications.
+
+Other:
+
+* Run tests under Python 3.14.
+* Added a `CHANGELOG.md` file.
+* Various internal changes and testing improvements.
+
+Full Changelog: https://github.com/latk/ganzua/compare/v0.2.0...HEAD
+
+
 ## v0.2.0 (2025-09-11)
 
 This release fixes some bugs that were found through real-world usage, adds convenience features like diff summaries, and implements new constraint edits.
@@ -29,6 +46,7 @@ Other:
 * Various internal changes. Improvements to `pyproject.toml` manipulation. Fewer special cases for Poetry.
 
 Full Changelog: https://github.com/latk/ganzua/compare/v0.1.0...v0.2.0
+
 
 ## v0.1.0 (2025-08-16)
 
