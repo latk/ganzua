@@ -48,6 +48,7 @@ exclude = ["tests/*"]
 include = [
   "/src/",
   "/tests/",
+  "CHANGELOG.md",
 ]
 
 [tool.ruff.lint]
