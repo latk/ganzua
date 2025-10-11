@@ -16,9 +16,6 @@ import ganzua
 
 from . import _toml as toml
 from ._cli_help import App
-from ._constraints import Requirements
-from ._diff import Diff
-from ._lockfile import Lockfile
 from ._markdown import md_from_diff, md_from_lockfile, md_from_requirements
 from ._utils import error_context
 
@@ -84,10 +81,15 @@ _ExistingFilePath = click.Path(
 )
 
 
+DIFF_SCHEMA = pydantic.TypeAdapter(ganzua.Diff)
+LOCKFILE_SCHEMA = pydantic.TypeAdapter(ganzua.Lockfile)
+REQUIREMENTS_SCHEMA = pydantic.TypeAdapter(ganzua.Requirements)
+
+
 @app.command()
 @click.argument("lockfile", type=_ExistingFilePath)
-@_with_print_json(ganzua.LOCKFILE_SCHEMA, md_from_lockfile)
-def inspect(lockfile: pathlib.Path) -> Lockfile:
+@_with_print_json(LOCKFILE_SCHEMA, md_from_lockfile)
+def inspect(lockfile: pathlib.Path) -> ganzua.Lockfile:
     """Inspect a lockfile."""
     return ganzua.lockfile_from(lockfile)
 
@@ -95,8 +97,8 @@ def inspect(lockfile: pathlib.Path) -> Lockfile:
 @app.command()
 @click.argument("old", type=_ExistingFilePath)
 @click.argument("new", type=_ExistingFilePath)
-@_with_print_json(ganzua.DIFF_SCHEMA, md_from_diff)
-def diff(old: pathlib.Path, new: pathlib.Path) -> Diff:
+@_with_print_json(DIFF_SCHEMA, md_from_diff)
+def diff(old: pathlib.Path, new: pathlib.Path) -> ganzua.Diff:
     """Compare two lockfiles."""
     return ganzua.diff(
         ganzua.lockfile_from(old),
@@ -118,11 +120,11 @@ def _find_pyproject_toml(ctx: click.Context) -> pathlib.Path:
 
 @constraints.command("inspect")
 @click.argument("pyproject", type=_ExistingFilePath, required=False)
-@_with_print_json(ganzua.REQUIREMENTS_SCHEMA, md_from_requirements)
+@_with_print_json(REQUIREMENTS_SCHEMA, md_from_requirements)
 @click.pass_context
 def constraints_inspect(
     ctx: click.Context, pyproject: pathlib.Path | None
-) -> Requirements:
+) -> ganzua.Requirements:
     """List all constraints in the `pyproject.toml` file.
 
     If no `pyproject.toml` is specified explicitly,
@@ -135,7 +137,7 @@ def constraints_inspect(
         doc = toml.RefRoot.parse(pyproject.read_text())
     collector = ganzua.CollectRequirement([])
     ganzua.edit_pyproject(doc, collector)
-    return Requirements(requirements=collector.reqs)
+    return ganzua.Requirements(requirements=collector.reqs)
 
 
 @constraints.command("bump")
@@ -278,11 +280,11 @@ def schema(command: SchemaName) -> None:
     adapter: pydantic.TypeAdapter[t.Any]
     match command:
         case "inspect":
-            adapter = ganzua.LOCKFILE_SCHEMA
+            adapter = LOCKFILE_SCHEMA
         case "diff":
-            adapter = ganzua.DIFF_SCHEMA
+            adapter = DIFF_SCHEMA
         case "constraints-inspect":
-            adapter = ganzua.REQUIREMENTS_SCHEMA
+            adapter = REQUIREMENTS_SCHEMA
         case other:  # pragma: no cover
             t.assert_never(other)
     schema = adapter.json_schema(mode="serialization")

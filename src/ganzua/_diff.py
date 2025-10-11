@@ -1,7 +1,5 @@
 import typing as t
 
-import pydantic
-
 from ._lockfile import LockedPackage, Lockfile
 
 
@@ -20,9 +18,6 @@ class DiffStat(t.TypedDict):
 class Diff(t.TypedDict):
     packages: dict[str, DiffEntry]
     stat: DiffStat
-
-
-DIFF_SCHEMA = pydantic.TypeAdapter[Diff](Diff)
 
 
 def diff(old: Lockfile, new: Lockfile) -> Diff:

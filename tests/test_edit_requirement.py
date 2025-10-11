@@ -2,10 +2,9 @@
 import typing as t
 
 from ganzua import Lockfile
-from ganzua._constraints import (
+from ganzua._edit_requirement import UnconstrainRequirement, UpdateRequirement
+from ganzua._requirement import (
     Requirement,
-    UnconstrainRequirement,
-    UpdateRequirement,
     assert_normalized_name,
     parse_requirement_from_pep508,
 )

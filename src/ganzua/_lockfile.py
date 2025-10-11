@@ -18,9 +18,6 @@ class Lockfile(t.TypedDict):
     packages: dict[str, LockedPackage]
 
 
-LOCKFILE_SCHEMA = pydantic.TypeAdapter[Lockfile](Lockfile)
-
-
 def lockfile_from(path: PathLike) -> Lockfile:
     with error_context(f"while parsing {path}"):
         input_lockfile = _ANY_LOCKFILE_SCHEMA.validate_python(

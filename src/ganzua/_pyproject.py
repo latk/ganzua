@@ -5,14 +5,14 @@ import packaging.markers
 import packaging.requirements
 
 from . import _toml as toml
-from ._constraints import (
-    EditRequirement,
+from ._edit_requirement import EditRequirement
+from ._pretty_specifier_set import PrettySpecifierSet
+from ._requirement import (
     Name,
     Requirement,
     normalized_name,
     parse_requirement_from_pep508,
 )
-from ._pretty_specifier_set import PrettySpecifierSet
 
 
 def edit_pyproject(pyproject: toml.Ref, mapper: EditRequirement) -> None:

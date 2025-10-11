@@ -1,8 +1,8 @@
 import typing as t
 
-from ._constraints import Requirements
 from ._diff import Diff
 from ._lockfile import LockedPackage, Lockfile
+from ._requirement import Requirements
 
 
 def md_from_lockfile(lockfile: Lockfile) -> str:

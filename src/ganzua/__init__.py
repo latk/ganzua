@@ -1,22 +1,22 @@
-from ._constraints import (
-    REQUIREMENTS_SCHEMA,
+from ._diff import Diff, diff
+from ._edit_requirement import (
     CollectRequirement,
     EditRequirement,
     SetMinimumRequirement,
     UnconstrainRequirement,
     UpdateRequirement,
 )
-from ._diff import DIFF_SCHEMA, diff
-from ._lockfile import LOCKFILE_SCHEMA, Lockfile, lockfile_from
+from ._lockfile import Lockfile, lockfile_from
 from ._pyproject import edit_pyproject
+from ._requirement import Requirement, Requirements
 
 __all__ = [
     "CollectRequirement",
-    "DIFF_SCHEMA",
+    "Diff",
     "EditRequirement",
-    "LOCKFILE_SCHEMA",
     "Lockfile",
-    "REQUIREMENTS_SCHEMA",
+    "Requirement",
+    "Requirements",
     "SetMinimumRequirement",
     "UnconstrainRequirement",
     "UpdateRequirement",

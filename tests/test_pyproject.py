@@ -5,8 +5,8 @@ from packaging.markers import Marker
 
 import ganzua
 import ganzua._toml as toml
-from ganzua._constraints import Name, Requirement, assert_normalized_name
 from ganzua._lockfile import Lockfile
+from ganzua._requirement import Name, Requirement, assert_normalized_name
 
 _LOCKFILE: Lockfile = {
     "packages": {
