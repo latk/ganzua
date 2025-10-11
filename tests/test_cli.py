@@ -191,6 +191,34 @@ def test_constraints_bump_has_default_pyproject(tmp_path: pathlib.Path) -> None:
         assert output == expected_output
 
 
+def test_constraints_bump_finds_default_lockfile(tmp_path: pathlib.Path) -> None:
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(resources.OLD_UV_PYPROJECT.read_bytes())
+    cmd = ["constraints", "bump", str(pyproject)]
+
+    expected_output = _run([*cmd, f"--lockfile={resources.NEW_UV_LOCKFILE}"]).output
+
+    # running without a lockfile fails
+    result = _run(cmd, expect_exit=_CLICK_ERROR)
+    assert f"Could not infer `--lockfile` for `{pyproject}`" in result.output
+
+    # but a `uv.lock` in the same directory is picked up automatically
+    (tmp_path / "uv.lock").write_bytes(resources.NEW_UV_LOCKFILE.read_bytes())
+    assert _run(cmd).output == expected_output
+
+    # but multiple lockfiles lead to conflicts
+    (tmp_path / "poetry.lock").touch()
+    result = _run(cmd, expect_exit=_CLICK_ERROR)
+    assert result.stderr == snapshot(f"""\
+Usage: ganzua constraints bump [OPTIONS] [PYPROJECT]
+Try 'ganzua constraints bump --help' for help.
+
+Error: Could not infer `--lockfile` for `{pyproject}`.
+Note: Candidate lockfile: {tmp_path}/uv.lock
+Note: Candidate lockfile: {tmp_path}/poetry.lock
+""")
+
+
 def test_constraints_bump_noop(tmp_path: pathlib.Path) -> None:
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_bytes(resources.NEW_UV_PYPROJECT.read_bytes())
@@ -323,16 +351,20 @@ def test_constraints_reset_to_minimum_requires_lockfile(tmp_path: pathlib.Path) 
 
     # fails without --lockfile
     result = _run([*cmd], expect_exit=2)
-    assert result.output == snapshot("""\
+    assert result.output == snapshot(f"""\
 Usage: ganzua constraints reset [OPTIONS] [PYPROJECT]
 Try 'ganzua constraints reset --help' for help.
 
-Error: using `--to=minimum` requires a `--lockfile`
+Error: Could not infer `--lockfile` for `{pyproject}`.
+Note: Using `--to=minimum` requires a `--lockfile`.
 """)
 
     # succeeds
-    result = _run([*cmd, f"--lockfile={lockfile}"], expect_exit=0)
-    assert result.output == ""
+    assert _run([*cmd, f"--lockfile={lockfile}"]).output == ""
+
+    # also succeeds when the lockfile can be inferred
+    (tmp_path / "uv.lock").write_bytes(lockfile.read_bytes())
+    assert _run(cmd).output == ""
 
 
 def test_constraints_reset_has_default_pyproject(tmp_path: pathlib.Path) -> None:

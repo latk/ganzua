@@ -60,10 +60,10 @@ coverage-serve:
 # perform a dependency upgrade using Ganzua
 upgrade-deps:
   cp uv.lock old.uv.lock
-  ganzua constraints reset --to=minimum --lockfile=uv.lock --backup=old.pyproject.toml
+  ganzua constraints reset --to=minimum --backup=old.pyproject.toml
   uv lock --upgrade  # perform the upgrade
   mv old.pyproject.toml pyproject.toml  # restore original constraints
-  ganzua constraints bump --lockfile=uv.lock
+  ganzua constraints bump
   uv lock
   ganzua diff --format=markdown old.uv.lock uv.lock
   rm old.uv.lock

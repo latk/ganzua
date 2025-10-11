@@ -213,7 +213,7 @@ the one in the current working directory will be used.
 **Options:**
 
 * `--lockfile FILE`
-  Where to load versions from. Required.
+  Where to load versions from. Inferred if possible.
 * `--backup PATH`
   Store a backup in this file.
 * `--help`
@@ -230,10 +230,10 @@ This can be useful for allowing uv/Poetry to update to the most recent versions,
 ignoring the previous constraints. Approximate recipe:
 
 ```bash
-ganzua constraints reset --backup=pyproject.toml.bak
+ganzua constraints reset --to=minimum --backup=pyproject.toml.bak
 uv lock --upgrade  # perform the upgrade
 mv pyproject.toml.bak pyproject.toml  # restore old constraints
-ganzua constraints bump --lockfile=uv.lock
+ganzua constraints bump
 uv lock
 ```
 
@@ -249,7 +249,7 @@ the one in the current working directory will be used.
   * `none` (default): remove all constraints
   * `minimum`: set constraints to the currently locked minimum, removing upper bounds
 * `--lockfile FILE`
-  Where to load current versions from (for `--to=minimum`).
+  Where to load current versions from (for `--to=minimum`). Inferred if possible.
 * `--help`
   Show this help message and exit.
 

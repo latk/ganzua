@@ -4,6 +4,7 @@ import contextlib
 import enum
 import functools
 import pathlib
+import shlex
 import shutil
 import typing as t
 from dataclasses import dataclass
@@ -118,6 +119,29 @@ def _find_pyproject_toml(ctx: click.Context) -> pathlib.Path:
     return path
 
 
+def _find_lockfile(
+    ctx: click.Context,
+    *,
+    pyproject: pathlib.Path,
+    lockfile_option_name: str,
+    note: str | None = None,
+) -> pathlib.Path:
+    candidates = [
+        pyproject.parent / "uv.lock",
+        pyproject.parent / "poetry.lock",
+    ]
+    match [lockfile for lockfile in candidates if lockfile.exists()]:
+        case [exactly_one]:
+            return exactly_one
+        case existing_lockfile:
+            msg = f"Could not infer `{lockfile_option_name}` for `{pyproject}`."
+            for lockfile in existing_lockfile:
+                msg += f"\nNote: Candidate lockfile: {shlex.quote(str(lockfile))}"
+            if note:
+                msg += f"\nNote: {note}"
+            ctx.fail(msg)
+
+
 @constraints.command("inspect")
 @click.argument("pyproject", type=_ExistingFilePath, required=False)
 @_with_print_json(REQUIREMENTS_SCHEMA, md_from_requirements)
@@ -145,15 +169,15 @@ def constraints_inspect(
 @click.option(
     "--lockfile",
     type=_ExistingFilePath,
-    required=True,
-    help="Where to load versions from. Required.",
+    required=False,
+    help="Where to load versions from. Inferred if possible.",
 )
 @click.option("--backup", type=click.Path(), help="Store a backup in this file.")
 @click.pass_context
 def constraints_bump(
     ctx: click.Context,
     pyproject: pathlib.Path | None,
-    lockfile: pathlib.Path,
+    lockfile: pathlib.Path | None,
     backup: pathlib.Path | None,
 ) -> None:
     """Update `pyproject.toml` dependency constraints to match the lockfile.
@@ -172,6 +196,11 @@ def constraints_bump(
     """
     if pyproject is None:
         pyproject = _find_pyproject_toml(ctx)
+
+    if lockfile is None:
+        lockfile = _find_lockfile(
+            ctx, pyproject=pyproject, lockfile_option_name="--lockfile"
+        )
 
     if backup is not None:
         shutil.copy(pyproject, backup)
@@ -208,7 +237,7 @@ How to reset constraints.
     "--lockfile",
     type=_ExistingFilePath,
     required=False,
-    help="Where to load current versions from (for `--to=minimum`).",
+    help="Where to load current versions from (for `--to=minimum`). Inferred if possible.",
 )
 @click.pass_context
 def constraints_reset(
@@ -225,10 +254,10 @@ def constraints_reset(
     ignoring the previous constraints. Approximate recipe:
 
     ```bash
-    ganzua constraints reset --backup=pyproject.toml.bak
+    ganzua constraints reset --to=minimum --backup=pyproject.toml.bak
     uv lock --upgrade  # perform the upgrade
     mv pyproject.toml.bak pyproject.toml  # restore old constraints
-    ganzua constraints bump --lockfile=uv.lock
+    ganzua constraints bump
     uv lock
     ```
 
@@ -244,7 +273,12 @@ def constraints_reset(
             edit = ganzua.UnconstrainRequirement()
         case ConstraintResetGoal.MINIMUM:
             if lockfile is None:
-                ctx.fail("using `--to=minimum` requires a `--lockfile`")
+                lockfile = _find_lockfile(
+                    ctx,
+                    pyproject=pyproject,
+                    lockfile_option_name="--lockfile",
+                    note="Using `--to=minimum` requires a `--lockfile`.",
+                )
             edit = ganzua.SetMinimumRequirement(ganzua.lockfile_from(lockfile))
         case other:  # pragma: no cover
             t.assert_never(other)
