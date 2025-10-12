@@ -25,11 +25,11 @@ def test_uv() -> None:
             "packages": {
                 "annotated-types": {
                     "old": None,
-                    "new": {"version": "0.7.0"},
+                    "new": {"version": "0.7.0", "source": "pypi"},
                 },
                 "typing-extensions": {
-                    "old": {"version": "3.10.0.2"},
-                    "new": {"version": "4.14.1"},
+                    "old": {"version": "3.10.0.2", "source": "pypi"},
+                    "new": {"version": "4.14.1", "source": "pypi"},
                 },
             },
             "stat": {"total": 2, "added": 1, "removed": 0, "updated": 1},

@@ -10,9 +10,9 @@ from ganzua._requirement import Name, Requirement, assert_normalized_name
 
 _LOCKFILE: Lockfile = {
     "packages": {
-        "annotated-types": {"version": "0.7.0"},
-        "example": {"version": "0.2.0"},
-        "typing-extensions": {"version": "4.14.1"},
+        "annotated-types": {"version": "0.7.0", "source": "default"},
+        "example": {"version": "0.2.0", "source": "default"},
+        "typing-extensions": {"version": "4.14.1", "source": "default"},
     }
 }
 

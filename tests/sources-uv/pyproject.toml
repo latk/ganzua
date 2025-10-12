@@ -1,0 +1,33 @@
+[project]
+name = "sources-uv"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "click-example-repo",
+    "propcache>=0.4.1",
+]
+
+[dependency-groups]
+dev = [
+    "coverage>=7.10.7",
+    "idna",
+    "multidict",
+    "yarl>=1.22.0",
+]
+
+[tool.uv.sources]
+click-example-repo = { git = "https://github.com/pallets/click.git", subdirectory = "examples/repo", rev = "309ce9178707e1efaf994f191d062edbdffd5ce6" }
+coverage = { index = "testpypi" }
+multidict = { url = "https://files.pythonhosted.org/packages/b7/da/7d22601b625e241d4f23ef1ebff8acfc60da633c9e7e7922e24d10f592b3/multidict-6.7.0-py3-none-any.whl" }
+yarl = { index = "alsopypi" }
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple"
+explicit = true
+
+[[tool.uv.index]]
+name = "alsopypi"
+url = "https://pypi.org/simple"
+explicit = true

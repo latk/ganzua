@@ -57,8 +57,14 @@ def test_inspect() -> None:
     assert json.loads(result.stdout) == snapshot(
         {
             "packages": {
-                "example": {"version": "0.1.0"},
-                "typing-extensions": {"version": "3.10.0.2"},
+                "example": {
+                    "version": "0.1.0",
+                    "source": {"direct": "."},
+                },
+                "typing-extensions": {
+                    "version": "3.10.0.2",
+                    "source": "pypi",
+                },
             }
         }
     )
@@ -83,10 +89,13 @@ def test_diff() -> None:
     assert json.loads(result.stdout) == snapshot(
         {
             "packages": {
-                "annotated-types": {"old": None, "new": {"version": "0.7.0"}},
+                "annotated-types": {
+                    "old": None,
+                    "new": {"version": "0.7.0", "source": "pypi"},
+                },
                 "typing-extensions": {
-                    "old": {"version": "3.10.0.2"},
-                    "new": {"version": "4.14.1"},
+                    "old": {"version": "3.10.0.2", "source": "pypi"},
+                    "new": {"version": "4.14.1", "source": "pypi"},
                 },
             },
             "stat": {"total": 2, "added": 1, "removed": 0, "updated": 1},

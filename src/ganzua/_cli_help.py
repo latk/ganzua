@@ -203,7 +203,7 @@ def _as_markdown(  # noqa: C901  # complexity
             t.assert_never(other)
 
 
-def _as_rich(  # noqa: PLR0911  # too-many-return-statement
+def _as_rich(
     item: _MarkdownOrRich,
 ) -> rich.console.RenderableType:
     import rich.markdown  # noqa: PLC0415

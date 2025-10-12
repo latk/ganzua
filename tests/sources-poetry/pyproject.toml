@@ -1,0 +1,33 @@
+[project]
+name = "sources-poetry"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Your Name",email = "you@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "propcache (>=0.4.1)",
+    "click-example-repo @ git+https://github.com/pallets/click.git@309ce9178707e1efaf994f191d062edbdffd5ce6#subdirectory=examples/repo",
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+priority = "explicit"
+
+[[tool.poetry.source]]
+name = "alsopypi"
+url = "https://pypi.org/simple/"
+priority = "explicit"
+
+[tool.poetry.group.dev.dependencies]
+coverage = { version = ">=7.10.7", source = "testpypi"}
+idna = { version = "*", source = "pypi" }
+multidict = { url = "https://files.pythonhosted.org/packages/b7/da/7d22601b625e241d4f23ef1ebff8acfc60da633c9e7e7922e24d10f592b3/multidict-6.7.0-py3-none-any.whl" }
+yarl = { version = ">=1.22.0", source = "alsopypi" }

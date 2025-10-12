@@ -19,6 +19,7 @@ dependencies = [
     "pydantic>=2.12.0",
     "rich>=14.2.0",
     "tomlkit>=0.13.3",
+    "yarl>=1.22.0",
 ]
 
 [project.scripts]
@@ -83,6 +84,7 @@ ignore = [
   "RET503",  # implicit-return, better handled by Mypy
 ]
 pydocstyle.convention = "google"
+pylint.max-returns = 10
 
 [tool.ruff.lint.per-file-ignores]
 # tests may use asserts and do not need docstrings

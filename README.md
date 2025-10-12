@@ -20,15 +20,18 @@ $ ganzua diff tests/{old,new}-uv-project/uv.lock
     "annotated-types": {
       "old": null,
       "new": {
-        "version": "0.7.0"
+        "version": "0.7.0",
+        "source": "pypi"
       }
     },
     "typing-extensions": {
       "old": {
-        "version": "3.10.0.2"
+        "version": "3.10.0.2",
+        "source": "pypi"
       },
       "new": {
-        "version": "4.14.1"
+        "version": "4.14.1",
+        "source": "pypi"
       }
     }
   }

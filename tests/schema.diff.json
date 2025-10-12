@@ -63,12 +63,64 @@
         "version": {
           "title": "Version",
           "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "enum": [
+                "pypi",
+                "default",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/SourceRegistry"
+            },
+            {
+              "$ref": "#/$defs/SourceDirect"
+            }
+          ],
+          "title": "Source"
         }
       },
       "required": [
-        "version"
+        "version",
+        "source"
       ],
       "title": "LockedPackage",
+      "type": "object"
+    },
+    "SourceDirect": {
+      "description": "The package is sourced from a specific URL or path, e.g. a Git repo or workspace path.",
+      "properties": {
+        "direct": {
+          "title": "Direct",
+          "type": "string"
+        },
+        "subdirectory": {
+          "title": "Subdirectory",
+          "type": "string"
+        }
+      },
+      "required": [
+        "direct"
+      ],
+      "title": "SourceDirect",
+      "type": "object"
+    },
+    "SourceRegistry": {
+      "description": "The package is sourced from a third party registry.",
+      "properties": {
+        "registry": {
+          "title": "Registry",
+          "type": "string"
+        }
+      },
+      "required": [
+        "registry"
+      ],
+      "title": "SourceRegistry",
       "type": "object"
     }
   },

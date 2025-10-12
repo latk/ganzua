@@ -11,8 +11,8 @@ from ganzua._requirement import (
 
 _LOCKFILE: Lockfile = {
     "packages": {
-        "foo": {"version": "7.1.2"},
-        "minor": {"version": "4.5.6"},
+        "foo": {"version": "7.1.2", "source": "default"},
+        "minor": {"version": "4.5.6", "source": "default"},
     },
 }
 

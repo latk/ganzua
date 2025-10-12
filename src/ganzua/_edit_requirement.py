@@ -151,9 +151,7 @@ def _update_specifier_set(spec: SpecifierSet, target: Version) -> SpecifierSet:
     return updated_spec
 
 
-def _update_specifier(  # noqa: PLR0911  # too-many-return-statements
-    spec: Specifier, target: Version
-) -> Specifier | None:
+def _update_specifier(spec: Specifier, target: Version) -> Specifier | None:
     """Upgrade the specifier to the target version, matching granularity.
 
     If the target doesn't match, return `None`.

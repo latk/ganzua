@@ -5,6 +5,7 @@
 New features:
 
 * Arguments for `pyproject.toml` and lockfile paths are now optional in `ganzua constraints inspect`, `ganzua constraints bump`, and `ganzua constraints reset`. This simplifies Ganzua invocations in the common case where Ganzua is invoked in the project root.
+* Keep some information about package sources (PyPI, Git, path dependencies) when inspecting lockfiles.
 
 Fixes:
 
