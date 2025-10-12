@@ -100,7 +100,18 @@ def inspect(lockfile: pathlib.Path) -> ganzua.Lockfile:
 @click.argument("new", type=_ExistingFilePath)
 @_with_print_json(DIFF_SCHEMA, md_from_diff)
 def diff(old: pathlib.Path, new: pathlib.Path) -> ganzua.Diff:
-    """Compare two lockfiles."""
+    """Compare two lockfiles.
+
+    Both the `old` and `new` arguments must be file paths.
+
+    There is no direct support for comparing a file across Git commits,
+    but it's possible to retrieve other versions via `git cat-file`.
+    Here is an example using a Bash redirect to show non-committed changes in a lockfile:
+
+    ```bash
+    ganzua diff <(git cat-file blob HEAD:uv.lock) uv.lock
+    ```
+    """
     return ganzua.diff(
         ganzua.lockfile_from(old),
         ganzua.lockfile_from(new),
