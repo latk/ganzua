@@ -24,19 +24,19 @@ def md_from_diff(diff: Diff) -> str:
             return "-"
         return p["version"]
 
-    summary = f"{diff['stat']['total']} changed packages"
+    summary = f"{diff.stat.total} changed packages"
     if summary_details := ", ".join(_diff_summary_details(diff)):
         summary += f" ({summary_details})"
 
     sections: list[str] = [summary]
 
-    if diff["stat"]["total"] > 0:
+    if diff.stat.total > 0:
         sections.append(
             _table(
                 ("package", "old", "new"),
                 sorted(
-                    (package, pick_version(data["old"]), pick_version(data["new"]))
-                    for (package, data) in diff["packages"].items()
+                    (package, pick_version(data.old), pick_version(data.new))
+                    for (package, data) in diff.packages.items()
                 ),
             )
         )
@@ -45,12 +45,12 @@ def md_from_diff(diff: Diff) -> str:
 
 
 def _diff_summary_details(diff: Diff) -> t.Iterator[str]:
-    stat = diff["stat"]
-    if count := stat["added"]:
+    stat = diff.stat
+    if count := stat.added:
         yield f"{count} added"
-    if count := stat["updated"]:
+    if count := stat.updated:
         yield f"{count} updated"
-    if count := stat["removed"]:
+    if count := stat.removed:
         yield f"{count} removed"
 
 

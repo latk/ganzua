@@ -125,20 +125,20 @@
     }
   },
   "properties": {
+    "stat": {
+      "$ref": "#/$defs/DiffStat"
+    },
     "packages": {
       "additionalProperties": {
         "$ref": "#/$defs/DiffEntry"
       },
       "title": "Packages",
       "type": "object"
-    },
-    "stat": {
-      "$ref": "#/$defs/DiffStat"
     }
   },
   "required": [
-    "packages",
-    "stat"
+    "stat",
+    "packages"
   ],
   "title": "Diff",
   "type": "object"
