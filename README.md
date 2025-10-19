@@ -32,7 +32,8 @@ $ ganzua diff tests/{old,new}-uv-project/uv.lock
       "new": {
         "version": "4.14.1",
         "source": "pypi"
-      }
+      },
+      "is_major_change": true
     }
   }
 }

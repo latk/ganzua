@@ -21,6 +21,12 @@
               "type": "null"
             }
           ]
+        },
+        "is_major_change": {
+          "default": false,
+          "description": "True if there was a major version change.\n\nThis doesn't literally mean \"the SemVer-major version component changed\",\nbut is intended to highlight version changes that are likely to have breakage.",
+          "title": "Is Major Change",
+          "type": "boolean"
         }
       },
       "required": [
@@ -95,10 +101,12 @@
       "description": "The package is sourced from a specific URL or path, e.g. a Git repo or workspace path.",
       "properties": {
         "direct": {
+          "description": "URL or path to the package (directory or archive).",
           "title": "Direct",
           "type": "string"
         },
         "subdirectory": {
+          "description": "Only allowed if the source points to an archive file.",
           "title": "Subdirectory",
           "type": "string"
         }
@@ -113,6 +121,7 @@
       "description": "The package is sourced from a third party registry.",
       "properties": {
         "registry": {
+          "description": "URL or path to the registry.",
           "title": "Registry",
           "type": "string"
         }

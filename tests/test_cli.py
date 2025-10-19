@@ -96,6 +96,7 @@ def test_diff() -> None:
                 "typing-extensions": {
                     "old": {"version": "3.10.0.2", "source": "pypi"},
                     "new": {"version": "4.14.1", "source": "pypi"},
+                    "is_major_change": True,
                 },
             },
             "stat": {"total": 2, "added": 1, "removed": 0, "updated": 1},

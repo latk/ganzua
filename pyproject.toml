@@ -82,6 +82,7 @@ ignore = [
   "S603",  # subprocess-without-shell-equals-true, usually safe
   "E501",  # line-too-long, should be handled by `ruff format`
   "RET503",  # implicit-return, better handled by Mypy
+  "SIM102",  # collapsible-if, separate statements are actually good for measuring coverage
 ]
 pydocstyle.convention = "google"
 pylint.max-returns = 10
