@@ -26,6 +26,11 @@ class DiffEntry:
     but is intended to highlight version changes that are likely to have breakage.
     """
 
+    is_downgrade: t.Annotated[
+        bool, pydantic.Field(default=False, exclude_if=_is_falsey)
+    ]
+    """True if the version was downgraded."""
+
 
 @dataclass(kw_only=True)
 class DiffStat:
@@ -71,6 +76,7 @@ def _package_diff(
         old=old,
         new=new,
         is_major_change=_is_major_change(old, new),
+        is_downgrade=_is_downgrade(old, new),
     )
 
 
@@ -106,3 +112,16 @@ def _is_major_change(old: LockedPackage | None, new: LockedPackage | None) -> bo
 
     # All other cases should be safe.
     return False
+
+
+def _is_downgrade(old: LockedPackage | None, new: LockedPackage | None) -> bool:
+    if old is None or new is None:
+        return False
+
+    try:
+        old_version = Version(old["version"])
+        new_version = Version(new["version"])
+    except InvalidVersion:
+        return False
+
+    return old_version > new_version

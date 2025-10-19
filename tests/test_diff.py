@@ -46,7 +46,7 @@ def test_uv() -> None:
 class _Example:
     old_version: str | None
     new_version: str | None
-    extra_diff: dict[t.Literal["is_major_change"], t.Literal[True]]
+    extra_diff: dict[t.Literal["is_major_change", "is_downgrade"], t.Literal[True]]
 
     def expand(self) -> tuple[Lockfile, Lockfile, t.Mapping[str, object]]:
         """Expand the example into `(old_lockfile, new_lockfile, expected_diff)`."""
@@ -94,7 +94,20 @@ class _Example:
         "invalid-to-valid": _Example("foo", "1.2.3", {"is_major_change": True}),
     },
 )
-def test_major(example: _Example) -> None:
+def test_is_major_change(example: _Example) -> None:
+    old_lockfile, new_lockfile, expected_diff = example.expand()
+    the_diff = DIFF_SCHEMA.dump_python(diff(old_lockfile, new_lockfile))
+    assert the_diff == expected_diff
+
+
+@parametrized(
+    "example",
+    {
+        "upgrade": _Example("1.0.1", "1.3.4", {}),
+        "downgrade": _Example("1.3.4", "1.0.1", {"is_downgrade": True}),
+    },
+)
+def test_is_downgrade(example: _Example) -> None:
     old_lockfile, new_lockfile, expected_diff = example.expand()
     the_diff = DIFF_SCHEMA.dump_python(diff(old_lockfile, new_lockfile))
     assert the_diff == expected_diff

@@ -27,6 +27,12 @@
           "description": "True if there was a major version change.\n\nThis doesn't literally mean \"the SemVer-major version component changed\",\nbut is intended to highlight version changes that are likely to have breakage.",
           "title": "Is Major Change",
           "type": "boolean"
+        },
+        "is_downgrade": {
+          "default": false,
+          "description": "True if the version was downgraded.",
+          "title": "Is Downgrade",
+          "type": "boolean"
         }
       },
       "required": [
