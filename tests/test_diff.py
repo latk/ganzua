@@ -17,14 +17,16 @@ from .helpers import parametrized
 
 @pytest.mark.parametrize("path", [resources.OLD_UV_LOCKFILE, resources.NEW_UV_LOCKFILE])
 def test_comparing_self_is_empty(path: Traversable) -> None:
-    assert _json_diff(path, path) == {
+    assert _json_diff_path(path, path) == {
         "packages": {},
         "stat": {"total": 0, "added": 0, "removed": 0, "updated": 0},
     }
 
 
 def test_uv() -> None:
-    assert _json_diff(resources.OLD_UV_LOCKFILE, resources.NEW_UV_LOCKFILE) == snapshot(
+    assert _json_diff_path(
+        resources.OLD_UV_LOCKFILE, resources.NEW_UV_LOCKFILE
+    ) == snapshot(
         {
             "packages": {
                 "annotated-types": {
@@ -96,8 +98,7 @@ class _Example:
 )
 def test_is_major_change(example: _Example) -> None:
     old_lockfile, new_lockfile, expected_diff = example.expand()
-    the_diff = DIFF_SCHEMA.dump_python(diff(old_lockfile, new_lockfile))
-    assert the_diff == expected_diff
+    assert _json_diff_lockfile(old_lockfile, new_lockfile) == expected_diff
 
 
 @parametrized(
@@ -109,11 +110,51 @@ def test_is_major_change(example: _Example) -> None:
 )
 def test_is_downgrade(example: _Example) -> None:
     old_lockfile, new_lockfile, expected_diff = example.expand()
-    the_diff = DIFF_SCHEMA.dump_python(diff(old_lockfile, new_lockfile))
-    assert the_diff == expected_diff
+    assert _json_diff_lockfile(old_lockfile, new_lockfile) == expected_diff
 
 
-def _json_diff(left_path: Traversable, right_path: Traversable) -> pydantic.JsonValue:
-    left = lockfile_from(left_path)
-    right = lockfile_from(right_path)
+def test_is_source_change() -> None:
+    old: Lockfile = {
+        "packages": {
+            "same": {"version": "1.2.3", "source": "default"},
+            "changed": {"version": "1.2.3", "source": "pypi"},
+        }
+    }
+    new: Lockfile = {
+        "packages": {
+            "same": {"version": "1.2.4", "source": "default"},
+            "changed": {
+                "version": "1.2.3",
+                "source": {"registry": "https://registry.example/"},
+            },
+        }
+    }
+    assert _json_diff_lockfile(old, new) == snapshot(
+        {
+            "stat": {"total": 2, "added": 0, "removed": 0, "updated": 2},
+            "packages": {
+                "changed": {
+                    "old": {"version": "1.2.3", "source": "pypi"},
+                    "new": {
+                        "version": "1.2.3",
+                        "source": {"registry": "https://registry.example/"},
+                    },
+                    "is_source_change": True,
+                },
+                "same": {
+                    "old": {"version": "1.2.3", "source": "default"},
+                    "new": {"version": "1.2.4", "source": "default"},
+                },
+            },
+        }
+    )
+
+
+def _json_diff_path(
+    left_path: Traversable, right_path: Traversable
+) -> pydantic.JsonValue:
+    return _json_diff_lockfile(lockfile_from(left_path), lockfile_from(right_path))
+
+
+def _json_diff_lockfile(left: Lockfile, right: Lockfile) -> pydantic.JsonValue:
     return DIFF_SCHEMA.dump_python(diff(left, right), mode="json")

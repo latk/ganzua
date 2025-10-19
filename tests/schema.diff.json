@@ -33,6 +33,12 @@
           "description": "True if the version was downgraded.",
           "title": "Is Downgrade",
           "type": "boolean"
+        },
+        "is_source_change": {
+          "default": false,
+          "description": "True if the package source changed.",
+          "title": "Is Source Change",
+          "type": "boolean"
         }
       },
       "required": [

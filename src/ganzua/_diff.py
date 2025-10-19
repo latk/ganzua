@@ -31,6 +31,11 @@ class DiffEntry:
     ]
     """True if the version was downgraded."""
 
+    is_source_change: t.Annotated[
+        bool, pydantic.Field(default=False, exclude_if=_is_falsey)
+    ]
+    """True if the package source changed."""
+
 
 @dataclass(kw_only=True)
 class DiffStat:
@@ -77,6 +82,7 @@ def _package_diff(
         new=new,
         is_major_change=_is_major_change(old, new),
         is_downgrade=_is_downgrade(old, new),
+        is_source_change=_is_source_change(old, new),
     )
 
 
@@ -125,3 +131,13 @@ def _is_downgrade(old: LockedPackage | None, new: LockedPackage | None) -> bool:
         return False
 
     return old_version > new_version
+
+
+def _is_source_change(old: LockedPackage | None, new: LockedPackage | None) -> bool:
+    if old is None or new is None:
+        return False
+
+    old_source = old["source"]
+    new_source = new["source"]
+
+    return old_source != new_source
