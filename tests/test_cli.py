@@ -8,7 +8,7 @@ import typing as t
 import click.testing
 import dirty_equals
 import pytest
-from inline_snapshot import external_file, get_snapshot_value, snapshot
+from inline_snapshot import external_file, snapshot
 
 from ganzua.cli import app
 
@@ -503,20 +503,28 @@ Show help for the application or a specific subcommand.
     )
 
 
-def test_readme_usage() -> None:
-    """Test to ensure that the README is in sync with `ganzua help`."""
+def test_readme() -> None:
+    """Test to ensure that the README is up to date.
+
+    * matches current `ganzua help`
+    * all doctests produce expected output
+    """
+    readme = resources.README.read_text()
+    readme = _update_usage_section(readme)
+    readme, executed_examples = _update_bash_doctests(readme)
+    assert readme == external_file(str(resources.README), format=".txt")
+    assert executed_examples == snapshot(3)
+
+
+def _update_usage_section(readme: str) -> str:
     begin = "\n<!-- begin usage -->\n"
     end = "\n<!-- end usage -->\n"
     pattern = re.compile(re.escape(begin) + "(.*)" + re.escape(end), flags=re.S)
     up_to_date_usage = _run(["help", "--all", "--markdown"]).output.strip()
-    current_readme = external_file(str(resources.README), format=".txt")
-    expected_readme = pattern.sub(
-        f"{begin}\n{up_to_date_usage}\n{end}", resources.README.read_text()
-    )
-    assert current_readme == expected_readme
+    return pattern.sub(f"{begin}\n{up_to_date_usage}\n{end}", readme)
 
 
-def test_readme_examples() -> None:
+def _update_bash_doctests(readme: str) -> tuple[str, int]:
     fenced_example_pattern = re.compile(
         r"""
 # start a fenced code block with `console` as the info string
@@ -546,12 +554,8 @@ def test_readme_examples() -> None:
         executed_examples += 1
         return f"{delim}console\n$ {command}\n{output}\n{delim}"
 
-    current_readme = external_file(str(resources.README), format=".txt")
-    expected_readme = fenced_example_pattern.sub(
-        run_example, get_snapshot_value(current_readme)
-    )
-    assert current_readme == expected_readme
-    assert executed_examples == snapshot(3)
+    updated_readme = fenced_example_pattern.sub(run_example, readme)
+    return updated_readme, executed_examples
 
 
 def _run_shell_command(command: str) -> str:
