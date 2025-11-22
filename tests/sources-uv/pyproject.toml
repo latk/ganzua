@@ -17,7 +17,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-click-example-repo = { git = "https://github.com/pallets/click.git", subdirectory = "examples/repo", rev = "309ce9178707e1efaf994f191d062edbdffd5ce6" }
+click-example-repo = { git = "https://github.com/pallets/click.git", subdirectory = "examples/repo", rev = "f67abc6fe7dd3d878879a4f004866bf5acefa9b4" }
 coverage = { index = "testpypi" }
 multidict = { url = "https://files.pythonhosted.org/packages/b7/da/7d22601b625e241d4f23ef1ebff8acfc60da633c9e7e7922e24d10f592b3/multidict-6.7.0-py3-none-any.whl" }
 yarl = { index = "alsopypi" }

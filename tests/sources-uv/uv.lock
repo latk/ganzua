@@ -17,7 +17,7 @@ wheels = [
 [[package]]
 name = "click-example-repo"
 version = "1.0.0"
-source = { git = "https://github.com/pallets/click.git?subdirectory=examples%2Frepo&rev=309ce9178707e1efaf994f191d062edbdffd5ce6#309ce9178707e1efaf994f191d062edbdffd5ce6" }
+source = { git = "https://github.com/pallets/click.git?subdirectory=examples%2Frepo&rev=f67abc6fe7dd3d878879a4f004866bf5acefa9b4#f67abc6fe7dd3d878879a4f004866bf5acefa9b4" }
 dependencies = [
     { name = "click" },
 ]
@@ -228,7 +228,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "click-example-repo", git = "https://github.com/pallets/click.git?subdirectory=examples%2Frepo&rev=309ce9178707e1efaf994f191d062edbdffd5ce6" },
+    { name = "click-example-repo", git = "https://github.com/pallets/click.git?subdirectory=examples%2Frepo&rev=f67abc6fe7dd3d878879a4f004866bf5acefa9b4" },
     { name = "propcache", specifier = ">=0.4.1" },
 ]
 

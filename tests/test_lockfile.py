@@ -160,7 +160,7 @@ def test_can_load_sources_uv() -> None:
                 "click-example-repo": {
                     "version": "1.0.0",
                     "source": SourceDirect(
-                        direct="git+https://github.com/pallets/click.git@309ce9178707e1efaf994f191d062edbdffd5ce6#subdirectory=examples/repo"
+                        direct="git+https://github.com/pallets/click.git@f67abc6fe7dd3d878879a4f004866bf5acefa9b4#subdirectory=examples/repo"
                     ),
                 },
                 "colorama": {"version": "0.4.6", "source": "pypi"},

@@ -112,10 +112,12 @@ def test_diff_markdown() -> None:
     assert result.stdout == snapshot("""\
 2 changed packages (1 added, 1 updated)
 
-| package           | old      | new    |
-|-------------------|----------|--------|
-| annotated-types   | -        | 0.7.0  |
-| typing-extensions | 3.10.0.2 | 4.14.1 |
+| package           | old      | new    | notes |
+|-------------------|----------|--------|-------|
+| annotated-types   | -        | 0.7.0  |       |
+| typing-extensions | 3.10.0.2 | 4.14.1 | (M)   |
+
+* (M) major change
 """)
 
     # the same diff in reverse
@@ -123,10 +125,54 @@ def test_diff_markdown() -> None:
     assert result.stdout == snapshot("""\
 2 changed packages (1 updated, 1 removed)
 
-| package           | old    | new      |
-|-------------------|--------|----------|
-| annotated-types   | 0.7.0  | -        |
-| typing-extensions | 4.14.1 | 3.10.0.2 |
+| package           | old    | new      | notes   |
+|-------------------|--------|----------|---------|
+| annotated-types   | 0.7.0  | -        |         |
+| typing-extensions | 4.14.1 | 3.10.0.2 | (M) (D) |
+
+* (M) major change
+* (D) downgrade
+""")
+
+
+def test_diff_markdown_source_change() -> None:
+    """Source changes are noted below the table.
+
+    When multiple entries have the same note, the IDs are deduplicated.
+    """
+    old = str(resources.SOURCES_POETRY_LOCKFILE)
+    new = str(resources.SOURCES_UV_LOCKFILE)
+
+    result = _run(["diff", "--format=markdown", old, new])
+    assert result.stdout == snapshot("""\
+6 changed packages (1 added, 5 updated)
+
+| package            | old   | new   | notes |
+|--------------------|-------|-------|-------|
+| click              | 8.3.0 | 8.3.0 | (S1)  |
+| click-example-repo | 1.0.0 | 1.0.0 | (S2)  |
+| colorama           | 0.4.6 | 0.4.6 | (S1)  |
+| idna               | 3.11  | 3.11  | (S1)  |
+| propcache          | 0.4.1 | 0.4.1 | (S1)  |
+| sources-uv         | -     | 0.1.0 |       |
+
+* (S1) source changed from default to pypi
+* (S2) source changed from <git+https://github.com/pallets/click.git@309ce9178707e1efaf994f191d062edbdffd5ce6#subdirectory=examples/repo> to <git+https://github.com/pallets/click.git@f67abc6fe7dd3d878879a4f004866bf5acefa9b4#subdirectory=examples/repo>
+""")
+
+
+def test_diff_markdown_no_notes() -> None:
+    """If there are no notes, the entire column is omitted."""
+    old = str(resources.NEW_UV_LOCKFILE)
+    new = str(resources.MINOR_UV_LOCKFILE)
+
+    result = _run(["diff", "--format=markdown", old, new])
+    assert result.stdout == snapshot("""\
+1 changed packages (1 updated)
+
+| package           | old    | new    |
+|-------------------|--------|--------|
+| typing-extensions | 4.14.1 | 4.15.0 |
 """)
 
 

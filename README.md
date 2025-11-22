@@ -45,10 +45,12 @@ We can also opt in to Markdown (GFM) output, which will produce a summary and a 
 $ ganzua diff --format=markdown tests/{old,new}-uv-project/uv.lock
 2 changed packages (1 added, 1 updated)
 
-| package           | old      | new    |
-|-------------------|----------|--------|
-| annotated-types   | -        | 0.7.0  |
-| typing-extensions | 3.10.0.2 | 4.14.1 |
+| package           | old      | new    | notes |
+|-------------------|----------|--------|-------|
+| annotated-types   | -        | 0.7.0  |       |
+| typing-extensions | 3.10.0.2 | 4.14.1 | (M)   |
+
+* (M) major change
 ```
 
 Aside from inspecting or diffing lockfiles,
