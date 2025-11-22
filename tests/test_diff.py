@@ -9,6 +9,7 @@ from inline_snapshot import snapshot
 
 from ganzua import diff
 from ganzua._lockfile import Lockfile, lockfile_from
+from ganzua._package_source import SourceRegistry
 from ganzua.cli import DIFF_SCHEMA
 
 from . import resources
@@ -125,7 +126,7 @@ def test_is_source_change() -> None:
             "same": {"version": "1.2.4", "source": "default"},
             "changed": {
                 "version": "1.2.3",
-                "source": {"registry": "https://registry.example/"},
+                "source": SourceRegistry("https://registry.example/"),
             },
         }
     }

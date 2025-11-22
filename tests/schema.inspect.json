@@ -37,12 +37,22 @@
       "description": "The package is sourced from a specific URL or path, e.g. a Git repo or workspace path.",
       "properties": {
         "direct": {
+          "description": "URL or path to the package (directory or archive).",
           "title": "Direct",
           "type": "string"
         },
         "subdirectory": {
-          "title": "Subdirectory",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Only allowed if the source points to an archive file.",
+          "title": "Subdirectory"
         }
       },
       "required": [
@@ -55,6 +65,7 @@
       "description": "The package is sourced from a third party registry.",
       "properties": {
         "registry": {
+          "description": "URL or path to the registry.",
           "title": "Registry",
           "type": "string"
         }

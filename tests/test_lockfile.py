@@ -7,7 +7,7 @@ import pytest
 from inline_snapshot import snapshot
 
 import ganzua
-from ganzua._package_source import Source
+from ganzua._package_source import Source, SourceDirect, SourceRegistry
 
 from . import resources
 from .helpers import parametrized
@@ -23,7 +23,7 @@ def test_can_load_old_uv() -> None:
     assert lock == snapshot(
         {
             "packages": {
-                "example": {"version": "0.1.0", "source": {"direct": "."}},
+                "example": {"version": "0.1.0", "source": SourceDirect(direct=".")},
                 "typing-extensions": {"version": "3.10.0.2", "source": "pypi"},
             }
         }
@@ -36,7 +36,7 @@ def test_can_load_new_uv() -> None:
         {
             "packages": {
                 "annotated-types": {"version": "0.7.0", "source": "pypi"},
-                "example": {"version": "0.1.0", "source": {"direct": "."}},
+                "example": {"version": "0.1.0", "source": SourceDirect(direct=".")},
                 "typing-extensions": {"version": "4.14.1", "source": "pypi"},
             }
         }
@@ -93,21 +93,21 @@ def test_can_load_sources_poetry() -> None:
                 "click": {"version": "8.3.0", "source": "default"},
                 "click-example-repo": {
                     "version": "1.0.0",
-                    "source": {
-                        "direct": "git+https://github.com/pallets/click.git@309ce9178707e1efaf994f191d062edbdffd5ce6#subdirectory=examples/repo"
-                    },
+                    "source": SourceDirect(
+                        direct="git+https://github.com/pallets/click.git@309ce9178707e1efaf994f191d062edbdffd5ce6#subdirectory=examples/repo"
+                    ),
                 },
                 "colorama": {"version": "0.4.6", "source": "default"},
                 "coverage": {
                     "version": "7.10.7",
-                    "source": {"registry": "https://test.pypi.org/simple"},
+                    "source": SourceRegistry(registry="https://test.pypi.org/simple"),
                 },
                 "idna": {"version": "3.11", "source": "default"},
                 "multidict": {
                     "version": "6.7.0",
-                    "source": {
-                        "direct": "https://files.pythonhosted.org/packages/b7/da/7d22601b625e241d4f23ef1ebff8acfc60da633c9e7e7922e24d10f592b3/multidict-6.7.0-py3-none-any.whl"
-                    },
+                    "source": SourceDirect(
+                        direct="https://files.pythonhosted.org/packages/b7/da/7d22601b625e241d4f23ef1ebff8acfc60da633c9e7e7922e24d10f592b3/multidict-6.7.0-py3-none-any.whl"
+                    ),
                 },
                 "propcache": {"version": "0.4.1", "source": "default"},
                 "yarl": {"version": "1.22.0", "source": "pypi"},
@@ -125,7 +125,9 @@ url = "https://example.com/foo.tar.gz"
 subdirectory = "some/path"
         """,
         expected_source=snapshot(
-            {"direct": "https://example.com/foo.tar.gz", "subdirectory": "some/path"}
+            SourceDirect(
+                direct="https://example.com/foo.tar.gz", subdirectory="some/path"
+            )
         ),
     )
 
@@ -157,24 +159,24 @@ def test_can_load_sources_uv() -> None:
                 "click": {"version": "8.3.0", "source": "pypi"},
                 "click-example-repo": {
                     "version": "1.0.0",
-                    "source": {
-                        "direct": "git+https://github.com/pallets/click.git@309ce9178707e1efaf994f191d062edbdffd5ce6#subdirectory=examples/repo"
-                    },
+                    "source": SourceDirect(
+                        direct="git+https://github.com/pallets/click.git@309ce9178707e1efaf994f191d062edbdffd5ce6#subdirectory=examples/repo"
+                    ),
                 },
                 "colorama": {"version": "0.4.6", "source": "pypi"},
                 "coverage": {
                     "version": "7.10.7",
-                    "source": {"registry": "https://test.pypi.org/simple"},
+                    "source": SourceRegistry(registry="https://test.pypi.org/simple"),
                 },
                 "idna": {"version": "3.11", "source": "pypi"},
                 "multidict": {
                     "version": "6.7.0",
-                    "source": {
-                        "direct": "https://files.pythonhosted.org/packages/b7/da/7d22601b625e241d4f23ef1ebff8acfc60da633c9e7e7922e24d10f592b3/multidict-6.7.0-py3-none-any.whl"
-                    },
+                    "source": SourceDirect(
+                        direct="https://files.pythonhosted.org/packages/b7/da/7d22601b625e241d4f23ef1ebff8acfc60da633c9e7e7922e24d10f592b3/multidict-6.7.0-py3-none-any.whl"
+                    ),
                 },
                 "propcache": {"version": "0.4.1", "source": "pypi"},
-                "sources-uv": {"version": "0.1.0", "source": {"direct": "."}},
+                "sources-uv": {"version": "0.1.0", "source": SourceDirect(direct=".")},
                 "yarl": {"version": "1.22.0", "source": "pypi"},
             }
         }
@@ -186,7 +188,9 @@ def test_can_load_sources_uv_direct_subdirectory(tmp_path: pathlib.Path) -> None
         tmp_path,
         package_source_toml="""{ url = "https://example.com/foo.tar.gz", subdirectory = "some/path" }""",
         expected_source=snapshot(
-            {"direct": "https://example.com/foo.tar.gz", "subdirectory": "some/path"}
+            SourceDirect(
+                direct="https://example.com/foo.tar.gz", subdirectory="some/path"
+            )
         ),
     )
 

@@ -118,9 +118,17 @@
           "type": "string"
         },
         "subdirectory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
           "description": "Only allowed if the source points to an archive file.",
-          "title": "Subdirectory",
-          "type": "string"
+          "title": "Subdirectory"
         }
       },
       "required": [

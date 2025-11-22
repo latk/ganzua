@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import pydantic
 import yarl
 
-from ._package_source import Source
+from ._package_source import Source, SourceDirect, SourceRegistry
 from ._utils import error_context
 
 type PathLike = pathlib.Path | importlib.resources.abc.Traversable
@@ -143,15 +143,15 @@ def _map_uv_source(source: UvLockfileV1Source) -> Source:
         case {"registry": registry} if _is_pypi_url(registry):
             return "pypi"
         case {"registry": registry}:
-            return {"registry": registry}
+            return SourceRegistry(registry)
         case {"url": url, "subdirectory": subdirectory}:
-            return {"direct": url, "subdirectory": subdirectory}
+            return SourceDirect(url, subdirectory=subdirectory)
         case {"git": url}:
-            return {"direct": _make_vcs_url_from_uv_direct_url("git", url)}
+            return SourceDirect(_make_vcs_url_from_uv_direct_url("git", url))
         case {"url": url}:
-            return {"direct": url}
+            return SourceDirect(url)
         case {"path": url} | {"directory": url} | {"editable": url} | {"virtual": url}:
-            return {"direct": url}
+            return SourceDirect(url)
         case _:
             # TODO emit warning
             return "other"
@@ -166,17 +166,17 @@ def _map_poetry_source(source: PoetryLockfileV2Source | None) -> Source:
         case {"type": "legacy", "url": url} if _is_pypi_url(url):
             return "pypi"
         case {"type": "legacy", "url": url}:
-            return {"registry": url}
+            return SourceRegistry(url)
         case {"type": "git", "url": url, "resolved_reference": hash}:
-            return {
-                "direct": _make_vcs_url(
+            return SourceDirect(
+                _make_vcs_url(
                     "git", url, hash=hash, subdirectory=source.get("subdirectory")
                 )
-            }
+            )
         case {"type": "url", "url": url, "subdirectory": subdirectory}:
-            return {"direct": url, "subdirectory": subdirectory}
+            return SourceDirect(url, subdirectory=subdirectory)
         case {"type": "directory" | "file" | "url", "url": url}:
-            return {"direct": url}
+            return SourceDirect(url)
         case _:
             # TODO emit warning
             return "other"
