@@ -82,8 +82,8 @@ class _DiffTable:
                 if data.old is None or data.new is None:  # pragma: no cover
                     raise AssertionError(f"unexpected source change: {data}")
 
-                old_source = _md_from_source(data.old["source"])
-                new_source = _md_from_source(data.new["source"])
+                old_source = md_from_source(data.old["source"])
+                new_source = md_from_source(data.new["source"])
                 yield self.footnotes.register(
                     "S", f"source changed from {old_source} to {new_source}"
                 )
@@ -137,7 +137,7 @@ def md_from_diff(diff: Diff) -> str:
     return "\n\n".join(sections)
 
 
-def _md_from_source(source: Source) -> str:
+def md_from_source(source: Source) -> str:
     match source:
         case "pypi" | "default" | "other":
             return source

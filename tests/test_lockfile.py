@@ -7,6 +7,7 @@ import pytest
 from inline_snapshot import snapshot
 
 import ganzua
+from ganzua._markdown import md_from_source
 from ganzua._package_source import Source, SourceDirect, SourceRegistry
 
 from . import resources
@@ -87,7 +88,8 @@ def test_does_not_care_about_filename(
 
 
 def test_can_load_sources_poetry() -> None:
-    assert ganzua.lockfile_from(resources.SOURCES_POETRY_LOCKFILE) == snapshot(
+    parsed = ganzua.lockfile_from(resources.SOURCES_POETRY_LOCKFILE)
+    assert parsed == snapshot(
         {
             "packages": {
                 "click": {"version": "8.3.0", "source": "default"},
@@ -114,6 +116,21 @@ def test_can_load_sources_poetry() -> None:
             }
         }
     )
+    assert {
+        name: md_from_source(data["source"])
+        for name, data in parsed["packages"].items()
+    } == snapshot(
+        {
+            "click": "default",
+            "click-example-repo": "<git+https://github.com/pallets/click.git@309ce9178707e1efaf994f191d062edbdffd5ce6#subdirectory=examples/repo>",
+            "colorama": "default",
+            "coverage": "registry <https://test.pypi.org/simple>",
+            "idna": "default",
+            "multidict": "<https://files.pythonhosted.org/packages/b7/da/7d22601b625e241d4f23ef1ebff8acfc60da633c9e7e7922e24d10f592b3/multidict-6.7.0-py3-none-any.whl>",
+            "propcache": "default",
+            "yarl": "pypi",
+        }
+    )
 
 
 def test_can_load_sources_poetry_direct_subdirectory(tmp_path: pathlib.Path) -> None:
@@ -129,6 +146,9 @@ subdirectory = "some/path"
                 direct="https://example.com/foo.tar.gz", subdirectory="some/path"
             )
         ),
+        expected_markdown=snapshot(
+            "<https://example.com/foo.tar.gz> (subdirectory: `some/path`)"
+        ),
     )
 
 
@@ -139,6 +159,7 @@ def test_can_load_sources_poetry_pypi(tmp_path: pathlib.Path) -> None:
 type = "pYpI"
 """,
         expected_source=snapshot("pypi"),
+        expected_markdown=snapshot("pypi"),
     )
 
 
@@ -149,11 +170,13 @@ def test_can_load_sources_poetry_unknown(tmp_path: pathlib.Path) -> None:
 type = "some-unknown-source-type"
 """,
         expected_source=snapshot("other"),
+        expected_markdown=snapshot("other"),
     )
 
 
 def test_can_load_sources_uv() -> None:
-    assert ganzua.lockfile_from(resources.SOURCES_UV_LOCKFILE) == snapshot(
+    parsed = ganzua.lockfile_from(resources.SOURCES_UV_LOCKFILE)
+    assert parsed == snapshot(
         {
             "packages": {
                 "click": {"version": "8.3.0", "source": "pypi"},
@@ -181,6 +204,22 @@ def test_can_load_sources_uv() -> None:
             }
         }
     )
+    assert {
+        name: md_from_source(data["source"])
+        for name, data in parsed["packages"].items()
+    } == snapshot(
+        {
+            "click": "pypi",
+            "click-example-repo": "<git+https://github.com/pallets/click.git@f67abc6fe7dd3d878879a4f004866bf5acefa9b4#subdirectory=examples/repo>",
+            "colorama": "pypi",
+            "coverage": "registry <https://test.pypi.org/simple>",
+            "idna": "pypi",
+            "multidict": "<https://files.pythonhosted.org/packages/b7/da/7d22601b625e241d4f23ef1ebff8acfc60da633c9e7e7922e24d10f592b3/multidict-6.7.0-py3-none-any.whl>",
+            "propcache": "pypi",
+            "sources-uv": "<.>",
+            "yarl": "pypi",
+        }
+    )
 
 
 def test_can_load_sources_uv_direct_subdirectory(tmp_path: pathlib.Path) -> None:
@@ -192,6 +231,9 @@ def test_can_load_sources_uv_direct_subdirectory(tmp_path: pathlib.Path) -> None
                 direct="https://example.com/foo.tar.gz", subdirectory="some/path"
             )
         ),
+        expected_markdown=snapshot(
+            "<https://example.com/foo.tar.gz> (subdirectory: `some/path`)"
+        ),
     )
 
 
@@ -200,11 +242,15 @@ def test_can_load_sources_uv_unknown(tmp_path: pathlib.Path) -> None:
         tmp_path,
         package_source_toml="""{ some-unknown-source-type = true }""",
         expected_source=snapshot("other"),
+        expected_markdown=snapshot("other"),
     )
 
 
 def _assert_parse_poetry_source(
-    tmp_path: pathlib.Path, package_source_toml: str, expected_source: Source
+    tmp_path: pathlib.Path,
+    package_source_toml: str,
+    expected_source: Source,
+    expected_markdown: str,
 ) -> None:
     __tracebackhide__ = True
     lockfile = tmp_path / "poetry.lock"
@@ -224,7 +270,8 @@ content-hash = "0000000000000000000000000000000000000000000000000000000000000000
 """
     )
 
-    assert ganzua.lockfile_from(lockfile) == {
+    parsed = ganzua.lockfile_from(lockfile)
+    assert parsed == {
         "packages": {
             "example": {
                 "version": "0.1.0",
@@ -232,10 +279,14 @@ content-hash = "0000000000000000000000000000000000000000000000000000000000000000
             }
         }
     }
+    assert md_from_source(parsed["packages"]["example"]["source"]) == expected_markdown
 
 
 def _assert_parse_uv_source(
-    tmp_path: pathlib.Path, package_source_toml: str, expected_source: Source
+    tmp_path: pathlib.Path,
+    package_source_toml: str,
+    expected_source: Source,
+    expected_markdown: str,
 ) -> None:
     __tracebackhide__ = True
     lockfile = tmp_path / "poetry.lock"
@@ -252,7 +303,8 @@ source = {package_source_toml}
 """
     )
 
-    assert ganzua.lockfile_from(lockfile) == {
+    parsed = ganzua.lockfile_from(lockfile)
+    assert parsed == {
         "packages": {
             "example": {
                 "version": "0.1.0",
@@ -260,6 +312,7 @@ source = {package_source_toml}
             }
         }
     }
+    assert md_from_source(parsed["packages"]["example"]["source"]) == expected_markdown
 
 
 def test_can_parse_package_without_version_uv() -> None:
