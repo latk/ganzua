@@ -260,3 +260,19 @@ source = {package_source_toml}
             }
         }
     }
+
+
+def test_can_parse_package_without_version_uv() -> None:
+    """Test for <https://github.com/latk/ganzua/issues/4>."""
+    assert ganzua.lockfile_from(
+        resources.SETUPTOOLS_DYNAMIC_VERSION_LOCKFILE
+    ) == snapshot(
+        {
+            "packages": {
+                "setuptools-dynamic-version": {
+                    "version": "0+undefined",
+                    "source": SourceDirect(direct="."),
+                }
+            }
+        }
+    )

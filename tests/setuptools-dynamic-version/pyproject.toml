@@ -1,0 +1,16 @@
+[project]
+name = "setuptools-dynamic-version"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+dynamic = ["version"]
+
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+# Tell setuptools how to resolve the dynamic version.
+# See https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
+# However, this won't be used properly for editable installs.
+[tool.setuptools.dynamic]
+version = {attr = "setuptools_dynamic_version.__version__"}

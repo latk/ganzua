@@ -12,6 +12,14 @@ from ._utils import error_context
 
 type PathLike = pathlib.Path | importlib.resources.abc.Traversable
 
+UNDEFINED_VERSION = "0+undefined"
+"""Use this version when a locked package has no version.
+
+The uv frontend doesn't guarantee that each package has a version.
+This can happen in particular for editable installs with setuptools projects
+that use a dynamic version, see <https://github.com/latk/ganzua/issues/4>.
+"""
+
 
 class LockedPackage(t.TypedDict):
     version: str
@@ -33,7 +41,7 @@ def lockfile_from(path: PathLike) -> Lockfile:
                 return Lockfile(
                     packages={
                         p["name"]: LockedPackage(
-                            version=p["version"],
+                            version=p.get("version", UNDEFINED_VERSION),
                             source=_map_uv_source(p["source"]),
                         )
                         for p in packages
@@ -79,7 +87,7 @@ class UvLockfileV1Source(t.TypedDict, total=False):
 
 class UvLockfileV1Package(t.TypedDict):
     name: str
-    version: str
+    version: t.NotRequired[str]
     source: UvLockfileV1Source
 
 
