@@ -171,6 +171,11 @@ def _as_markdown(  # noqa: C901  # complexity
     <BLANKLINE>
     ### some anchor<a id="some-anchor"></a>
     <BLANKLINE>
+
+    Example: can emit Markdown links.
+
+    >>> print_markdown_doc(_Markdown("this is a [link](https://example.com/)!"))
+    this is a [link](https://example.com/)!
     """
     match item:
         case str():
@@ -206,6 +211,13 @@ def _as_markdown(  # noqa: C901  # complexity
 def _as_rich(
     item: _MarkdownOrRich,
 ) -> rich.console.RenderableType:
+    """Convert help content to Rich-printable types.
+
+    Example: can render Markdown hyperlinks.
+
+    >>> _render(_as_rich(_Markdown("this is a [link](https://example.com/)!")))
+    this is a link (https://example.com/)!
+    """
     import rich.markdown  # noqa: PLC0415
     import rich.padding  # noqa: PLC0415
 
@@ -228,7 +240,7 @@ def _as_rich(
                 style=_HEADING_STYLE,
             )
         case _Markdown():
-            return rich.markdown.Markdown(item.content)
+            return rich.markdown.Markdown(item.content, hyperlinks=False)
         case _Indent():
             return rich.padding.Padding(_as_rich(item.content), pad=(0, 0, 0, item.pad))
         case other:  # pragma: no cover

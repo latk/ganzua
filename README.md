@@ -70,7 +70,7 @@ Ganzua is available on PyPI: <https://pypi.org/project/ganzua/>
 
 Recommended: run or install via the [`uv` package manager](https://docs.astral.sh/uv/):
 
-* `uv tool run ganzua` to try Ganzua without installation
+* `uvx ganzua` to try Ganzua without installation
 * `uv tool install ganzua` to install Ganzua on your machine
 
 Alternative: run or install via the [`pipx` tool](https://pipx.pypa.io/):
@@ -84,7 +84,7 @@ However, it is recommended that you use `uv tool` or `pipx` to install Ganzua in
 
 To preview a bleeding-edge version without waiting for a PyPI release, you can install directly from the Ganzua repository on GitHub. For example:
 
-* `uv tool run git+https://github.com/latk/ganzua.git`
+* `uvx git+https://github.com/latk/ganzua.git`
 * `pipx run --spec git+https://github.com/latk/ganzua.git ganzua`
 
 ## Usage
@@ -155,12 +155,14 @@ Compare two lockfiles.
 Both the `old` and `new` arguments must be file paths.
 
 There is no direct support for comparing a file across Git commits,
-but it's possible to retrieve other versions via `git cat-file`.
+but it's possible to retrieve other versions via [`git show`][git-show].
 Here is an example using a Bash redirect to show non-committed changes in a lockfile:
 
 ```bash
-ganzua diff <(git cat-file blob HEAD:uv.lock) uv.lock
+ganzua diff <(git show HEAD:uv.lock) uv.lock
 ```
+
+[git-show]: https://git-scm.com/docs/git-show
 
 **Options:**
 
