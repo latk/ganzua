@@ -2,15 +2,18 @@
 
 ## Unreleased
 
+This release focuses on extracting information about package sources, but also includes quality-of-life improvements and bug fixes. There are no breaking changes.
+
 New features:
 
 * Arguments for `pyproject.toml` and lockfile paths are now optional in `ganzua constraints inspect`, `ganzua constraints bump`, and `ganzua constraints reset`. This simplifies Ganzua invocations in the common case where Ganzua is invoked in the project root.
-* Keep some information about package sources (PyPI, Git, path dependencies) when inspecting lockfiles.
-* Explicitly note certain kinds of differences in the JSON diff format: `is_major_change`, `is_downgrade`, `is_source_change`.
+* Keep some information about package sources (PyPI, Git, path dependencies, …) when inspecting lockfiles.
+* Indicate certain kinds of differences that might need special attention in diff output (JSON/Markdown): `is_major_change` (M), `is_downgrade` (D), `is_source_change` (S).
 
 Fixes:
 
 * (https://github.com/latk/ganzua/issues/3) Normalize names of packages, extras, and dependency groups when loading `pyproject.toml` files, as required by the packaging specifications.
+* (https://github.com/latk/ganzua/issues/4) Handle packages without versions in `uv.lock` files. The fake version `0+undefined` will be substituted instead.
 
 Other:
 
