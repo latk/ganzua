@@ -52,9 +52,10 @@ def test_entrypoint() -> None:
     assert errinfo.value.code == 0
 
 
-def test_inspect() -> None:
-    result = _run(["inspect", str(resources.OLD_UV_LOCKFILE)])
-    assert json.loads(result.stdout) == snapshot(
+def test_inspect(tmp_path: pathlib.Path) -> None:
+    lockfile = resources.OLD_UV_LOCKFILE
+    output = _run(["inspect", str(lockfile)]).stdout
+    assert json.loads(output) == snapshot(
         {
             "packages": {
                 "example": {
@@ -68,6 +69,19 @@ def test_inspect() -> None:
             }
         }
     )
+
+    # can also use a directory
+    assert _run(["inspect", str(lockfile.parent)]).output == output
+
+    # behavior when no explicit lockfile argument is passed
+    with contextlib.chdir(tmp_path):
+        # fails in empty directory
+        result = _run(["inspect"], expect_exit=_CLICK_ERROR)
+        assert "Could not infer `LOCKFILE` for `.`." in result.stderr
+
+        # but finds the lockfile if present
+        (tmp_path / "uv.lock").write_bytes(lockfile.read_bytes())
+        assert _run(["inspect"]).output == output
 
 
 def test_inspect_markdown() -> None:
@@ -83,10 +97,10 @@ def test_inspect_markdown() -> None:
 
 
 def test_diff() -> None:
-    result = _run(
-        ["diff", str(resources.OLD_UV_LOCKFILE), str(resources.NEW_UV_LOCKFILE)]
-    )
-    assert json.loads(result.stdout) == snapshot(
+    old = resources.OLD_UV_LOCKFILE
+    new = resources.NEW_UV_LOCKFILE
+    output = _run(["diff", str(old), str(new)]).output
+    assert json.loads(output) == snapshot(
         {
             "packages": {
                 "annotated-types": {
@@ -102,6 +116,11 @@ def test_diff() -> None:
             "stat": {"total": 2, "added": 1, "removed": 0, "updated": 1},
         }
     )
+
+    # can also pass directories
+    assert _run(["diff", str(old), str(new.parent)]).output == output
+    assert _run(["diff", str(old.parent), str(new)]).output == output
+    assert _run(["diff", str(old.parent), str(new.parent)]).output == output
 
 
 def test_diff_markdown() -> None:

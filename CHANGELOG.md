@@ -6,7 +6,7 @@ This release focuses on extracting information about package sources, but also i
 
 New features:
 
-* Arguments for `pyproject.toml` and lockfile paths are now optional in `ganzua constraints inspect`, `ganzua constraints bump`, and `ganzua constraints reset`. This simplifies Ganzua invocations in the common case where Ganzua is invoked in the project root.
+* Arguments for `pyproject.toml` and lockfile paths are automatically inferred in the common cases where Ganzua is invoked from the project root. Instead of writing full paths, it is also sufficient to point to a directory containing these files. For example, `ganzua inspect`, `ganzua inspect .` and `ganzua inspect uv.lock` are generally equivalent.
 * Keep some information about package sources (PyPI, Git, path dependencies, …) when inspecting lockfiles.
 * Indicate certain kinds of differences that might need special attention in diff output (JSON/Markdown): `is_major_change` (M), `is_downgrade` (D), `is_source_change` (S).
 

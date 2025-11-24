@@ -134,9 +134,14 @@ Show help for the application or a specific subcommand.
 
 ### ganzua inspect<a id="ganzua-inspect"></a>
 
-Usage: `ganzua inspect [OPTIONS] LOCKFILE`
+Usage: `ganzua inspect [OPTIONS] [LOCKFILE]`
 
 Inspect a lockfile.
+
+The `LOCKFILE` should point to an `uv.lock` or `poetry.lock` file,
+or to a directory containing such a file.
+If this argument is not specified,
+the one in the current working directory will be used.
 
 **Options:**
 
@@ -152,7 +157,8 @@ Usage: `ganzua diff [OPTIONS] OLD NEW`
 
 Compare two lockfiles.
 
-Both the `old` and `new` arguments must be file paths.
+The `OLD` and `NEW` arguments must each point to an `uv.lock` or `poetry.lock` file,
+or to a directory containing such a file.
 
 There is no direct support for comparing a file across Git commits,
 but it's possible to retrieve other versions via [`git show`][git-show].

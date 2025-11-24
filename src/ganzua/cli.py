@@ -77,10 +77,6 @@ class _with_print_json[R]:  # noqa: N801  # invalid-name
         return command_with_json_output
 
 
-_ExistingFilePath = click.Path(
-    exists=True, path_type=pathlib.Path, file_okay=True, dir_okay=False
-)
-
 _ExistingPath = click.Path(
     exists=True, path_type=pathlib.Path, file_okay=True, dir_okay=True
 )
@@ -92,21 +88,36 @@ REQUIREMENTS_SCHEMA = pydantic.TypeAdapter(ganzua.Requirements)
 
 
 @app.command()
-@click.argument("lockfile", type=_ExistingFilePath)
+@click.argument("lockfile", type=_ExistingPath, required=False)
 @_with_print_json(LOCKFILE_SCHEMA, md_from_lockfile)
-def inspect(lockfile: pathlib.Path) -> ganzua.Lockfile:
-    """Inspect a lockfile."""
+@click.pass_context
+def inspect(ctx: click.Context, lockfile: pathlib.Path | None) -> ganzua.Lockfile:
+    """Inspect a lockfile.
+
+    The `LOCKFILE` should point to an `uv.lock` or `poetry.lock` file,
+    or to a directory containing such a file.
+    If this argument is not specified,
+    the one in the current working directory will be used.
+    """
+    lockfile = _find_lockfile(
+        ctx,
+        lockfile,
+        project_dir=pathlib.Path(),
+        err_msg=lambda project_dir: f"Could not infer `LOCKFILE` for `{project_dir}`.",
+    )
     return ganzua.lockfile_from(lockfile)
 
 
 @app.command()
-@click.argument("old", type=_ExistingFilePath)
-@click.argument("new", type=_ExistingFilePath)
+@click.argument("old", type=_ExistingPath)
+@click.argument("new", type=_ExistingPath)
 @_with_print_json(DIFF_SCHEMA, md_from_diff)
-def diff(old: pathlib.Path, new: pathlib.Path) -> ganzua.Diff:
+@click.pass_context
+def diff(ctx: click.Context, old: pathlib.Path, new: pathlib.Path) -> ganzua.Diff:
     """Compare two lockfiles.
 
-    Both the `old` and `new` arguments must be file paths.
+    The `OLD` and `NEW` arguments must each point to an `uv.lock` or `poetry.lock` file,
+    or to a directory containing such a file.
 
     There is no direct support for comparing a file across Git commits,
     but it's possible to retrieve other versions via [`git show`][git-show].
@@ -118,6 +129,18 @@ def diff(old: pathlib.Path, new: pathlib.Path) -> ganzua.Diff:
 
     [git-show]: https://git-scm.com/docs/git-show
     """
+    old = _find_lockfile(
+        ctx,
+        old,
+        project_dir=pathlib.Path(),  # unused
+        err_msg=lambda project_dir: f"Could not infer `OLD` for `{project_dir}`.",
+    )
+    new = _find_lockfile(
+        ctx,
+        new,
+        project_dir=pathlib.Path(),  # unused
+        err_msg=lambda project_dir: f"Could not infer `NEW` for `{project_dir}`.",
+    )
     return ganzua.diff(
         ganzua.lockfile_from(old),
         ganzua.lockfile_from(new),
