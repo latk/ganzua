@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.3.0 (2025-11-24)
 
 This release focuses on extracting information about package sources, but also includes quality-of-life improvements and bug fixes. There are no breaking changes.
 
@@ -21,7 +21,7 @@ Other:
 * Added a `CHANGELOG.md` file.
 * Various internal changes and testing improvements.
 
-Full Changelog: https://github.com/latk/ganzua/compare/v0.2.0...HEAD
+Full Changelog: https://github.com/latk/ganzua/compare/v0.2.0...v0.3.0
 
 
 ## v0.2.0 (2025-09-11)
