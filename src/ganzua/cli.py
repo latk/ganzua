@@ -125,31 +125,38 @@ def constraints() -> None:
     """Work with `pyproject.toml` constraints."""
 
 
-def _find_pyproject_toml(ctx: click.Context) -> pathlib.Path:
-    path = pathlib.Path("pyproject.toml")
-    if not (path.exists() and path.is_file()):
+def _find_pyproject_toml(
+    ctx: click.Context, pyproject: pathlib.Path | None
+) -> pathlib.Path:
+    if pyproject is not None:
+        return pyproject
+    pyproject = pathlib.Path("pyproject.toml")
+    if not (pyproject.exists() and pyproject.is_file()):
         ctx.fail("Did not find default `pyproject.toml`.")
-    return path
+    return pyproject
 
 
 def _find_lockfile(
     ctx: click.Context,
+    lockfile: pathlib.Path | None,
     *,
-    pyproject: pathlib.Path,
-    lockfile_option_name: str,
+    project_dir: pathlib.Path,
+    err_not_in_project_dir: str,
     note: str | None = None,
 ) -> pathlib.Path:
+    if lockfile is not None:
+        return lockfile
     candidates = [
-        pyproject.parent / "uv.lock",
-        pyproject.parent / "poetry.lock",
+        project_dir / "uv.lock",
+        project_dir / "poetry.lock",
     ]
-    match [lockfile for lockfile in candidates if lockfile.exists()]:
+    match [f for f in candidates if f.exists()]:
         case [exactly_one]:
             return exactly_one
-        case existing_lockfile:
-            msg = f"Could not infer `{lockfile_option_name}` for `{pyproject}`."
-            for lockfile in existing_lockfile:
-                msg += f"\nNote: Candidate lockfile: {shlex.quote(str(lockfile))}"
+        case existing_lockfiles:
+            msg = err_not_in_project_dir
+            for f in existing_lockfiles:
+                msg += f"\nNote: Candidate lockfile: {shlex.quote(str(f))}"
             if note:
                 msg += f"\nNote: {note}"
             ctx.fail(msg)
@@ -167,8 +174,7 @@ def constraints_inspect(
     If no `pyproject.toml` is specified explicitly,
     the one in the current working directory will be used.
     """
-    if pyproject is None:
-        pyproject = _find_pyproject_toml(ctx)
+    pyproject = _find_pyproject_toml(ctx, pyproject)
 
     with error_context(f"while parsing {pyproject}"):
         doc = toml.RefRoot.parse(pyproject.read_text())
@@ -207,13 +213,13 @@ def constraints_bump(
     If no `pyproject.toml` is specified explicitly,
     the one in the current working directory will be used.
     """
-    if pyproject is None:
-        pyproject = _find_pyproject_toml(ctx)
-
-    if lockfile is None:
-        lockfile = _find_lockfile(
-            ctx, pyproject=pyproject, lockfile_option_name="--lockfile"
-        )
+    pyproject = _find_pyproject_toml(ctx, pyproject)
+    lockfile = _find_lockfile(
+        ctx,
+        lockfile,
+        project_dir=pyproject.parent,
+        err_not_in_project_dir=f"Could not infer `--lockfile` for `{pyproject}`.",
+    )
 
     if backup is not None:
         shutil.copy(pyproject, backup)
@@ -277,21 +283,20 @@ def constraints_reset(
     If no `pyproject.toml` is specified explicitly,
     the one in the current working directory will be used.
     """
-    if pyproject is None:
-        pyproject = _find_pyproject_toml(ctx)
+    pyproject = _find_pyproject_toml(ctx, pyproject)
 
     edit: ganzua.EditRequirement
     match to:
         case ConstraintResetGoal.NONE:
             edit = ganzua.UnconstrainRequirement()
         case ConstraintResetGoal.MINIMUM:
-            if lockfile is None:
-                lockfile = _find_lockfile(
-                    ctx,
-                    pyproject=pyproject,
-                    lockfile_option_name="--lockfile",
-                    note="Using `--to=minimum` requires a `--lockfile`.",
-                )
+            lockfile = _find_lockfile(
+                ctx,
+                lockfile,
+                project_dir=pyproject.parent,
+                err_not_in_project_dir=f"Could not infer `--lockfile` for `{pyproject}`.",
+                note="Using `--to=minimum` requires a `--lockfile`.",
+            )
             edit = ganzua.SetMinimumRequirement(ganzua.lockfile_from(lockfile))
         case other:  # pragma: no cover
             t.assert_never(other)
