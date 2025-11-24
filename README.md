@@ -199,7 +199,9 @@ Usage: `ganzua constraints inspect [OPTIONS] [PYPROJECT]`
 
 List all constraints in the `pyproject.toml` file.
 
-If no `pyproject.toml` is specified explicitly,
+The `PYPROJECT` argument should point to a `pyproject.toml` file,
+or to a directory containing such a file.
+If this argument is not specified,
 the one in the current working directory will be used.
 
 **Options:**
@@ -225,7 +227,9 @@ This tool will try to be as granular as the original constraint.
 For example, given the old constraint `foo>=3.5` and the new version `4.7.2`,
 the constraint would be updated to `foo>=4.7`.
 
-If no `pyproject.toml` is specified explicitly,
+The `PYPROJECT` argument should point to a `pyproject.toml` file,
+or to a directory containing such a file.
+If this argument is not specified,
 the one in the current working directory will be used.
 
 **Options:**
@@ -255,7 +259,9 @@ ganzua constraints bump
 uv lock
 ```
 
-If no `pyproject.toml` is specified explicitly,
+The `PYPROJECT` argument should point to a `pyproject.toml` file,
+or to a directory containing such a file.
+If this argument is not specified,
 the one in the current working directory will be used.
 
 **Options:**

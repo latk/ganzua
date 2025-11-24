@@ -81,6 +81,10 @@ _ExistingFilePath = click.Path(
     exists=True, path_type=pathlib.Path, file_okay=True, dir_okay=False
 )
 
+_ExistingPath = click.Path(
+    exists=True, path_type=pathlib.Path, file_okay=True, dir_okay=True
+)
+
 
 DIFF_SCHEMA = pydantic.TypeAdapter(ganzua.Diff)
 LOCKFILE_SCHEMA = pydantic.TypeAdapter(ganzua.Lockfile)
@@ -128,9 +132,15 @@ def constraints() -> None:
 def _find_pyproject_toml(
     ctx: click.Context, pyproject: pathlib.Path | None
 ) -> pathlib.Path:
-    if pyproject is not None:
-        return pyproject
-    pyproject = pathlib.Path("pyproject.toml")
+    match pyproject:
+        case None:
+            project_dir = pathlib.Path()
+        case project_dir if project_dir.is_dir():
+            pass
+        case _:
+            return pyproject
+
+    pyproject = project_dir / "pyproject.toml"
     if not (pyproject.exists() and pyproject.is_file()):
         ctx.fail("Did not find default `pyproject.toml`.")
     return pyproject
@@ -163,7 +173,7 @@ def _find_lockfile(
 
 
 @constraints.command("inspect")
-@click.argument("pyproject", type=_ExistingFilePath, required=False)
+@click.argument("pyproject", type=_ExistingPath, required=False)
 @_with_print_json(REQUIREMENTS_SCHEMA, md_from_requirements)
 @click.pass_context
 def constraints_inspect(
@@ -171,7 +181,9 @@ def constraints_inspect(
 ) -> ganzua.Requirements:
     """List all constraints in the `pyproject.toml` file.
 
-    If no `pyproject.toml` is specified explicitly,
+    The `PYPROJECT` argument should point to a `pyproject.toml` file,
+    or to a directory containing such a file.
+    If this argument is not specified,
     the one in the current working directory will be used.
     """
     pyproject = _find_pyproject_toml(ctx, pyproject)
@@ -184,7 +196,7 @@ def constraints_inspect(
 
 
 @constraints.command("bump")
-@click.argument("pyproject", type=_ExistingFilePath, required=False)
+@click.argument("pyproject", type=_ExistingPath, required=False)
 @click.option(
     "--lockfile",
     type=_ExistingFilePath,
@@ -210,7 +222,9 @@ def constraints_bump(
     For example, given the old constraint `foo>=3.5` and the new version `4.7.2`,
     the constraint would be updated to `foo>=4.7`.
 
-    If no `pyproject.toml` is specified explicitly,
+    The `PYPROJECT` argument should point to a `pyproject.toml` file,
+    or to a directory containing such a file.
+    If this argument is not specified,
     the one in the current working directory will be used.
     """
     pyproject = _find_pyproject_toml(ctx, pyproject)
@@ -240,7 +254,7 @@ class ConstraintResetGoal(enum.Enum):
 
 
 @constraints.command("reset")
-@click.argument("pyproject", type=_ExistingFilePath, required=False)
+@click.argument("pyproject", type=_ExistingPath, required=False)
 @click.option("--backup", type=click.Path(), help="Store a backup in this file.")
 @click.option(
     "--to",
@@ -280,7 +294,9 @@ def constraints_reset(
     uv lock
     ```
 
-    If no `pyproject.toml` is specified explicitly,
+    The `PYPROJECT` argument should point to a `pyproject.toml` file,
+    or to a directory containing such a file.
+    If this argument is not specified,
     the one in the current working directory will be used.
     """
     pyproject = _find_pyproject_toml(ctx, pyproject)

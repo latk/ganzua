@@ -246,6 +246,9 @@ def test_constraints_bump_has_default_pyproject(tmp_path: pathlib.Path) -> None:
         expected_output = _run([*cmd, "pyproject.toml"]).output
         assert output == expected_output
 
+    # it's also possible to specify just the directory
+    assert _run([*cmd, str(tmp_path)]).output == expected_output
+
 
 def test_constraints_bump_finds_default_lockfile(tmp_path: pathlib.Path) -> None:
     pyproject = tmp_path / "pyproject.toml"
@@ -438,6 +441,9 @@ def test_constraints_reset_has_default_pyproject(tmp_path: pathlib.Path) -> None
         expected_output = _run([*cmd, "pyproject.toml"]).output
         assert output == expected_output
 
+    # it's also possible to specify just the directory
+    assert _run([*cmd, str(tmp_path)]).output == expected_output
+
 
 def test_constraints_inspect() -> None:
     result = _run(["constraints", "inspect", str(resources.NEW_UV_PYPROJECT)])
@@ -477,6 +483,9 @@ def test_constraints_inspect_has_default_pyproject(tmp_path: pathlib.Path) -> No
         output = _run(cmd).output
         expected_output = _run([*cmd, "pyproject.toml"]).output
         assert output == expected_output
+
+    # it's also possible to specify just the directory
+    assert _run([*cmd, str(tmp_path)]).output == expected_output
 
 
 @pytest.mark.parametrize("command", ["inspect", "diff", "constraints-inspect"])
