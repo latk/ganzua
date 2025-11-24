@@ -132,13 +132,12 @@ def constraints() -> None:
 def _find_pyproject_toml(
     ctx: click.Context, pyproject: pathlib.Path | None
 ) -> pathlib.Path:
-    match pyproject:
-        case None:
-            project_dir = pathlib.Path()
-        case project_dir if project_dir.is_dir():
-            pass
-        case _:
-            return pyproject
+    if pyproject is None:
+        project_dir = pathlib.Path()
+    elif pyproject.is_dir():
+        project_dir = pyproject
+    else:
+        return pyproject
 
     pyproject = project_dir / "pyproject.toml"
     if not (pyproject.exists() and pyproject.is_file()):
@@ -151,11 +150,16 @@ def _find_lockfile(
     lockfile: pathlib.Path | None,
     *,
     project_dir: pathlib.Path,
-    err_not_in_project_dir: str,
+    err_msg: t.Callable[[pathlib.Path], str],
     note: str | None = None,
 ) -> pathlib.Path:
-    if lockfile is not None:
+    if lockfile is None:
+        pass
+    elif lockfile.is_dir():
+        project_dir = lockfile
+    else:
         return lockfile
+
     candidates = [
         project_dir / "uv.lock",
         project_dir / "poetry.lock",
@@ -164,7 +168,7 @@ def _find_lockfile(
         case [exactly_one]:
             return exactly_one
         case existing_lockfiles:
-            msg = err_not_in_project_dir
+            msg = err_msg(project_dir)
             for f in existing_lockfiles:
                 msg += f"\nNote: Candidate lockfile: {shlex.quote(str(f))}"
             if note:
@@ -199,9 +203,14 @@ def constraints_inspect(
 @click.argument("pyproject", type=_ExistingPath, required=False)
 @click.option(
     "--lockfile",
-    type=_ExistingFilePath,
+    type=_ExistingPath,
     required=False,
-    help="Where to load versions from. Inferred if possible.",
+    help="""\
+Where to load versions from. Inferred if possible.
+* file: use the path as the lockfile
+* directory: use the lockfile in that directory
+* default: use the lockfile in the `PYPROJECT` directory
+""",
 )
 @click.option("--backup", type=click.Path(), help="Store a backup in this file.")
 @click.pass_context
@@ -232,7 +241,7 @@ def constraints_bump(
         ctx,
         lockfile,
         project_dir=pyproject.parent,
-        err_not_in_project_dir=f"Could not infer `--lockfile` for `{pyproject}`.",
+        err_msg=lambda project_dir: f"Could not infer `--lockfile` for `{project_dir}`.",
     )
 
     if backup is not None:
@@ -268,9 +277,14 @@ How to reset constraints.
 )
 @click.option(
     "--lockfile",
-    type=_ExistingFilePath,
+    type=_ExistingPath,
     required=False,
-    help="Where to load current versions from (for `--to=minimum`). Inferred if possible.",
+    help="""\
+Where to load current versions from (for `--to=minimum`). Inferred if possible.
+* file: use the path as the lockfile
+* directory: use the lockfile in that directory
+* default: use the lockfile in the `PYPROJECT` directory
+""",
 )
 @click.pass_context
 def constraints_reset(
@@ -310,7 +324,7 @@ def constraints_reset(
                 ctx,
                 lockfile,
                 project_dir=pyproject.parent,
-                err_not_in_project_dir=f"Could not infer `--lockfile` for `{pyproject}`.",
+                err_msg=lambda project_dir: f"Could not infer `--lockfile` for `{project_dir}`.",
                 note="Using `--to=minimum` requires a `--lockfile`.",
             )
             edit = ganzua.SetMinimumRequirement(ganzua.lockfile_from(lockfile))

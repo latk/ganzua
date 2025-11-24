@@ -255,11 +255,16 @@ def test_constraints_bump_finds_default_lockfile(tmp_path: pathlib.Path) -> None
     pyproject.write_bytes(resources.OLD_UV_PYPROJECT.read_bytes())
     cmd = ["constraints", "bump", str(pyproject)]
 
-    expected_output = _run([*cmd, f"--lockfile={resources.NEW_UV_LOCKFILE}"]).output
-
     # running without a lockfile fails
     result = _run(cmd, expect_exit=_CLICK_ERROR)
-    assert f"Could not infer `--lockfile` for `{pyproject}`" in result.output
+    assert f"Could not infer `--lockfile` for `{tmp_path}`" in result.output
+
+    # but an explicit lockfile succeeds
+    lockfile = resources.NEW_UV_LOCKFILE
+    expected_output = _run([*cmd, f"--lockfile={lockfile}"]).output
+
+    # also succeeds when the lockfile can be inferred from a directory
+    assert _run([*cmd, f"--lockfile={lockfile.parent}"]).output == ""
 
     # but a `uv.lock` in the same directory is picked up automatically
     (tmp_path / "uv.lock").write_bytes(resources.NEW_UV_LOCKFILE.read_bytes())
@@ -272,7 +277,7 @@ def test_constraints_bump_finds_default_lockfile(tmp_path: pathlib.Path) -> None
 Usage: ganzua constraints bump [OPTIONS] [PYPROJECT]
 Try 'ganzua constraints bump --help' for help.
 
-Error: Could not infer `--lockfile` for `{pyproject}`.
+Error: Could not infer `--lockfile` for `{tmp_path}`.
 Note: Candidate lockfile: {tmp_path}/uv.lock
 Note: Candidate lockfile: {tmp_path}/poetry.lock
 """)
@@ -414,14 +419,17 @@ def test_constraints_reset_to_minimum_requires_lockfile(tmp_path: pathlib.Path) 
 Usage: ganzua constraints reset [OPTIONS] [PYPROJECT]
 Try 'ganzua constraints reset --help' for help.
 
-Error: Could not infer `--lockfile` for `{pyproject}`.
+Error: Could not infer `--lockfile` for `{tmp_path}`.
 Note: Using `--to=minimum` requires a `--lockfile`.
 """)
 
     # succeeds
     assert _run([*cmd, f"--lockfile={lockfile}"]).output == ""
 
-    # also succeeds when the lockfile can be inferred
+    # also succeeds when the lockfile can be inferred from a directory
+    assert _run([*cmd, f"--lockfile={lockfile.parent}"]).output == ""
+
+    # also succeeds when the lockfile can be inferred from pyproject
     (tmp_path / "uv.lock").write_bytes(lockfile.read_bytes())
     assert _run(cmd).output == ""
 

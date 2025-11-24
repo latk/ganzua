@@ -234,8 +234,11 @@ the one in the current working directory will be used.
 
 **Options:**
 
-* `--lockfile FILE`
+* `--lockfile PATH`
   Where to load versions from. Inferred if possible.
+  * file: use the path as the lockfile
+  * directory: use the lockfile in that directory
+  * default: use the lockfile in the `PYPROJECT` directory
 * `--backup PATH`
   Store a backup in this file.
 * `--help`
@@ -272,8 +275,11 @@ the one in the current working directory will be used.
   How to reset constraints.
   * `none` (default): remove all constraints
   * `minimum`: set constraints to the currently locked minimum, removing upper bounds
-* `--lockfile FILE`
+* `--lockfile PATH`
   Where to load current versions from (for `--to=minimum`). Inferred if possible.
+  * file: use the path as the lockfile
+  * directory: use the lockfile in that directory
+  * default: use the lockfile in the `PYPROJECT` directory
 * `--help`
   Show this help message and exit.
 

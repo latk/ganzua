@@ -3,6 +3,14 @@ import pathlib
 
 _RESOURCES = importlib.resources.files()
 
+# The `importlib.resources` API only guarantees the `Traversable` interface.
+# This matters when resources aren't installed as actual files,
+# e.g. when a Python package is installed as a Zip archive.
+# However, these resources are only used during development,
+# which always uses an editable install.
+# So we know that these resources are ordinary file paths.
+assert isinstance(_RESOURCES, pathlib.Path)  # noqa: S101  # assert
+
 OLD_UV_LOCKFILE = _RESOURCES / "old-uv-project/uv.lock"
 NEW_UV_LOCKFILE = _RESOURCES / "new-uv-project/uv.lock"
 MINOR_UV_LOCKFILE = _RESOURCES / "minor-uv-project/uv.lock"
