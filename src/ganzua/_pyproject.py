@@ -63,21 +63,17 @@ class _Editor:
     def _apply_pep508_requirement(
         self, ref: toml.Ref, edit: EditRequirement, *, group: Name | None = None
     ) -> None:
-        raw_requirement = ref.value_as_str()
-        if raw_requirement is None:
+        old_requirement = ref.value_as_str()
+        if old_requirement is None:
             return
-        req = packaging.requirements.Requirement(raw_requirement)
 
         groups = frozenset[Name]()
         if group:
             groups = frozenset((group, *self.dependency_group_rdeps.get(group, ())))
-        data = parse_requirement_from_pep508(req, groups=groups)
 
-        edit.apply(data, kind="pep508")
-        new_specifier = PrettySpecifierSet(data["specifier"])
-        if req.specifier != new_specifier:
-            req.specifier = new_specifier
-            ref.replace(str(req))
+        new_requirement = apply_one_pep508_edit(old_requirement, edit, groups=groups)
+        if new_requirement != old_requirement:
+            ref.replace(new_requirement)
 
     def _apply_all_poetry(self, edit: EditRequirement) -> None:
         # cf https://python-poetry.org/docs/pyproject/#dependencies-and-dependency-groups
@@ -124,6 +120,23 @@ class _Editor:
             edit.apply(req, kind="poetry")
             if version != req["specifier"]:
                 version_ref.replace(req["specifier"])
+
+
+def apply_one_pep508_edit(
+    raw_requirement: str, edit: EditRequirement, *, groups: frozenset[Name]
+) -> str:
+    """Apply an edit to a raw PEP 508 requirement string.
+
+    Returns: the edited requirement, or the input if no change was made.
+    """
+    req = packaging.requirements.Requirement(raw_requirement)
+    data = parse_requirement_from_pep508(req, groups=groups)
+    edit.apply(data, kind="pep508")
+    new_specifier = PrettySpecifierSet(data["specifier"])
+    if req.specifier == new_specifier:
+        return raw_requirement
+    req.specifier = new_specifier
+    return str(req)
 
 
 def _dependency_groups_rdeps(dependency_groups_ref: toml.Ref) -> dict[Name, list[Name]]:

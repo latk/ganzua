@@ -1,4 +1,5 @@
 import contextlib
+import importlib.metadata
 import json
 import pathlib
 import re
@@ -10,6 +11,8 @@ import dirty_equals
 import pytest
 from inline_snapshot import external_file, snapshot
 
+from ganzua._edit_requirement import UpdateRequirement
+from ganzua._pyproject import apply_one_pep508_edit
 from ganzua.cli import app
 
 from . import resources
@@ -594,6 +597,7 @@ def test_readme() -> None:
     """
     readme = resources.README.read_text()
     readme = _update_usage_section(readme)
+    readme = _bump_mentioned_versions(readme)
     readme, executed_examples = _update_bash_doctests(readme)
     assert readme == external_file(str(resources.README), format=".txt")
     assert executed_examples == snapshot(3)
@@ -605,6 +609,26 @@ def _update_usage_section(readme: str) -> str:
     pattern = re.compile(re.escape(begin) + "(.*)" + re.escape(end), flags=re.S)
     up_to_date_usage = _run(["help", "--all", "--markdown"]).output.strip()
     return pattern.sub(f"{begin}\n{up_to_date_usage}\n{end}", readme)
+
+
+def _bump_mentioned_versions(readme: str) -> str:
+    # Subset of the version specifier grammar, originally from PEP 508
+    # https://packaging.python.org/en/latest/specifications/dependency-specifiers/#grammar
+    version_cmp = r"\s* (?:<=|<|!=|===|==|>=|>|~=)"
+    version = r"\s* [a-z0-9_.*+!-]+"
+    version_one = rf"{version_cmp} {version} \s*"
+    version_many = rf"{version_one} (?:, {version_one})*"  # deny trailing comma
+    ganzua_constraint = re.compile(rf"\b ganzua \s* {version_many}", flags=re.X | re.I)
+
+    current_ganzua_version = importlib.metadata.version("ganzua")
+    edit = UpdateRequirement(
+        {"packages": {"ganzua": {"version": current_ganzua_version, "source": "other"}}}
+    )
+
+    return ganzua_constraint.sub(
+        lambda m: apply_one_pep508_edit(m[0], edit, groups=frozenset()),
+        readme,
+    )
 
 
 def _update_bash_doctests(readme: str) -> tuple[str, int]:

@@ -64,6 +64,8 @@ $ ganzua constraints inspect --format=markdown tests/new-uv-project/pyproject.to
 | typing-extensions | >=4     |
 ```
 
+For more examples and further background, see the [announcement blog post](https://lukasatkinson.de/2025/ganzua/).
+
 ## Installation
 
 Ganzua is available on PyPI: <https://pypi.org/project/ganzua/>
@@ -78,14 +80,21 @@ Alternative: run or install via the [`pipx` tool](https://pipx.pypa.io/):
 * `pipx run ganzua` to try Ganzua without installation
 * `pipx install ganzua` to install Ganzua on your machine
 
-Because Ganzua is an ordinary Python package, you can also install it into an existing virtual environment (venv).
-You can use your usual Python dependency management tools like uv, Poetry, or pip for this.
-However, it is recommended that you use `uv tool` or `pipx` to install Ganzua into its own venv, which prevents version conflicts.
+When invoking Ganzua in scripts or in a CI job, consider pinning or constraining a version.
+This prevents your scripts from breaking when Ganzua has an incompatible change.
+For example:
+
+* `uvx ganzua==0.3.0` to pin an exact version
+* `uvx 'ganzua>=0.3.0,<0.4.0'` to constraint to a version range (remember quotes to escape special characters like `<`)
 
 To preview a bleeding-edge version without waiting for a PyPI release, you can install directly from the Ganzua repository on GitHub. For example:
 
 * `uvx git+https://github.com/latk/ganzua.git`
 * `pipx run --spec git+https://github.com/latk/ganzua.git ganzua`
+
+Do not add Ganzua as a dependency to your project, instead prefer invoking Ganzua via `uvx` or `pipx run`.
+You can technically install Ganzua into an existing venv using tools like uv, Poetry, or Pip.
+But since Ganzua might require conflicting dependencies, and might even need a different Python version, this is likely to cause more problems than it solves.
 
 ## Usage
 
@@ -336,6 +345,21 @@ The Spanish term *ganzúa* means lockpick. It is pronounced *gan-THU-a*.
 
 This `ganzua` tool for interacting with Python dependency lockfiles
 is unrelated to the [2004 cryptoanalysis tool of the same name](https://ganzua.sourceforge.net/en/index.html).
+
+## What makes Ganzua special?
+
+**Ganzua is not a general-purpose tool.**
+It's focused solely on working with two modern Python project managers, uv and Poetry, and their native lockfile formats. In particular, there's no support for `requirements.txt`.
+
+**Ganzua strives to be complete, compliant, and correct.**
+Ganzua is 0% AI and 100% human expertise, informed by reading the relevant PEPs, docs, and the source code of relevant tools.
+The tool is thoroughly tested with 100% branch coverage, and has seen extensive use in large-scale real-world projects.
+Ganzua is intentionally stupid and avoids dangerous stuff like editing lockfiles or interacting with Git.
+
+**Ganzua is designed for scripting.**
+All subcommands are designed for JSON output first, with output that conforms to a stable schema.
+Where appropriate, Ganzua offers an optional Markdown view on the same data, which lets scripts generate human-readable summaries.
+Ganzua does not offer GitHub Actions, but it's really easy to integrate Ganzua into your CI workflows.
 
 ## License
 
