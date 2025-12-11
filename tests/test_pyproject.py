@@ -206,8 +206,13 @@ def test_list_pep621() -> None:
             Requirement(
                 name=assert_normalized_name("annotated-types"),
                 specifier="==0.6.*,>=0.6.1",
+                in_extras=_nameset("extra1"),
             ),
-            Requirement(name=assert_normalized_name("ndr"), specifier=""),
+            Requirement(
+                name=assert_normalized_name("ndr"),
+                specifier="",
+                in_extras=_nameset("extra3"),
+            ),
             Requirement(
                 name=assert_normalized_name("typing-extensions"),
                 specifier="~=3.4",
@@ -294,6 +299,7 @@ bar = { version = "^3", optional = true, extras = ["xtra", "xTrB"] }
 
 [tool.poetry.extras]
 b = ["bar"]
+c = ["bar", "ignored"]
 """
 
     assert _collect_requirements(pyproject) == snapshot(
@@ -302,11 +308,13 @@ b = ["bar"]
                 name=assert_normalized_name("foo"),
                 specifier="~=3.0",
                 extras=_nameset("xtra", "xtrb"),
+                in_extras=_nameset("a"),
             ),
             Requirement(
                 name=assert_normalized_name("bar"),
                 specifier="^3",
                 extras=_nameset("xtra", "xtrb"),
+                in_extras=_nameset("b", "c"),
             ),
         ]
     )

@@ -1,7 +1,7 @@
 {
   "$defs": {
     "Requirement": {
-      "description": "A resolver-agnostic Requirement model.",
+      "description": "A resolver-agnostic Requirement model.\n\nThis corresponds to one dependency entry in a `pyproject.toml` file.\nThis is a lexical/textual concept about information in the file,\nintended for inspection and edits.\n\nRequirements can be difficult to interpret.\nThere might be multiple Requirements that point to the same package,\npotentially with complementary or contradictory contents.\nFeatures like `[dependency-groups]` or `[tool.poetry.extras]`\ncan include the same Requirement in multiple places,\nwhich is why the `groups` and `in_extras` fields may have multiple values.",
       "properties": {
         "name": {
           "description": "The name of the required package.",
@@ -33,6 +33,15 @@
             "type": "string"
           },
           "title": "Groups",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "in_extras": {
+          "description": "Extras that this optional requirement is part of.\n\nRequirements can only be part of one extra (with some exceptions).\n\nThe `groups` and `in_extras` fields are effectively mutually exclusive.\n\nSpecial cases for legacy Poetry:\n\n* When using `[tool.poetry.extras]`, one requirement can be part of multiple extras.\n* The `marker` might also reference extras.",
+          "items": {
+            "type": "string"
+          },
+          "title": "In Extras",
           "type": "array",
           "uniqueItems": true
         }
