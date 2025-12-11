@@ -216,12 +216,12 @@ def test_list_pep621() -> None:
             Requirement(
                 name=assert_normalized_name("typing-extensions"),
                 specifier="~=3.4",
-                groups=_nameset("group-a", "group-b"),
+                in_groups=_nameset("group-a", "group-b"),
             ),
             Requirement(
                 name=assert_normalized_name("annotated-types"),
                 specifier="~=0.6.1",
-                groups=_nameset("group-b"),
+                in_groups=_nameset("group-b"),
             ),
         ]
     )
@@ -240,12 +240,12 @@ def test_list_poetry() -> None:
             Requirement(
                 name=assert_normalized_name("typing-extensions"),
                 specifier="^3.4",
-                groups=_nameset("poetry-a"),
+                in_groups=_nameset("poetry-a"),
             ),
             Requirement(
                 name=assert_normalized_name("already-unconstrained"),
                 specifier="*",
-                groups=_nameset("poetry-a"),
+                in_groups=_nameset("poetry-a"),
             ),
         ]
     )
@@ -268,22 +268,24 @@ example-poetry = ">=3"
     assert _collect_requirements(pyproject) == snapshot(
         [
             Requirement(
-                name=assert_normalized_name("other"), specifier="", groups=_nameset("d")
+                name=assert_normalized_name("other"),
+                specifier="",
+                in_groups=_nameset("d"),
             ),
             Requirement(
                 name=assert_normalized_name("example-pep735"),
                 specifier=">=3",
-                groups=_nameset("a", "b", "c"),
+                in_groups=_nameset("a", "b", "c"),
             ),
             Requirement(
                 name=assert_normalized_name("example-poetry"),
                 specifier="^3",
-                groups=_nameset("pa"),
+                in_groups=_nameset("pa"),
             ),
             Requirement(
                 name=assert_normalized_name("example-poetry"),
                 specifier=">=3",
-                groups=_nameset("pb"),
+                in_groups=_nameset("pb"),
             ),
         ]
     )

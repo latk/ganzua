@@ -27,12 +27,12 @@
           "title": "Marker",
           "type": "string"
         },
-        "groups": {
+        "in_groups": {
           "description": "Dependency groups that this requirement is part of.",
           "items": {
             "type": "string"
           },
-          "title": "Groups",
+          "title": "In Groups",
           "type": "array",
           "uniqueItems": true
         },

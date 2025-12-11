@@ -76,12 +76,12 @@ class _Editor:
         if old_requirement is None:
             return
 
-        groups = frozenset[Name]()
+        in_groups = frozenset[Name]()
         if group:
-            groups = frozenset((group, *self.dependency_group_rdeps.get(group, ())))
+            in_groups = frozenset((group, *self.dependency_group_rdeps.get(group, ())))
 
         new_requirement = apply_one_pep508_edit(
-            old_requirement, edit, groups=groups, in_extra=in_extra
+            old_requirement, edit, in_groups=in_groups, in_extra=in_extra
         )
         if new_requirement != old_requirement:
             ref.replace(new_requirement)
@@ -126,7 +126,7 @@ class _Editor:
                 req["marker"] = packaging.markers.Marker(marker)
 
             if group:
-                req["groups"] = frozenset((group,))
+                req["in_groups"] = frozenset((group,))
 
             # Requirements in the main (default) group might be part of extras.
             if group is None:
@@ -142,7 +142,7 @@ def apply_one_pep508_edit(
     raw_requirement: str,
     edit: EditRequirement,
     *,
-    groups: frozenset[Name],
+    in_groups: frozenset[Name],
     in_extra: Name | None,
 ) -> str:
     """Apply an edit to a raw PEP 508 requirement string.
@@ -150,7 +150,7 @@ def apply_one_pep508_edit(
     Returns: the edited requirement, or the input if no change was made.
     """
     req = packaging.requirements.Requirement(raw_requirement)
-    data = parse_requirement_from_pep508(req, groups=groups, in_extra=in_extra)
+    data = parse_requirement_from_pep508(req, in_groups=in_groups, in_extra=in_extra)
     edit.apply(data, kind="pep508")
     new_specifier = PrettySpecifierSet(data["specifier"])
     if req.specifier == new_specifier:

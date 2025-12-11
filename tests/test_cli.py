@@ -626,7 +626,9 @@ def _bump_mentioned_versions(readme: str) -> str:
     )
 
     return ganzua_constraint.sub(
-        lambda m: apply_one_pep508_edit(m[0], edit, groups=frozenset(), in_extra=None),
+        lambda m: apply_one_pep508_edit(
+            m[0], edit, in_groups=frozenset(), in_extra=None
+        ),
         readme,
     )
 

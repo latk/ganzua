@@ -88,7 +88,7 @@ class Requirement(t.TypedDict):
     marker: t.NotRequired[t.Annotated[Marker, FromToString]]
     """Environment marker expression describing when this requirement should be installed."""
 
-    groups: t.NotRequired[frozenset[Name]]
+    in_groups: t.NotRequired[frozenset[Name]]
     """Dependency groups that this requirement is part of."""
 
     in_extras: t.NotRequired[frozenset[Name]]
@@ -117,7 +117,7 @@ class Requirements(t.TypedDict):
 def parse_requirement_from_pep508(
     req: Pep508Requirement | str,
     *,
-    groups: frozenset[Name] = frozenset(),
+    in_groups: frozenset[Name] = frozenset(),
     in_extra: Name | None = None,
 ) -> Requirement:
     if isinstance(req, str):
@@ -127,8 +127,8 @@ def parse_requirement_from_pep508(
         data["extras"] = frozenset(normalized_name(n) for n in req.extras)
     if req.marker:
         data["marker"] = req.marker
-    if groups:
-        data["groups"] = groups
+    if in_groups:
+        data["in_groups"] = in_groups
     if in_extra is not None:
         data["in_extras"] = frozenset([in_extra])
     return data
