@@ -498,7 +498,7 @@ def test_constraints_inspect_groups_and_extras() -> None:
                 {
                     "name": "annotated-types",
                     "specifier": "<0.8.0",
-                    "in_groups": ["types", "dev"],
+                    "in_groups": ["dev", "types"],
                 },
                 {
                     "name": "typing-extensions",
@@ -508,7 +508,7 @@ def test_constraints_inspect_groups_and_extras() -> None:
                 {
                     "name": "typing-extensions",
                     "specifier": "^4.15",
-                    "in_extras": ["types", "dev"],
+                    "in_extras": ["dev", "types"],
                 },
             ]
         }

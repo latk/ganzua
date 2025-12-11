@@ -27,6 +27,13 @@ class FromToString:
         )
 
 
+SerializeSorted = pydantic.WrapSerializer(
+    lambda value, next_handler: sorted(next_handler(value)),
+    when_used="json",
+)
+"""Pydantic annotation to serialize iterables in sorted order."""
+
+
 Name = t.NewType("Name", str)
 """A normalized name, e.g. for dependencies, extras, or groups."""
 
@@ -82,16 +89,16 @@ class Requirement(t.TypedDict):
     specifier: str
     """Version specifier for the required package, may use PEP-508 or Poetry syntax."""
 
-    extras: t.NotRequired[frozenset[Name]]
+    extras: t.NotRequired[t.Annotated[frozenset[Name], SerializeSorted]]
     """Extras enabled for the required package."""
 
     marker: t.NotRequired[t.Annotated[Marker, FromToString]]
     """Environment marker expression describing when this requirement should be installed."""
 
-    in_groups: t.NotRequired[frozenset[Name]]
+    in_groups: t.NotRequired[t.Annotated[frozenset[Name], SerializeSorted]]
     """Dependency groups that this requirement is part of."""
 
-    in_extras: t.NotRequired[frozenset[Name]]
+    in_extras: t.NotRequired[t.Annotated[frozenset[Name], SerializeSorted]]
     """Extras that this optional requirement is part of.
 
     Requirements can only be part of one extra (with some exceptions).
