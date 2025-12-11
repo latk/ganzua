@@ -487,6 +487,34 @@ def test_constraints_inspect() -> None:
     )
 
 
+def test_constraints_inspect_groups_and_extras() -> None:
+    result = _run(
+        ["constraints", "inspect", str(resources.POETRY_MULTIPLE_GROUPS_PYPROJECT)]
+    )
+    assert json.loads(result.stdout) == snapshot(
+        {
+            "requirements": [
+                {"name": "annotated-types", "specifier": ">=0.7.0"},
+                {
+                    "name": "annotated-types",
+                    "specifier": "<0.8.0",
+                    "in_groups": ["types", "dev"],
+                },
+                {
+                    "name": "typing-extensions",
+                    "specifier": "<5.0.0,>=4.15.0",
+                    "in_groups": ["types"],
+                },
+                {
+                    "name": "typing-extensions",
+                    "specifier": "^4.15",
+                    "in_extras": ["types", "dev"],
+                },
+            ]
+        }
+    )
+
+
 def test_constraints_inspect_markdown() -> None:
     result = _run(
         ["constraints", "inspect", "--format=markdown", str(resources.NEW_UV_PYPROJECT)]
@@ -496,6 +524,25 @@ def test_constraints_inspect_markdown() -> None:
 |-------------------|---------|
 | annotated-types   | >=0.7.0 |
 | typing-extensions | >=4     |
+""")
+
+
+def test_constraints_inspect_markdown_groups_and_extras() -> None:
+    result = _run(
+        [
+            "constraints",
+            "inspect",
+            "--format=markdown",
+            str(resources.POETRY_MULTIPLE_GROUPS_PYPROJECT),
+        ]
+    )
+    assert result.stdout == snapshot("""\
+| package           | version         | group/extra                |
+|-------------------|-----------------|----------------------------|
+| annotated-types   | <0.8.0          | group `dev`, group `types` |
+| annotated-types   | >=0.7.0         |                            |
+| typing-extensions | <5.0.0,>=4.15.0 | group `types`              |
+| typing-extensions | ^4.15           | extra `dev`, extra `types` |
 """)
 
 

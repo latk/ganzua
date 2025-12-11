@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from ._diff import Diff, DiffEntry
 from ._lockfile import LockedPackage, Lockfile
 from ._package_source import Source, SourceDirect, SourceRegistry
-from ._requirement import Requirements
+from ._requirement import Requirement, Requirements
 
 
 def md_from_lockfile(lockfile: Lockfile) -> str:
@@ -160,8 +160,21 @@ def _diff_summary_details(diff: Diff) -> t.Iterator[str]:
 def md_from_requirements(reqs: Requirements) -> str:
     """Summarize Requirements as a Markdown table."""
     return _table(
-        ("package", "version"),
-        sorted((r["name"], r["specifier"]) for r in reqs["requirements"]),
+        ("package", "version", "group/extra"),
+        sorted(
+            (r["name"], r["specifier"], _requirement_group_list(r))
+            for r in reqs["requirements"]
+        ),
+        collapsible_cols=("group/extra",),
+    )
+
+
+def _requirement_group_list(req: Requirement) -> str:
+    return ", ".join(
+        (
+            *(f"group `{group}`" for group in sorted(req.get("in_groups", ()))),
+            *(f"extra `{extra}`" for extra in sorted(req.get("in_extras", ()))),
+        )
     )
 
 

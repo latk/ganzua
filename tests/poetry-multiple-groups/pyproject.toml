@@ -1,0 +1,23 @@
+[project]
+name = "whatever"
+version = "0.0.0"
+requires-python = ">=3.12"
+dependencies = [
+    "annotated-types >=0.7.0",
+]
+
+[dependency-groups]
+dev = [
+    "annotated-types (<0.8.0)",
+]
+types = [
+    { include-group = "dev" },
+    "typing-extensions (>=4.15.0,<5.0.0)",
+]
+
+[tool.poetry.dependencies]
+typing-extensions = "^4.15"
+
+[tool.poetry.extras]
+dev = ["typing-extensions"]
+types = ["typing-extensions"]
