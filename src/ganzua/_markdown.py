@@ -98,23 +98,19 @@ class _DiffTable:
         )
 
     def render(self) -> t.Iterable[str]:
-        if any(row.notes for row in self.rows):
-            yield _table(
-                ("package", "old", "new", "notes"),
-                [
-                    (row.package, row.old, row.new, row.render_notes())
-                    for row in sorted(self.rows)
-                ],
-            )
-            yield "\n".join(
-                f"* {ref.resolved_id()} {message}"
-                for ref, message in self.footnotes.items()
-            )
-        else:
-            yield _table(
-                ("package", "old", "new"),
-                [(row.package, row.old, row.new) for row in sorted(self.rows)],
-            )
+        yield _table(
+            ("package", "old", "new", "notes"),
+            [
+                (row.package, row.old, row.new, row.render_notes())
+                for row in sorted(self.rows)
+            ],
+            collapsible_cols=("notes",),
+        )
+        if footnotes := "\n".join(
+            f"* {ref.resolved_id()} {message}"
+            for ref, message in self.footnotes.items()
+        ):
+            yield footnotes
 
 
 def md_from_diff(diff: Diff) -> str:
@@ -169,7 +165,12 @@ def md_from_requirements(reqs: Requirements) -> str:
     )
 
 
-def _table[Row: tuple[str, ...]](header: Row, values: t.Sequence[Row]) -> str:
+def _table[Row: tuple[str, ...]](
+    header: Row,
+    values: t.Sequence[Row],
+    *,
+    collapsible_cols: t.Container[str] = (),
+) -> str:
     """Render a Markdown table.
 
     Example: columns are properly aligned.
@@ -179,11 +180,42 @@ def _table[Row: tuple[str, ...]](header: Row, values: t.Sequence[Row]) -> str:
     |-----|-----|
     | 111 | 2   |
     | 3   | 4   |
+
+    Example: drop empty columns.
+
+    >>> print(
+    ...     _table(
+    ...         ("a", "b", "c"),
+    ...         [("a1", "", "c1"), ("a2", "", "c2")],
+    ...         collapsible_cols=("a", "b", "c"),
+    ...     )
+    ... )
+    | a  | c  |
+    |----|----|
+    | a1 | c1 |
+    | a2 | c2 |
     """
-    cols = tuple(zip(header, *values, strict=True))
-    col_widths = tuple(
-        max((len(cell) for cell in column), default=0) for column in cols
+    col_widths_or_empty = tuple(
+        _col_width(col_name, col_values, collapsible=(col_name in collapsible_cols))
+        for col_name, col_values in zip(header, zip(*values, strict=True), strict=True)
     )
+
+    def select_cols_with_data(row: Row) -> tuple[str, ...]:
+        return tuple(
+            cell
+            for cell, width in zip(row, col_widths_or_empty, strict=True)
+            if width is not None
+        )
+
+    if any(width is None for width in col_widths_or_empty):
+        return _table(
+            select_cols_with_data(header),
+            [select_cols_with_data(row) for row in values],
+            collapsible_cols=(),
+        )
+
+    col_widths = tuple(width or 0 for width in col_widths_or_empty)
+
     lines = []
     lines.append("| " + " | ".join(_justify_cols(header, col_widths)) + " |")
     lines.append("|-" + "-|-".join("-" * width for width in col_widths) + "-|")
@@ -191,6 +223,19 @@ def _table[Row: tuple[str, ...]](header: Row, values: t.Sequence[Row]) -> str:
         "| " + " | ".join(_justify_cols(row, col_widths)) + " |" for row in values
     )
     return "\n".join(lines)
+
+
+def _col_width(
+    col_name: str, col_values: t.Iterable[str], *, collapsible: bool
+) -> int | None:
+    """Determine the width of a column, in characters.
+
+    If `collapsible`, returns `None` when all values are empty.
+    """
+    values_width = max((len(cell) for cell in col_values), default=0)
+    if collapsible and values_width == 0:
+        return None
+    return max(len(col_name), values_width)
 
 
 def _justify_cols(row: tuple[str, ...], widths: tuple[int, ...]) -> tuple[str, ...]:
