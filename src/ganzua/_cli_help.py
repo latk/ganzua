@@ -141,39 +141,50 @@ class AppTestRunner:
     app: App
     args: t.Sequence[AppTestCliArg] = ()
 
+    class Opts(t.TypedDict, total=False):
+        expect_exit: int
+        """Which exit code to expect, default `0`."""
+
+        catch_exceptions: bool
+        """Whether to catch exceptions (other than `SystemExit`), default `True`."""
+
     def bind(self, *args: AppTestCliArg) -> t.Self:
         """Create new runner that prefixes the given args (partial application)."""
         return type(self)(app=self.app, args=(*self.args, *args))
 
     def __call__(
-        self, *args: AppTestCliArg, expect_exit: int = 0
+        self, *args: AppTestCliArg, **opts: t.Unpack[Opts]
     ) -> "click.testing.Result":
         """Run an app command."""
         import click.testing  # noqa: PLC0415  # import-outside-toplevel
 
         __tracebackhide__ = True
+        expect_exit = opts.get("expect_exit", 0)
+
         result = click.testing.CliRunner().invoke(
-            self.app.click, [os.fspath(arg) for arg in (*self.args, *args)]
+            self.app.click,
+            [os.fspath(arg) for arg in (*self.args, *args)],
+            catch_exceptions=opts.get("catch_exceptions", True),
         )
         print(result.output)
         assert result.exit_code == expect_exit  # noqa: S101  # assert
         return result
 
-    def output(self, *args: AppTestCliArg, expect_exit: int = 0) -> str:
+    def output(self, *args: AppTestCliArg, **opts: t.Unpack[Opts]) -> str:
         """Run an app command and return the visible OUTPUT."""
-        return self(*args, expect_exit=expect_exit).output
+        return self(*args, **opts).output
 
-    def stdout(self, *args: AppTestCliArg, expect_exit: int = 0) -> str:
+    def stdout(self, *args: AppTestCliArg, **opts: t.Unpack[Opts]) -> str:
         """Run an app command and return captured STDOUT."""
         __tracebackhide__ = True
-        return self(*args, expect_exit=expect_exit).stdout
+        return self(*args, **opts).stdout
 
-    def json(self, *args: AppTestCliArg, expect_exit: int = 0) -> object:
+    def json(self, *args: AppTestCliArg, **opts: t.Unpack[Opts]) -> object:
         """Run an app command and return captured STDOUT, parsed as JSON."""
         import json  # noqa: PLC0415  # import-outside-toplevel
 
         __tracebackhide__ = True
-        return json.loads(self(*args, expect_exit=expect_exit).stdout)
+        return json.loads(self(*args, **opts).stdout)
 
 
 type _MarkdownOrRich = (
