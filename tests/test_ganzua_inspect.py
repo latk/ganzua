@@ -9,14 +9,30 @@ from inline_snapshot import snapshot
 from ganzua.cli import app
 
 from . import resources
-from .helpers import CLICK_ERROR, parametrized, write_file
+from .helpers import (
+    CLICK_ERROR,
+    example_poetry_lockfile,
+    example_uv_lockfile,
+    parametrized,
+    write_file,
+)
 
 run = app.testrunner()
 
 
-def test_rejects_empty_file() -> None:
+def test_rejects_blank_file() -> None:
     with pytest.raises(pydantic.ValidationError):
         run("inspect", resources.EMPTY, catch_exceptions=False)
+
+
+def test_can_load_empty_uv(tmp_path: pathlib.Path) -> None:
+    lockfile = example_uv_lockfile(tmp_path / "uv.lock")
+    assert run.json("inspect", lockfile) == {"packages": {}}
+
+
+def test_can_load_empty_poetry(tmp_path: pathlib.Path) -> None:
+    lockfile = example_poetry_lockfile(tmp_path / "poetry.lock")
+    assert run.json("inspect", lockfile) == {"packages": {}}
 
 
 def test_can_load_old_uv() -> None:

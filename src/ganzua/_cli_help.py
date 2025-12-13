@@ -14,6 +14,7 @@ from rich.text import Text
 
 if t.TYPE_CHECKING:  # pragma: no cover
     import click.testing
+    import pydantic
 
 _HEADING_STYLE = Style(color="green", bold=True)
 _CODE_STYLE = Style(color="cyan")
@@ -179,7 +180,9 @@ class AppTestRunner:
         __tracebackhide__ = True
         return self(*args, **opts).stdout
 
-    def json(self, *args: AppTestCliArg, **opts: t.Unpack[Opts]) -> object:
+    def json(
+        self, *args: AppTestCliArg, **opts: t.Unpack[Opts]
+    ) -> "pydantic.JsonValue":
         """Run an app command and return captured STDOUT, parsed as JSON."""
         import json  # noqa: PLC0415  # import-outside-toplevel
 
