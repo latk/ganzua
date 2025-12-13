@@ -1,5 +1,6 @@
 import contextlib
 import inspect
+import os
 import re
 import textwrap
 import typing as t
@@ -10,6 +11,9 @@ import rich
 import rich.console
 from rich.style import Style
 from rich.text import Text
+
+if t.TYPE_CHECKING:  # pragma: no cover
+    import click.testing
 
 _HEADING_STYLE = Style(color="green", bold=True)
 _CODE_STYLE = Style(color="cyan")
@@ -121,6 +125,55 @@ class App:
     def group(self) -> t.Callable[[t.Callable], click.Group]:
         """Register a sub-group."""
         return self.click.group()
+
+    def testrunner(self) -> "AppTestRunner":
+        return AppTestRunner(self)
+
+
+AppTestCliArg: t.TypeAlias = str | os.PathLike[str]
+
+
+@t.final
+@dataclass
+class AppTestRunner:
+    """Invoke the app in a testing context."""
+
+    app: App
+    args: t.Sequence[AppTestCliArg] = ()
+
+    def bind(self, *args: AppTestCliArg) -> t.Self:
+        """Create new runner that prefixes the given args (partial application)."""
+        return type(self)(app=self.app, args=(*self.args, *args))
+
+    def __call__(
+        self, *args: AppTestCliArg, expect_exit: int = 0
+    ) -> "click.testing.Result":
+        """Run an app command."""
+        import click.testing  # noqa: PLC0415  # import-outside-toplevel
+
+        __tracebackhide__ = True
+        result = click.testing.CliRunner().invoke(
+            self.app.click, [os.fspath(arg) for arg in (*self.args, *args)]
+        )
+        print(result.output)
+        assert result.exit_code == expect_exit  # noqa: S101  # assert
+        return result
+
+    def output(self, *args: AppTestCliArg, expect_exit: int = 0) -> str:
+        """Run an app command and return the visible OUTPUT."""
+        return self(*args, expect_exit=expect_exit).output
+
+    def stdout(self, *args: AppTestCliArg, expect_exit: int = 0) -> str:
+        """Run an app command and return captured STDOUT."""
+        __tracebackhide__ = True
+        return self(*args, expect_exit=expect_exit).stdout
+
+    def json(self, *args: AppTestCliArg, expect_exit: int = 0) -> object:
+        """Run an app command and return captured STDOUT, parsed as JSON."""
+        import json  # noqa: PLC0415  # import-outside-toplevel
+
+        __tracebackhide__ = True
+        return json.loads(self(*args, expect_exit=expect_exit).stdout)
 
 
 type _MarkdownOrRich = (

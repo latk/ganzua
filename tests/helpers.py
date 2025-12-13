@@ -1,3 +1,4 @@
+import pathlib
 import typing as t
 
 import pytest
@@ -18,3 +19,13 @@ def parametrized[T, F: t.Callable[..., t.Any]](
     return pytest.mark.parametrize(
         argname, [pytest.param(value, id=key) for key, value in cases.items()]
     )
+
+
+def write_file(dest: str | pathlib.Path, *, source: pathlib.Path) -> pathlib.Path:
+    """Copy the `source` contents into the `dest` file.
+
+    Returns the `dest` path.
+    """
+    dest = pathlib.Path(dest)
+    dest.write_bytes(source.read_bytes())
+    return dest

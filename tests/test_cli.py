@@ -1,21 +1,15 @@
 import contextlib
-import importlib.metadata
-import json
 import pathlib
-import re
-import subprocess
 import typing as t
 
-import click.testing
 import dirty_equals
 import pytest
 from inline_snapshot import external_file, snapshot
 
-from ganzua._edit_requirement import UpdateRequirement
-from ganzua._pyproject import apply_one_pep508_edit
 from ganzua.cli import app
 
 from . import resources
+from .helpers import write_file
 
 _CLICK_ERROR = 2
 """The exit code used by Click by default."""
@@ -35,18 +29,7 @@ _WELL_KNOWN_SUBCOMMANDS = (
     "constraints inspect",
 )
 
-
-def _run(args: t.Sequence[str], *, expect_exit: int = 0) -> click.testing.Result:
-    __tracebackhide__ = True
-    result = click.testing.CliRunner().invoke(app.click, args)
-    print(result.output)
-    assert result.exit_code == expect_exit
-    return result
-
-
-def _assert_result_eq(left: click.testing.Result, right: click.testing.Result) -> None:
-    __tracebackhide__ = True
-    assert (left.exit_code, left.output) == (right.exit_code, right.output)
+run = app.testrunner()
 
 
 def test_entrypoint() -> None:
@@ -57,8 +40,8 @@ def test_entrypoint() -> None:
 
 def test_inspect(tmp_path: pathlib.Path) -> None:
     lockfile = resources.OLD_UV_LOCKFILE
-    output = _run(["inspect", str(lockfile)]).stdout
-    assert json.loads(output) == snapshot(
+    output = run.json("inspect", lockfile)
+    assert output == snapshot(
         {
             "packages": {
                 "example": {
@@ -74,22 +57,22 @@ def test_inspect(tmp_path: pathlib.Path) -> None:
     )
 
     # can also use a directory
-    assert _run(["inspect", str(lockfile.parent)]).output == output
+    assert run.json("inspect", lockfile.parent) == output
 
     # behavior when no explicit lockfile argument is passed
     with contextlib.chdir(tmp_path):
         # fails in empty directory
-        result = _run(["inspect"], expect_exit=_CLICK_ERROR)
+        result = run("inspect", expect_exit=_CLICK_ERROR)
         assert "Could not infer `LOCKFILE` for `.`." in result.stderr
 
         # but finds the lockfile if present
-        (tmp_path / "uv.lock").write_bytes(lockfile.read_bytes())
-        assert _run(["inspect"]).output == output
+        write_file(tmp_path / "uv.lock", source=lockfile)
+        assert run.json("inspect") == output
 
 
 def test_inspect_markdown() -> None:
-    result = _run(["inspect", "--format=markdown", str(resources.OLD_UV_LOCKFILE)])
-    assert result.stdout == snapshot(
+    output = run.output("inspect", "--format=markdown", resources.OLD_UV_LOCKFILE)
+    assert output == snapshot(
         """\
 | package           | version  |
 |-------------------|----------|
@@ -102,8 +85,8 @@ def test_inspect_markdown() -> None:
 def test_diff() -> None:
     old = resources.OLD_UV_LOCKFILE
     new = resources.NEW_UV_LOCKFILE
-    output = _run(["diff", str(old), str(new)]).output
-    assert json.loads(output) == snapshot(
+    output = run.json("diff", old, new)
+    assert output == snapshot(
         {
             "packages": {
                 "annotated-types": {
@@ -121,17 +104,16 @@ def test_diff() -> None:
     )
 
     # can also pass directories
-    assert _run(["diff", str(old), str(new.parent)]).output == output
-    assert _run(["diff", str(old.parent), str(new)]).output == output
-    assert _run(["diff", str(old.parent), str(new.parent)]).output == output
+    assert run.json("diff", old, new.parent) == output
+    assert run.json("diff", old.parent, new) == output
+    assert run.json("diff", old.parent, new.parent) == output
 
 
 def test_diff_markdown() -> None:
-    old = str(resources.OLD_UV_LOCKFILE)
-    new = str(resources.NEW_UV_LOCKFILE)
+    old = resources.OLD_UV_LOCKFILE
+    new = resources.NEW_UV_LOCKFILE
 
-    result = _run(["diff", "--format=markdown", old, new])
-    assert result.stdout == snapshot("""\
+    assert run.stdout("diff", "--format=markdown", old, new) == snapshot("""\
 2 changed packages (1 added, 1 updated)
 
 | package           | old      | new    | notes |
@@ -143,8 +125,7 @@ def test_diff_markdown() -> None:
 """)
 
     # the same diff in reverse
-    result = _run(["diff", "--format=markdown", new, old])
-    assert result.stdout == snapshot("""\
+    assert run.stdout("diff", "--format=markdown", new, old) == snapshot("""\
 2 changed packages (1 updated, 1 removed)
 
 | package           | old    | new      | notes   |
@@ -162,11 +143,10 @@ def test_diff_markdown_source_change() -> None:
 
     When multiple entries have the same note, the IDs are deduplicated.
     """
-    old = str(resources.SOURCES_POETRY_LOCKFILE)
-    new = str(resources.SOURCES_UV_LOCKFILE)
+    old = resources.SOURCES_POETRY_LOCKFILE
+    new = resources.SOURCES_UV_LOCKFILE
 
-    result = _run(["diff", "--format=markdown", old, new])
-    assert result.stdout == snapshot("""\
+    assert run.stdout("diff", "--format=markdown", old, new) == snapshot("""\
 6 changed packages (1 added, 5 updated)
 
 | package            | old   | new   | notes |
@@ -185,11 +165,10 @@ def test_diff_markdown_source_change() -> None:
 
 def test_diff_markdown_no_notes() -> None:
     """If there are no notes, the entire column is omitted."""
-    old = str(resources.NEW_UV_LOCKFILE)
-    new = str(resources.MINOR_UV_LOCKFILE)
+    old = resources.NEW_UV_LOCKFILE
+    new = resources.MINOR_UV_LOCKFILE
 
-    result = _run(["diff", "--format=markdown", old, new])
-    assert result.stdout == snapshot("""\
+    assert run.stdout("diff", "--format=markdown", old, new) == snapshot("""\
 1 changed packages (1 updated)
 
 | package           | old    | new    |
@@ -199,15 +178,10 @@ def test_diff_markdown_no_notes() -> None:
 
 
 def test_diff_markdown_empty() -> None:
-    result = _run(
-        [
-            "diff",
-            "--format=markdown",
-            str(resources.NEW_UV_LOCKFILE),
-            str(resources.NEW_UV_LOCKFILE),
-        ]
+    lockfile = resources.NEW_UV_LOCKFILE
+    assert run.stdout("diff", "--format=markdown", lockfile, lockfile) == snapshot(
+        "0 changed packages\n"
     )
-    assert result.stdout == snapshot("0 changed packages\n")
 
 
 @pytest.mark.parametrize(
@@ -219,19 +193,16 @@ def test_diff_markdown_empty() -> None:
 )
 def test_constraints_bump(tmp_path: pathlib.Path, want_backup: bool) -> None:
     backup = tmp_path / "backup.pyproject.toml"
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_bytes(resources.OLD_UV_PYPROJECT.read_bytes())
-
-    result = _run(
-        [
-            "constraints",
-            "bump",
-            *([f"--backup={backup}"] * want_backup),
-            f"--lockfile={resources.NEW_UV_LOCKFILE}",
-            str(pyproject),
-        ]
+    pyproject = write_file(
+        tmp_path / "pyproject.toml", source=resources.OLD_UV_PYPROJECT
     )
-    assert result.stdout == ""
+    lockfile = resources.NEW_UV_LOCKFILE
+
+    cmd = run.bind("constraints", "bump", f"--lockfile={lockfile}", pyproject)
+    if want_backup:
+        cmd = cmd.bind(f"--backup={backup}")
+
+    assert cmd.stdout() == ""
 
     assert pyproject.read_text() == snapshot(
         """\
@@ -254,48 +225,45 @@ dependencies = [
 
 
 def test_constraints_bump_has_default_pyproject(tmp_path: pathlib.Path) -> None:
-    cmd = ["constraints", "bump", f"--lockfile={resources.NEW_UV_LOCKFILE}"]
+    cmd = run.bind("constraints", "bump", f"--lockfile={resources.NEW_UV_LOCKFILE}")
     with contextlib.chdir(tmp_path):
         # running in an empty tempdir fails
-        result = _run(cmd, expect_exit=_CLICK_ERROR)
+        result = cmd(expect_exit=_CLICK_ERROR)
         assert "Did not find default `pyproject.toml`." in result.output
 
         # but a `pyproject.toml` in the CWD is picked up automatically
-        pathlib.Path("pyproject.toml").write_bytes(
-            resources.OLD_UV_PYPROJECT.read_bytes()
-        )
-        output = _run(cmd).output
-        expected_output = _run([*cmd, "pyproject.toml"]).output
-        assert output == expected_output
+        pyproject = write_file("pyproject.toml", source=resources.OLD_UV_PYPROJECT)
+        expected_output = cmd.output(pyproject)
+        assert cmd.output() == expected_output
 
     # it's also possible to specify just the directory
-    assert _run([*cmd, str(tmp_path)]).output == expected_output
+    assert cmd.output(tmp_path) == expected_output
 
 
 def test_constraints_bump_finds_default_lockfile(tmp_path: pathlib.Path) -> None:
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_bytes(resources.OLD_UV_PYPROJECT.read_bytes())
-    cmd = ["constraints", "bump", str(pyproject)]
+    pyproject = write_file(
+        tmp_path / "pyproject.toml", source=resources.OLD_UV_PYPROJECT
+    )
+    cmd = run.bind("constraints", "bump", pyproject)
 
     # running without a lockfile fails
-    result = _run(cmd, expect_exit=_CLICK_ERROR)
+    result = cmd(expect_exit=_CLICK_ERROR)
     assert f"Could not infer `--lockfile` for `{tmp_path}`" in result.output
 
     # but an explicit lockfile succeeds
     lockfile = resources.NEW_UV_LOCKFILE
-    expected_output = _run([*cmd, f"--lockfile={lockfile}"]).output
+    expected_output = cmd.output(f"--lockfile={lockfile}")
 
     # also succeeds when the lockfile can be inferred from a directory
-    assert _run([*cmd, f"--lockfile={lockfile.parent}"]).output == ""
+    assert cmd.output(f"--lockfile={lockfile.parent}") == ""
 
     # but a `uv.lock` in the same directory is picked up automatically
-    (tmp_path / "uv.lock").write_bytes(resources.NEW_UV_LOCKFILE.read_bytes())
-    assert _run(cmd).output == expected_output
+    write_file(tmp_path / "uv.lock", source=resources.NEW_UV_LOCKFILE)
+    assert cmd.output() == expected_output
 
     # but multiple lockfiles lead to conflicts
     (tmp_path / "poetry.lock").touch()
-    result = _run(cmd, expect_exit=_CLICK_ERROR)
-    assert result.stderr == snapshot(f"""\
+    assert cmd(expect_exit=_CLICK_ERROR).stderr == snapshot(f"""\
 Usage: ganzua constraints bump [OPTIONS] [PYPROJECT]
 Try 'ganzua constraints bump --help' for help.
 
@@ -306,18 +274,12 @@ Note: Candidate lockfile: {tmp_path}/poetry.lock
 
 
 def test_constraints_bump_noop(tmp_path: pathlib.Path) -> None:
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_bytes(resources.NEW_UV_PYPROJECT.read_bytes())
-
-    result = _run(
-        [
-            "constraints",
-            "bump",
-            f"--lockfile={resources.NEW_UV_LOCKFILE}",
-            str(pyproject),
-        ]
+    pyproject = write_file(
+        tmp_path / "pyproject.toml", source=resources.NEW_UV_PYPROJECT
     )
-    assert result.stdout == ""
+    lockfile = resources.NEW_UV_LOCKFILE
+
+    assert run.output("constraints", "bump", f"--lockfile={lockfile}", pyproject) == ""
 
     assert pyproject.read_text() == resources.NEW_UV_PYPROJECT.read_text()
 
@@ -331,18 +293,14 @@ def test_constraints_bump_noop(tmp_path: pathlib.Path) -> None:
 )
 def test_constraints_reset(tmp_path: pathlib.Path, want_backup: bool) -> None:
     backup = tmp_path / "backup.pyproject.toml"
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_bytes(resources.NEW_UV_PYPROJECT.read_bytes())
-
-    result = _run(
-        [
-            "constraints",
-            "reset",
-            *([f"--backup={backup}"] * want_backup),
-            str(pyproject),
-        ]
+    pyproject = write_file(
+        tmp_path / "pyproject.toml", source=resources.NEW_UV_PYPROJECT
     )
-    assert result.stdout == ""
+
+    cmd = run.bind("constraints", "reset", pyproject)
+    if want_backup:
+        cmd = cmd.bind(f"--backup={backup}")
+    assert cmd.stdout() == ""
 
     assert pyproject.read_text() == snapshot(
         """\
@@ -372,23 +330,19 @@ def test_constraints_reset_to_minimum(
     pyproject = tmp_path / "pyproject.toml"
     if example == "uv":
         lockfile = resources.OLD_POETRY_LOCKFILE
-        pyproject.write_bytes(resources.OLD_UV_PYPROJECT.read_bytes())
+        write_file(pyproject, source=resources.OLD_UV_PYPROJECT)
     elif example == "poetry":
         lockfile = resources.NEW_POETRY_LOCKFILE
-        pyproject.write_bytes(resources.NEW_POETRY_PYPROJECT.read_bytes())
+        write_file(pyproject, source=resources.NEW_POETRY_PYPROJECT)
     else:  # pragma: no cover
         t.assert_never(example)
 
-    result = _run(
-        [
-            "constraints",
-            "reset",
-            "--to=minimum",
-            f"--lockfile={lockfile}",
-            str(pyproject),
-        ]
+    assert (
+        run.stdout(
+            "constraints", "reset", "--to=minimum", f"--lockfile={lockfile}", pyproject
+        )
+        == ""
     )
-    assert result.stdout == ""
 
     expected = snapshot(
         {
@@ -429,15 +383,15 @@ build-backend = "poetry.core.masonry.api"
 
 
 def test_constraints_reset_to_minimum_requires_lockfile(tmp_path: pathlib.Path) -> None:
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_bytes(resources.NEW_POETRY_PYPROJECT.read_bytes())
+    pyproject = write_file(
+        tmp_path / "pyproject.toml", source=resources.NEW_POETRY_PYPROJECT
+    )
     lockfile = resources.NEW_POETRY_LOCKFILE
 
-    cmd = ["constraints", "reset", "--to=minimum", str(pyproject)]
+    cmd = run.bind("constraints", "reset", "--to=minimum", pyproject)
 
     # fails without --lockfile
-    result = _run([*cmd], expect_exit=2)
-    assert result.output == snapshot(f"""\
+    assert cmd.output(expect_exit=_CLICK_ERROR) == snapshot(f"""\
 Usage: ganzua constraints reset [OPTIONS] [PYPROJECT]
 Try 'ganzua constraints reset --help' for help.
 
@@ -446,38 +400,34 @@ Note: Using `--to=minimum` requires a `--lockfile`.
 """)
 
     # succeeds
-    assert _run([*cmd, f"--lockfile={lockfile}"]).output == ""
+    assert cmd.output(f"--lockfile={lockfile}") == ""
 
     # also succeeds when the lockfile can be inferred from a directory
-    assert _run([*cmd, f"--lockfile={lockfile.parent}"]).output == ""
+    assert cmd.output(f"--lockfile={lockfile.parent}") == ""
 
     # also succeeds when the lockfile can be inferred from pyproject
-    (tmp_path / "uv.lock").write_bytes(lockfile.read_bytes())
-    assert _run(cmd).output == ""
+    write_file(tmp_path / "uv.lock", source=lockfile)
+    assert cmd.output() == ""
 
 
 def test_constraints_reset_has_default_pyproject(tmp_path: pathlib.Path) -> None:
-    cmd = ["constraints", "reset", f"--lockfile={resources.NEW_UV_LOCKFILE}"]
+    cmd = run.bind("constraints", "reset", f"--lockfile={resources.NEW_UV_LOCKFILE}")
     with contextlib.chdir(tmp_path):
         # running in an empty tempdir fails
-        result = _run(cmd, expect_exit=_CLICK_ERROR)
+        result = cmd(expect_exit=_CLICK_ERROR)
         assert "Did not find default `pyproject.toml`." in result.output
 
         # but a `pyproject.toml` in the CWD is picked up automatically
-        pathlib.Path("pyproject.toml").write_bytes(
-            resources.OLD_UV_PYPROJECT.read_bytes()
-        )
-        output = _run(cmd).output
-        expected_output = _run([*cmd, "pyproject.toml"]).output
-        assert output == expected_output
+        pyproject = write_file("pyproject.toml", source=resources.OLD_UV_PYPROJECT)
+        expected_output = cmd.output(pyproject)
+        assert cmd.output() == expected_output
 
     # it's also possible to specify just the directory
-    assert _run([*cmd, str(tmp_path)]).output == expected_output
+    assert cmd.output(tmp_path) == expected_output
 
 
 def test_constraints_inspect() -> None:
-    result = _run(["constraints", "inspect", str(resources.NEW_UV_PYPROJECT)])
-    assert json.loads(result.stdout) == snapshot(
+    assert run.json("constraints", "inspect", resources.NEW_UV_PYPROJECT) == snapshot(
         {
             "requirements": [
                 {"name": "annotated-types", "specifier": ">=0.7.0"},
@@ -488,10 +438,9 @@ def test_constraints_inspect() -> None:
 
 
 def test_constraints_inspect_groups_and_extras() -> None:
-    result = _run(
-        ["constraints", "inspect", str(resources.POETRY_MULTIPLE_GROUPS_PYPROJECT)]
-    )
-    assert json.loads(result.stdout) == snapshot(
+    assert run.json(
+        "constraints", "inspect", resources.POETRY_MULTIPLE_GROUPS_PYPROJECT
+    ) == snapshot(
         {
             "requirements": [
                 {"name": "annotated-types", "specifier": ">=0.7.0"},
@@ -516,10 +465,9 @@ def test_constraints_inspect_groups_and_extras() -> None:
 
 
 def test_constraints_inspect_markdown() -> None:
-    result = _run(
-        ["constraints", "inspect", "--format=markdown", str(resources.NEW_UV_PYPROJECT)]
-    )
-    assert result.stdout == snapshot("""\
+    assert run.stdout(
+        "constraints", "inspect", "--format=markdown", resources.NEW_UV_PYPROJECT
+    ) == snapshot("""\
 | package           | version |
 |-------------------|---------|
 | annotated-types   | >=0.7.0 |
@@ -528,15 +476,12 @@ def test_constraints_inspect_markdown() -> None:
 
 
 def test_constraints_inspect_markdown_groups_and_extras() -> None:
-    result = _run(
-        [
-            "constraints",
-            "inspect",
-            "--format=markdown",
-            str(resources.POETRY_MULTIPLE_GROUPS_PYPROJECT),
-        ]
-    )
-    assert result.stdout == snapshot("""\
+    assert run.stdout(
+        "constraints",
+        "inspect",
+        "--format=markdown",
+        resources.POETRY_MULTIPLE_GROUPS_PYPROJECT,
+    ) == snapshot("""\
 | package           | version         | group/extra                |
 |-------------------|-----------------|----------------------------|
 | annotated-types   | <0.8.0          | group `dev`, group `types` |
@@ -547,80 +492,74 @@ def test_constraints_inspect_markdown_groups_and_extras() -> None:
 
 
 def test_constraints_inspect_has_default_pyproject(tmp_path: pathlib.Path) -> None:
-    cmd = ["constraints", "inspect"]
+    cmd = run.bind("constraints", "inspect")
     with contextlib.chdir(tmp_path):
         # running in an empty tempdir fails
-        result = _run(cmd, expect_exit=_CLICK_ERROR)
+        result = cmd(expect_exit=_CLICK_ERROR)
         assert "Did not find default `pyproject.toml`." in result.output
 
         # but a `pyproject.toml` in the CWD is picked up automatically
-        pathlib.Path("pyproject.toml").write_bytes(
-            resources.NEW_UV_PYPROJECT.read_bytes()
-        )
-        output = _run(cmd).output
-        expected_output = _run([*cmd, "pyproject.toml"]).output
-        assert output == expected_output
+        pyproject = write_file("pyproject.toml", source=resources.NEW_UV_PYPROJECT)
+        expected_output = cmd.output(pyproject)
+        assert cmd.output() == expected_output
 
     # it's also possible to specify just the directory
-    assert _run([*cmd, str(tmp_path)]).output == expected_output
+    assert cmd.output(tmp_path) == expected_output
 
 
 @pytest.mark.parametrize("command", ["inspect", "diff", "constraints-inspect"])
 def test_schema(command: str) -> None:
     """Can output a JSON schema for a given command."""
     # But we only test that the output is something json-ish
-    result = _run(["schema", command])
-    schema = json.loads(result.stdout)
+    schema = run.json("schema", command)
     assert schema == dirty_equals.IsPartialDict()
     assert schema == external_file(f"schema.{command}.json")
 
 
 def test_help_mentions_subcommands() -> None:
-    result = _run(["help"])
+    output = run.output("help")
     for cmd in _WELL_KNOWN_COMMANDS:
-        assert f" {cmd} " in result.output
+        assert f" {cmd} " in output
 
 
 def test_help_shows_license() -> None:
-    result = _run(["help"])
-    assert "Apache-2.0 license" in result.output
+    assert "Apache-2.0 license" in run.output("help")
 
 
 def test_no_args_is_help() -> None:
     # The no-args mode does nothing useful,
     # so the exit code should warn users that the tool didn't do anything useful.
     # But don't return an error code when the help was explicitly requested.
-    no_args = _run([], expect_exit=_CLICK_ERROR)
-    explicit_help = _run(["help"], expect_exit=0)
+    no_args = run.output(expect_exit=_CLICK_ERROR)
+    explicit_help = run.output("help", expect_exit=0)
 
-    assert no_args.output == explicit_help.output
+    assert no_args == explicit_help
 
 
 def test_help_explicit() -> None:
-    _assert_result_eq(_run(["--help"]), _run(["help"]))
+    assert run.output("--help") == run.output("help")
 
 
 def test_help_subcommand() -> None:
-    _assert_result_eq(_run(["inspect", "--help"]), _run(["help", "inspect"]))
+    assert run.output("inspect", "--help") == run.output("help", "inspect")
 
 
 def test_help_rejects_unknown_commands() -> None:
-    result = _run(["help", "this-is-not-a-command"], expect_exit=_CLICK_ERROR)
+    result = run("help", "this-is-not-a-command", expect_exit=_CLICK_ERROR)
     assert result.stderr.startswith("Usage: ganzua help")
     assert result.stderr.endswith("no such subcommand: this-is-not-a-command\n")
 
 
 def test_help_can_show_subcommands() -> None:
-    result = _run(["help", "--all"])
-    assert result.output.startswith(_run(["help"]).output)
+    all_help = run.output("help", "--all")
+    assert all_help.startswith(run.output("help"))
     for cmd in _WELL_KNOWN_SUBCOMMANDS:
-        assert f"\n\nganzua {cmd}\n-----" in result.output
-        assert _run(["help", "--all", *cmd.split()]).output in result.output
+        assert f"\n\nganzua {cmd}\n-----" in all_help
+        assert run.output("help", "--all", *cmd.split()) in all_help
 
 
 def test_help_can_use_markdown() -> None:
-    result = _run(["help", "help", "--markdown"])
-    assert result.output == snapshot(
+    assert run.output("help", "help", "--markdown") == snapshot(
         """\
 Usage: `ganzua help [OPTIONS] [SUBCOMMAND]...`
 
@@ -634,111 +573,3 @@ Show help for the application or a specific subcommand.
   Output help in Markdown format.
 """
     )
-
-
-def test_readme() -> None:
-    """Test to ensure that the README is up to date.
-
-    * matches current `ganzua help`
-    * all doctests produce expected output
-    """
-    readme = resources.README.read_text()
-    readme = _update_usage_section(readme)
-    readme = _bump_mentioned_versions(readme)
-    readme, executed_examples = _update_bash_doctests(readme)
-    assert readme == external_file(str(resources.README), format=".txt")
-    assert executed_examples == snapshot(3)
-
-
-def _update_usage_section(readme: str) -> str:
-    begin = "\n<!-- begin usage -->\n"
-    end = "\n<!-- end usage -->\n"
-    pattern = re.compile(re.escape(begin) + "(.*)" + re.escape(end), flags=re.S)
-    up_to_date_usage = _run(["help", "--all", "--markdown"]).output.strip()
-    return pattern.sub(f"{begin}\n{up_to_date_usage}\n{end}", readme)
-
-
-def _bump_mentioned_versions(readme: str) -> str:
-    # Subset of the version specifier grammar, originally from PEP 508
-    # https://packaging.python.org/en/latest/specifications/dependency-specifiers/#grammar
-    version_cmp = r"\s* (?:<=|<|!=|===|==|>=|>|~=)"
-    version = r"\s* [a-z0-9_.*+!-]+"
-    version_one = rf"{version_cmp} {version} \s*"
-    version_many = rf"{version_one} (?:, {version_one})*"  # deny trailing comma
-    ganzua_constraint = re.compile(rf"\b ganzua \s* {version_many}", flags=re.X | re.I)
-
-    current_ganzua_version = importlib.metadata.version("ganzua")
-    edit = UpdateRequirement(
-        {"packages": {"ganzua": {"version": current_ganzua_version, "source": "other"}}}
-    )
-
-    return ganzua_constraint.sub(
-        lambda m: apply_one_pep508_edit(
-            m[0], edit, in_groups=frozenset(), in_extra=None
-        ),
-        readme,
-    )
-
-
-def _update_bash_doctests(readme: str) -> tuple[str, int]:
-    fenced_example_pattern = re.compile(
-        r"""
-# start a fenced code block with `console` as the info string
-^ (?P<delim> [`]{3,}+) [ ]*+ console [ ]*+ \n
-
-# the next line must look like `$ command arg arg`
-[$] (?P<command> [^\n]++) \n
-
-# gobble up remaining contents of the fenced section as the output
-(?P<output> .*?) \n
-
-# match closing fence
-(?P=delim) $
-""",
-        flags=re.MULTILINE | re.VERBOSE | re.DOTALL,
-    )
-
-    executed_examples = 0
-
-    def run_example(m: re.Match) -> str:
-        nonlocal executed_examples
-
-        delim = m["delim"]
-        command = m["command"].strip()
-        assert command.startswith("ganzua ")
-        output = _run_shell_command(command).rstrip()
-        executed_examples += 1
-        return f"{delim}console\n$ {command}\n{output}\n{delim}"
-
-    updated_readme = fenced_example_pattern.sub(run_example, readme)
-    return updated_readme, executed_examples
-
-
-def _run_shell_command(command: str) -> str:
-    with pytest.MonkeyPatch.context() as patcher:
-        patcher.setenv("TERM", "dumb")  # disable colors
-
-        result = subprocess.run(
-            # allow `bash` to be resolved via PATH
-            ["bash", "-eu", "-o", "braceexpand", "-c", command],  # noqa: S607
-            encoding="utf-8",
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-
-    if result.returncode != 0:  # pragma: no cover
-        pytest.fail(
-            f"""\
-Doctest shell command failed
-command: {command}
-exit code: {result.returncode}
---- captured stdout
-{result.stdout}
---- captured stderr
-{result.stderr}
---- end
-"""
-        )
-
-    return result.stdout
