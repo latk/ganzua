@@ -3,6 +3,10 @@ import typing as t
 
 import pytest
 
+CLICK_ERROR = 2
+"""The exit code used by Click by default."""
+
+
 type Decorator[F] = t.Callable[[F], F]
 
 
