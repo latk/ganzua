@@ -10,7 +10,7 @@ from ganzua.cli import app
 from . import resources
 from .helpers import CLICK_ERROR, parametrized, write_file
 
-run = app.testrunner()
+reset = app.testrunner().bind("constraints", "reset")
 
 
 @parametrized("want_backup", {"backup": True, "nobackup": False})
@@ -20,7 +20,7 @@ def test_reset(tmp_path: pathlib.Path, want_backup: bool) -> None:
         tmp_path / "pyproject.toml", source=resources.NEW_UV_PYPROJECT
     )
 
-    cmd = run.bind("constraints", "reset", pyproject)
+    cmd = reset.bind(pyproject)
     if want_backup:
         cmd = cmd.bind(f"--backup={backup}")
     assert cmd.stdout() == ""
@@ -60,12 +60,7 @@ def test_reset_to_minimum(
     else:  # pragma: no cover
         t.assert_never(example)
 
-    assert (
-        run.stdout(
-            "constraints", "reset", "--to=minimum", f"--lockfile={lockfile}", pyproject
-        )
-        == ""
-    )
+    assert reset.stdout("--to=minimum", f"--lockfile={lockfile}", pyproject) == ""
 
     expected = snapshot(
         {
@@ -111,7 +106,7 @@ def test_reset_to_minimum_requires_lockfile(tmp_path: pathlib.Path) -> None:
     )
     lockfile = resources.NEW_POETRY_LOCKFILE
 
-    cmd = run.bind("constraints", "reset", "--to=minimum", pyproject)
+    cmd = reset.bind("--to=minimum", pyproject)
 
     # fails without --lockfile
     assert cmd.output(expect_exit=CLICK_ERROR) == snapshot(f"""\
@@ -134,7 +129,7 @@ Note: Using `--to=minimum` requires a `--lockfile`.
 
 
 def test_has_default_pyproject(tmp_path: pathlib.Path) -> None:
-    cmd = run.bind("constraints", "reset", f"--lockfile={resources.NEW_UV_LOCKFILE}")
+    cmd = reset.bind(f"--lockfile={resources.NEW_UV_LOCKFILE}")
     with contextlib.chdir(tmp_path):
         # running in an empty tempdir fails
         result = cmd(expect_exit=CLICK_ERROR)

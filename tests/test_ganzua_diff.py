@@ -12,12 +12,12 @@ from ganzua.cli import app
 from . import resources
 from .helpers import example_poetry_lockfile, example_uv_lockfile, parametrized
 
-run = app.testrunner()
+diff = app.testrunner().bind("diff")
 
 
 @pytest.mark.parametrize("path", [resources.OLD_UV_LOCKFILE, resources.NEW_UV_LOCKFILE])
 def test_empty(path: pathlib.Path) -> None:
-    assert run.json("diff", path, path) == {
+    assert diff.json(path, path) == {
         "packages": {},
         "stat": {"total": 0, "added": 0, "removed": 0, "updated": 0},
     }
@@ -26,7 +26,7 @@ def test_empty(path: pathlib.Path) -> None:
 def test_json() -> None:
     old = resources.OLD_UV_LOCKFILE
     new = resources.NEW_UV_LOCKFILE
-    output = run.json("diff", old, new)
+    output = diff.json(old, new)
     assert output == snapshot(
         {
             "packages": {
@@ -45,16 +45,16 @@ def test_json() -> None:
     )
 
     # can also pass directories
-    assert run.json("diff", old, new.parent) == output
-    assert run.json("diff", old.parent, new) == output
-    assert run.json("diff", old.parent, new.parent) == output
+    assert diff.json(old, new.parent) == output
+    assert diff.json(old.parent, new) == output
+    assert diff.json(old.parent, new.parent) == output
 
 
 def test_markdown() -> None:
     old = resources.OLD_UV_LOCKFILE
     new = resources.NEW_UV_LOCKFILE
 
-    assert run.stdout("diff", "--format=markdown", old, new) == snapshot("""\
+    assert diff.stdout("--format=markdown", old, new) == snapshot("""\
 2 changed packages (1 added, 1 updated)
 
 | package           | old      | new    | notes |
@@ -66,7 +66,7 @@ def test_markdown() -> None:
 """)
 
     # the same diff in reverse
-    assert run.stdout("diff", "--format=markdown", new, old) == snapshot("""\
+    assert diff.stdout("--format=markdown", new, old) == snapshot("""\
 2 changed packages (1 updated, 1 removed)
 
 | package           | old    | new      | notes   |
@@ -87,7 +87,7 @@ def test_markdown_source_change() -> None:
     old = resources.SOURCES_POETRY_LOCKFILE
     new = resources.SOURCES_UV_LOCKFILE
 
-    assert run.stdout("diff", "--format=markdown", old, new) == snapshot("""\
+    assert diff.stdout("--format=markdown", old, new) == snapshot("""\
 6 changed packages (1 added, 5 updated)
 
 | package            | old   | new   | notes |
@@ -109,7 +109,7 @@ def test_markdown_no_notes() -> None:
     old = resources.NEW_UV_LOCKFILE
     new = resources.MINOR_UV_LOCKFILE
 
-    assert run.stdout("diff", "--format=markdown", old, new) == snapshot("""\
+    assert diff.stdout("--format=markdown", old, new) == snapshot("""\
 1 changed packages (1 updated)
 
 | package           | old    | new    |
@@ -120,7 +120,7 @@ def test_markdown_no_notes() -> None:
 
 def test_markdown_empty() -> None:
     lockfile = resources.NEW_UV_LOCKFILE
-    assert run.stdout("diff", "--format=markdown", lockfile, lockfile) == snapshot(
+    assert diff.stdout("--format=markdown", lockfile, lockfile) == snapshot(
         "0 changed packages\n"
     )
 
@@ -145,7 +145,7 @@ class _Example:
         print("--- NEW LOCKFILE ---")
         print(new_lockfile.read_text())
         print("--- END ---")
-        return run.json("diff", old_lockfile, new_lockfile)
+        return diff.json(old_lockfile, new_lockfile)
 
     def expected_diff(self) -> t.Mapping[str, object]:
         return {
@@ -226,7 +226,7 @@ reference = "example"
         {"name": "same", "version": "1.2.4"},
         {"name": "changed", "version": "1.2.3", "source_toml": poetry_source_registry},
     )
-    assert run.json("diff", old, new) == snapshot(
+    assert diff.json(old, new) == snapshot(
         {
             "stat": {"total": 2, "added": 0, "removed": 0, "updated": 2},
             "packages": {

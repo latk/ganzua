@@ -8,7 +8,7 @@ from ganzua.cli import app
 from . import resources
 from .helpers import CLICK_ERROR, parametrized, write_file
 
-run = app.testrunner()
+bump = app.testrunner().bind("constraints", "bump")
 
 
 @parametrized("want_backup", {"backup": True, "nobackup": False})
@@ -19,7 +19,7 @@ def test_bump(tmp_path: pathlib.Path, want_backup: bool) -> None:
     )
     lockfile = resources.NEW_UV_LOCKFILE
 
-    cmd = run.bind("constraints", "bump", f"--lockfile={lockfile}", pyproject)
+    cmd = bump.bind(f"--lockfile={lockfile}", pyproject)
     if want_backup:
         cmd = cmd.bind(f"--backup={backup}")
 
@@ -46,7 +46,7 @@ dependencies = [
 
 
 def test_has_default_pyproject(tmp_path: pathlib.Path) -> None:
-    cmd = run.bind("constraints", "bump", f"--lockfile={resources.NEW_UV_LOCKFILE}")
+    cmd = bump.bind(f"--lockfile={resources.NEW_UV_LOCKFILE}")
     with contextlib.chdir(tmp_path):
         # running in an empty tempdir fails
         result = cmd(expect_exit=CLICK_ERROR)
@@ -65,7 +65,7 @@ def test_finds_default_lockfile(tmp_path: pathlib.Path) -> None:
     pyproject = write_file(
         tmp_path / "pyproject.toml", source=resources.OLD_UV_PYPROJECT
     )
-    cmd = run.bind("constraints", "bump", pyproject)
+    cmd = bump.bind(pyproject)
 
     # running without a lockfile fails
     result = cmd(expect_exit=CLICK_ERROR)
@@ -100,6 +100,6 @@ def test_noop(tmp_path: pathlib.Path) -> None:
     )
     lockfile = resources.NEW_UV_LOCKFILE
 
-    assert run.output("constraints", "bump", f"--lockfile={lockfile}", pyproject) == ""
+    assert bump.output(f"--lockfile={lockfile}", pyproject) == ""
 
     assert pyproject.read_text() == resources.NEW_UV_PYPROJECT.read_text()

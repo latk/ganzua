@@ -17,26 +17,26 @@ from .helpers import (
     write_file,
 )
 
-run = app.testrunner()
+inspect = app.testrunner().bind("inspect")
 
 
 def test_rejects_blank_file() -> None:
     with pytest.raises(pydantic.ValidationError):
-        run("inspect", resources.EMPTY, catch_exceptions=False)
+        inspect(resources.EMPTY, catch_exceptions=False)
 
 
 def test_can_load_empty_uv(tmp_path: pathlib.Path) -> None:
     lockfile = example_uv_lockfile(tmp_path / "uv.lock")
-    assert run.json("inspect", lockfile) == {"packages": {}}
+    assert inspect.json(lockfile) == {"packages": {}}
 
 
 def test_can_load_empty_poetry(tmp_path: pathlib.Path) -> None:
     lockfile = example_poetry_lockfile(tmp_path / "poetry.lock")
-    assert run.json("inspect", lockfile) == {"packages": {}}
+    assert inspect.json(lockfile) == {"packages": {}}
 
 
 def test_can_load_old_uv() -> None:
-    assert run.json("inspect", resources.OLD_UV_LOCKFILE) == snapshot(
+    assert inspect.json(resources.OLD_UV_LOCKFILE) == snapshot(
         {
             "packages": {
                 "example": {"version": "0.1.0", "source": {"direct": "."}},
@@ -47,7 +47,7 @@ def test_can_load_old_uv() -> None:
 
 
 def test_can_load_new_uv() -> None:
-    assert run.json("inspect", resources.NEW_UV_LOCKFILE) == snapshot(
+    assert inspect.json(resources.NEW_UV_LOCKFILE) == snapshot(
         {
             "packages": {
                 "annotated-types": {"version": "0.7.0", "source": "pypi"},
@@ -59,7 +59,7 @@ def test_can_load_new_uv() -> None:
 
 
 def test_can_load_old_poetry() -> None:
-    assert run.json("inspect", resources.OLD_POETRY_LOCKFILE) == snapshot(
+    assert inspect.json(resources.OLD_POETRY_LOCKFILE) == snapshot(
         {
             "packages": {
                 "typing-extensions": {"version": "3.10.0.2", "source": "default"},
@@ -69,7 +69,7 @@ def test_can_load_old_poetry() -> None:
 
 
 def test_can_load_new_poetry() -> None:
-    assert run.json("inspect", resources.NEW_POETRY_LOCKFILE) == snapshot(
+    assert inspect.json(resources.NEW_POETRY_LOCKFILE) == snapshot(
         {
             "packages": {
                 "annotated-types": {"version": "0.7.0", "source": "default"},
@@ -95,29 +95,29 @@ def test_does_not_care_about_filename(
         assert word not in randomized.name
 
     # we get the same result, regardless of filename
-    assert run.json("inspect", randomized) == run.json("inspect", orig)
+    assert inspect.json(randomized) == inspect.json(orig)
 
 
 def test_can_locate_lockfile(tmp_path: pathlib.Path) -> None:
     lockfile = resources.OLD_UV_LOCKFILE
-    output = run.json("inspect", lockfile)
+    output = inspect.json(lockfile)
 
     # can also use a directory
-    assert run.json("inspect", lockfile.parent) == output
+    assert inspect.json(lockfile.parent) == output
 
     # behavior when no explicit lockfile argument is passed
     with contextlib.chdir(tmp_path):
         # fails in empty directory
-        result = run("inspect", expect_exit=CLICK_ERROR)
+        result = inspect(expect_exit=CLICK_ERROR)
         assert "Could not infer `LOCKFILE` for `.`." in result.stderr
 
         # but finds the lockfile if present
         write_file(tmp_path / "uv.lock", source=lockfile)
-        assert run.json("inspect") == output
+        assert inspect.json() == output
 
 
 def test_markdown() -> None:
-    output = run.output("inspect", "--format=markdown", resources.OLD_UV_LOCKFILE)
+    output = inspect.output("--format=markdown", resources.OLD_UV_LOCKFILE)
     assert output == snapshot(
         """\
 | package           | version  |
@@ -130,9 +130,7 @@ def test_markdown() -> None:
 
 def test_can_parse_package_without_version_uv() -> None:
     """Test for <https://github.com/latk/ganzua/issues/4>."""
-    assert run.json(
-        "inspect", resources.SETUPTOOLS_DYNAMIC_VERSION_LOCKFILE
-    ) == snapshot(
+    assert inspect.json(resources.SETUPTOOLS_DYNAMIC_VERSION_LOCKFILE) == snapshot(
         {
             "packages": {
                 "setuptools-dynamic-version": {
