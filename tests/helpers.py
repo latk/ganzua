@@ -25,13 +25,32 @@ def parametrized[T, F: t.Callable[..., t.Any]](
     )
 
 
-def write_file(dest: str | pathlib.Path, *, source: pathlib.Path) -> pathlib.Path:
+@t.overload
+def write_file(dest: str | pathlib.Path, *, source: pathlib.Path) -> pathlib.Path: ...
+
+
+@t.overload
+def write_file(dest: str | pathlib.Path, *, data: str) -> pathlib.Path: ...
+
+
+def write_file(
+    dest: str | pathlib.Path,
+    *,
+    source: pathlib.Path | None = None,
+    data: str | None = None,
+) -> pathlib.Path:
     """Copy the `source` contents into the `dest` file.
 
     Returns the `dest` path.
     """
     dest = pathlib.Path(dest)
-    dest.write_bytes(source.read_bytes())
+    match (source, data):
+        case pathlib.Path(), None:
+            dest.write_bytes(source.read_bytes())
+        case None, str():
+            dest.write_text(data)
+        case _:  # pragma: no cover
+            raise AssertionError(f"unreachable: {source=} {data=}")
     return dest
 
 
@@ -43,8 +62,8 @@ class ExamplePackage(t.TypedDict, total=False):
     source_toml: str
 
 
-def example_uv_lockfile(dest: pathlib.Path, *packages: ExamplePackage) -> pathlib.Path:
-    """Create an example `uv.lock` file."""
+def example_uv_lockfile(*packages: ExamplePackage) -> str:
+    """Create example `uv.lock` file contents with the given packages."""
     default_source_toml = '{ registry = "https://pypi.org/simple" }'
 
     lockfile = """\
@@ -64,15 +83,11 @@ source = {package.get("source_toml", default_source_toml)}
     if not packages:
         lockfile += "package = []"
 
-    dest.write_text(lockfile)
-    return dest
+    return lockfile
 
 
-def example_poetry_lockfile(
-    dest: pathlib.Path,
-    *packages: ExamplePackage,
-) -> pathlib.Path:
-    """Create an example `poetry.lock` file."""
+def example_poetry_lockfile(*packages: ExamplePackage) -> str:
+    """Create example `poetry.lock` file contents with the given packages."""
     lockfile = ""
     for package in packages:
         lockfile += f"""\
@@ -91,12 +106,11 @@ version = "{package.get("version", "0.1.0")}"
     if not lockfile:
         lockfile = "package = []"
 
-    dest.write_text(f"""\
+    return f"""\
 {lockfile.strip()}
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
 content-hash = "0000000000000000000000000000000000000000000000000000000000000000"
-""")
-    return dest
+"""

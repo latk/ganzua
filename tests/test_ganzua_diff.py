@@ -10,7 +10,12 @@ from inline_snapshot import snapshot
 from ganzua.cli import app
 
 from . import resources
-from .helpers import example_poetry_lockfile, example_uv_lockfile, parametrized
+from .helpers import (
+    example_poetry_lockfile,
+    example_uv_lockfile,
+    parametrized,
+    write_file,
+)
 
 diff = app.testrunner().bind("diff")
 
@@ -134,11 +139,11 @@ class _Example:
     extra_diff: dict[t.Literal["is_major_change", "is_downgrade"], t.Literal[True]]
 
     def actual_diff(self, *, tmp_dir: pathlib.Path) -> pydantic.JsonValue:
-        old_lockfile = self._expand_lockfile(
-            tmp_dir / "old.lock", version=self.old_version
+        old_lockfile = write_file(
+            tmp_dir / "old.lock", data=self._expand_lockfile(version=self.old_version)
         )
-        new_lockfile = self._expand_lockfile(
-            tmp_dir / "new.lock", version=self.new_version
+        new_lockfile = write_file(
+            tmp_dir / "new.lock", data=self._expand_lockfile(version=self.new_version)
         )
         print("--- OLD LOCKFILE ---")
         print(old_lockfile.read_text())
@@ -171,12 +176,10 @@ class _Example:
             return None
         return {"version": version, "source": "pypi"}
 
-    def _expand_lockfile(
-        self, dest: pathlib.Path, *, version: str | None
-    ) -> pathlib.Path:
+    def _expand_lockfile(self, *, version: str | None) -> str:
         if version is None:
-            return example_uv_lockfile(dest)
-        return example_uv_lockfile(dest, {"version": version})
+            return example_uv_lockfile()
+        return example_uv_lockfile({"version": version})
 
 
 @parametrized(
@@ -216,15 +219,23 @@ type = "legacy"
 url = "https://registry.example/"
 reference = "example"
 """
-    old = example_poetry_lockfile(
+    old = write_file(
         tmp_path / "old.poetry.lock",
-        {"name": "same", "version": "1.2.3"},
-        {"name": "changed", "version": "1.2.3", "source_toml": "type = 'pypi'"},
+        data=example_poetry_lockfile(
+            {"name": "same", "version": "1.2.3"},
+            {"name": "changed", "version": "1.2.3", "source_toml": "type = 'pypi'"},
+        ),
     )
-    new = example_poetry_lockfile(
+    new = write_file(
         tmp_path / "new.poetry.lock",
-        {"name": "same", "version": "1.2.4"},
-        {"name": "changed", "version": "1.2.3", "source_toml": poetry_source_registry},
+        data=example_poetry_lockfile(
+            {"name": "same", "version": "1.2.4"},
+            {
+                "name": "changed",
+                "version": "1.2.3",
+                "source_toml": poetry_source_registry,
+            },
+        ),
     )
     assert diff.json(old, new) == snapshot(
         {

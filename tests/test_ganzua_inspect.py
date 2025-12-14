@@ -26,12 +26,12 @@ def test_rejects_blank_file() -> None:
 
 
 def test_can_load_empty_uv(tmp_path: pathlib.Path) -> None:
-    lockfile = example_uv_lockfile(tmp_path / "uv.lock")
+    lockfile = write_file(tmp_path / "uv.lock", data=example_uv_lockfile())
     assert inspect.json(lockfile) == {"packages": {}}
 
 
 def test_can_load_empty_poetry(tmp_path: pathlib.Path) -> None:
-    lockfile = example_poetry_lockfile(tmp_path / "poetry.lock")
+    lockfile = write_file(tmp_path / "poetry.lock", data=example_poetry_lockfile())
     assert inspect.json(lockfile) == {"packages": {}}
 
 

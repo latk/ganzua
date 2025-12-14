@@ -5,7 +5,7 @@ from inline_snapshot import snapshot
 import ganzua
 from ganzua._markdown import md_from_source
 from ganzua._package_source import Source, SourceDirect, SourceRegistry
-from tests.helpers import example_poetry_lockfile, example_uv_lockfile
+from tests.helpers import example_poetry_lockfile, example_uv_lockfile, write_file
 
 from . import resources
 
@@ -176,8 +176,9 @@ def _assert_parse_poetry_source(
     expected_markdown: str,
 ) -> None:
     __tracebackhide__ = True
-    lockfile = example_poetry_lockfile(
-        tmp_path / "poetry.lock", {"source_toml": package_source_toml}
+    lockfile = write_file(
+        tmp_path / "poetry.lock",
+        data=example_poetry_lockfile({"source_toml": package_source_toml}),
     )
 
     parsed = ganzua.lockfile_from(lockfile)
@@ -199,8 +200,9 @@ def _assert_parse_uv_source(
     expected_markdown: str,
 ) -> None:
     __tracebackhide__ = True
-    lockfile = example_uv_lockfile(
-        tmp_path / "uv.lock", {"source_toml": package_source_toml}
+    lockfile = write_file(
+        tmp_path / "uv.lock",
+        data=example_uv_lockfile({"source_toml": package_source_toml}),
     )
 
     parsed = ganzua.lockfile_from(lockfile)
