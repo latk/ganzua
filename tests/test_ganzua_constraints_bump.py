@@ -6,7 +6,13 @@ from inline_snapshot import snapshot
 from ganzua.cli import app
 
 from . import resources
-from .helpers import CLICK_ERROR, parametrized, write_file
+from .helpers import (
+    CLICK_ERROR,
+    example_poetry_lockfile,
+    example_uv_lockfile,
+    parametrized,
+    write_file,
+)
 
 bump = app.testrunner().bind("constraints", "bump")
 
@@ -103,3 +109,76 @@ def test_noop(tmp_path: pathlib.Path) -> None:
     assert bump.output(f"--lockfile={lockfile}", pyproject) == ""
 
     assert pyproject.read_text() == resources.NEW_UV_PYPROJECT.read_text()
+
+
+_CONSTRAINTS_UV_LOCK = example_uv_lockfile(
+    {"name": "annotated-types", "version": "0.7.0"},
+    {"name": "example", "version": "0.2.0"},
+    {"name": "typing-extensions", "version": "4.14.1"},
+)
+_CONSTRAINTS_POETRY_LOCK = example_poetry_lockfile(
+    {"name": "annotated-types", "version": "0.7.0"},
+    {"name": "example", "version": "0.2.0"},
+    {"name": "typing-extensions", "version": "4.14.1"},
+)
+
+
+def test_pep621(tmp_path: pathlib.Path) -> None:
+    lockfile = write_file(tmp_path / "uv.lock", data=_CONSTRAINTS_UV_LOCK)
+    pyproject = write_file(
+        tmp_path / "pyproject.toml", data=resources.CONSTRAINTS_PYPROJECT_CONTENTS
+    )
+    assert bump.output(f"--lockfile={lockfile}", pyproject) == ""
+    assert pyproject.read_text() == snapshot("""\
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "Typing.Extensions>=4,<5",  # moar type annotations
+    "merrily-ignored",
+    [42, "also ignored"],  # we ignore invalid junk
+]
+
+[project.optional-dependencies]
+extra1 = [
+    "annotated-types>=0.7.0,==0.7.*",
+]
+extra2 = false  # known invalid
+extra3 = ["ndr"]
+
+[dependency-groups]
+group-a = ["typing-extensions~=4.14"]
+group-b = [{include-group = "group-a"}, "annotated-types~=0.7.0"]
+""")
+
+
+def test_poetry(tmp_path: pathlib.Path) -> None:
+    lockfile = write_file(tmp_path / "uv.lock", data=_CONSTRAINTS_POETRY_LOCK)
+    pyproject = write_file(
+        tmp_path / "pyproject.toml",
+        data=resources.CONSTRAINTS_POETRY_PYPROJECT_CONTENTS,
+    )
+    assert bump.output(f"--lockfile={lockfile}", pyproject) == ""
+
+    assert pyproject.read_text() == snapshot("""\
+[tool.poetry.dependencies]
+Typing_Extensions = "^4.14"
+ignored-garbage = { not-a-version = true }
+
+[build-system]
+
+[tool.poetry.group.poetry-a.dependencies]
+typing-extensions = { version = "^4.14" }
+already-unconstrained = "*"
+""")
+
+
+def test_empty(tmp_path: pathlib.Path) -> None:
+    lockfile = write_file(tmp_path / "uv.lock", data=_CONSTRAINTS_UV_LOCK)
+    pyproject = write_file(tmp_path / "pyproject.toml", data="")
+    assert bump.output(f"--lockfile={lockfile}", pyproject) == ""
+
+    assert pyproject.read_text() == ""

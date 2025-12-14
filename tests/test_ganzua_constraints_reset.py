@@ -8,7 +8,7 @@ from inline_snapshot import snapshot
 from ganzua.cli import app
 
 from . import resources
-from .helpers import CLICK_ERROR, parametrized, write_file
+from .helpers import CLICK_ERROR, example_uv_lockfile, parametrized, write_file
 
 reset = app.testrunner().bind("constraints", "reset")
 
@@ -142,3 +142,96 @@ def test_has_default_pyproject(tmp_path: pathlib.Path) -> None:
 
     # it's also possible to specify just the directory
     assert cmd.output(tmp_path) == expected_output
+
+
+def test_pep621(tmp_path: pathlib.Path) -> None:
+    pyproject = write_file(
+        tmp_path / "pyproject.toml", data=resources.CONSTRAINTS_PYPROJECT_CONTENTS
+    )
+    assert reset.output(pyproject) == ""
+
+    assert pyproject.read_text() == snapshot("""\
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "Typing.Extensions",  # moar type annotations
+    "merrily-ignored",
+    [42, "also ignored"],  # we ignore invalid junk
+]
+
+[project.optional-dependencies]
+extra1 = [
+    "annotated-types",
+]
+extra2 = false  # known invalid
+extra3 = ["ndr"]
+
+[dependency-groups]
+group-a = ["typing-extensions"]
+group-b = [{include-group = "group-a"}, "annotated-types"]
+""")
+
+
+def test_unconstrain_poetry(tmp_path: pathlib.Path) -> None:
+    pyproject = write_file(
+        tmp_path / "pyproject.toml",
+        data=resources.CONSTRAINTS_POETRY_PYPROJECT_CONTENTS,
+    )
+    assert reset.output(pyproject) == ""
+
+    assert pyproject.read_text() == snapshot("""\
+[tool.poetry.dependencies]
+Typing_Extensions = "*"
+ignored-garbage = { not-a-version = true }
+
+[build-system]
+
+[tool.poetry.group.poetry-a.dependencies]
+typing-extensions = { version = "*" }
+already-unconstrained = "*"
+""")
+
+
+def test_set_minimum_pep621(tmp_path: pathlib.Path) -> None:
+    pyproject = write_file(
+        tmp_path / "pyproject.toml", data=resources.CONSTRAINTS_PYPROJECT_CONTENTS
+    )
+    lockfile = write_file(
+        tmp_path / "uv.lock",
+        data=example_uv_lockfile(
+            {"name": "annotated-types", "version": "0.7.0"},
+            {"name": "example", "version": "0.2.0"},
+            {"name": "typing-extensions", "version": "4.14.1"},
+        ),
+    )
+
+    assert reset.output("--to=minimum", f"--lockfile={lockfile}", pyproject) == ""
+
+    assert pyproject.read_text() == snapshot("""\
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "Typing.Extensions>=4.14.1",  # moar type annotations
+    "merrily-ignored",
+    [42, "also ignored"],  # we ignore invalid junk
+]
+
+[project.optional-dependencies]
+extra1 = [
+    "annotated-types>=0.7.0",
+]
+extra2 = false  # known invalid
+extra3 = ["ndr"]
+
+[dependency-groups]
+group-a = ["typing-extensions>=4.14.1"]
+group-b = [{include-group = "group-a"}, "annotated-types>=0.7.0"]
+""")
