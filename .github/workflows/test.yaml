@@ -37,7 +37,7 @@ jobs:
 
   deploy-github-pages:
     if: >-
-      (github.event_type == 'push' || github.event_type == 'workflow_dispatch')
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
       && github.ref == 'refs/heads/main'
     needs: test
     environment:
