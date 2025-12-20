@@ -5,12 +5,13 @@ set positional-arguments
 
 # keep in sync with .github/workflows/test.yaml
 [doc("run the entire QA suite")]
-qa *args: sync lint types (test args) dist
+qa *args: sync lint types (test args) docs dist
 
 # install dependencies if necessary
 @sync:
-  #!/bin/sh
+  #!/usr/bin/env -S bash -euo pipefail
   uv sync
+  uv run ./scripts/install-tools.py
 
 # check formatting and code style
 lint:
@@ -19,8 +20,7 @@ lint:
 
 # automatically fix formatting and some ruff violations
 fix *files='.':
-  #!/usr/bin/env -S uv run bash
-  set -euo pipefail
+  #!/usr/bin/env -S uv run bash -euo pipefail
   explicitly() { echo "{{BOLD}}${@@K}{{NORMAL}}" >&2; "$@"; }
   explicitly ruff format -- "$@"
   explicitly ruff check --fix-only --show-fixes -- "$@"
@@ -40,7 +40,7 @@ test *args:
 
 # build wheel/sdist
 dist:
-    #!/usr/bin/env bash
+    #!/usr/bin/env -S bash -euo pipefail
     set -euo pipefail
 
     echo "{{BOLD}}uv build{{NORMAL}}"
@@ -67,3 +67,17 @@ upgrade-deps:
   uv lock
   ganzua diff --format=markdown old.uv.lock uv.lock
   rm old.uv.lock
+
+# run an mdBook command
+mdbook *args: sync
+  ./scripts/mdbook "$@"
+
+# run a lychee command
+lychee *args: sync
+  ./scripts/lychee "$@"
+
+# Build the docs into `dist/docs` and check links.
+docs: sync
+  #!/usr/bin/env -S bash -euo pipefail
+  ./scripts/mdbook build
+  ./scripts/lychee --config lychee.toml --root-dir dist/docs --offline 'dist/docs/**/*.html'

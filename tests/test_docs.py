@@ -1,5 +1,7 @@
 import importlib.metadata
+import pathlib
 import re
+import shlex
 import subprocess
 
 import pytest
@@ -21,19 +23,57 @@ def test_readme() -> None:
     * all doctests produce expected output
     """
     readme = resources.README.read_text()
-    readme = _update_usage_section(readme)
+    readme = _update_command_output(readme)
     readme = _bump_mentioned_versions(readme)
     readme, executed_examples = _update_bash_doctests(readme)
     assert readme == external_file(str(resources.README), format=".txt")
     assert executed_examples == snapshot(3)
 
 
-def _update_usage_section(readme: str) -> str:
-    begin = "\n<!-- begin usage -->\n"
-    end = "\n<!-- end usage -->\n"
-    pattern = re.compile(re.escape(begin) + "(.*)" + re.escape(end), flags=re.S)
-    up_to_date_usage = run.output("help", "--all", "--markdown").strip()
-    return pattern.sub(f"{begin}\n{up_to_date_usage}\n{end}", readme)
+@pytest.mark.parametrize(
+    "path",
+    resources.DOCS.glob("**/*.md"),
+    ids=lambda p: str(p.relative_to(resources.DOCS)),
+)
+def test_docs(path: pathlib.Path) -> None:
+    markdown = path.read_text()
+    markdown = _update_command_output(markdown)
+    assert markdown == external_file(str(path), format=".txt")
+
+
+_COMMAND_OUTPUT_PATTERN = re.compile(
+    r"""
+# A line like `<!-- command output: ganzua help -->`.
+(?> \n<!-- [ ] command [ ] output: [ ] ([^\n]+) [ ] -->\n)
+
+# As few other lines as possible.
+(?>[^\n]*+\n)*?
+
+# A line like `<!-- command output end -->`.
+(?> <!-- [ ] command [ ] output [ ] end [ ] -->(?:\n|$))
+""",
+    flags=re.X | re.S,
+)
+
+
+def _replace_command_output(m: re.Match[str]) -> str:
+    command = m[1]
+    match shlex.split(command):
+        case ["ganzua", *args]:
+            output = run.output(*args).strip()
+        case _:  # pragma: no cover
+            raise ValueError(f"command must invoke `ganzua`: {command}")
+    return f"""
+<!-- command output: {command} -->
+
+{output}
+
+<!-- command output end -->
+"""
+
+
+def _update_command_output(markdown: str) -> str:
+    return _COMMAND_OUTPUT_PATTERN.sub(_replace_command_output, markdown)
 
 
 def _bump_mentioned_versions(readme: str) -> str:

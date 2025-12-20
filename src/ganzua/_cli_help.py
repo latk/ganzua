@@ -24,7 +24,13 @@ _OPT_STYLE = Style(color="cyan", bold=True)
 def show_help(ctx: click.Context, _param: click.Parameter, want_help: bool) -> None:
     if not want_help or ctx.resilient_parsing:
         return
-    rich.print(_as_rich_group(format_command_help(ctx, recursive=False)))
+    rich.print(
+        _as_rich_group(
+            format_command_help(
+                ctx, recursive=False, subcommands=_SubcommandTreeSettings.default()
+            )
+        )
+    )
     ctx.exit(0)
 
 
@@ -55,16 +61,41 @@ _HELP_OPTION = click.Option(
     flag_value=True,
     help="Output help in Markdown format.",
 )
+@click.option(
+    "--markdown-links",
+    type=click.Choice(["anchor", "md-file"]),
+    default=None,
+    hidden=True,
+)
+@click.option("--markdown-link-prefix", type=str, default="", hidden=True)
+@click.option(
+    "--subcommand-tree", type=bool, is_flag=True, flag_value=True, hidden=True
+)
+@click.option(
+    "--subcommand-path", type=bool, is_flag=True, flag_value=True, hidden=True
+)
+@click.option("--subcommand-help/--no-subcommand-help", default=True, hidden=True)
 @click.argument("subcommand", nargs=-1)
 @click.pass_context
-def help_command(
+def help_command(  # noqa: PLR0913  # too-many-arguments
     help_ctx: click.Context,
     recursive: bool,
     markdown: bool,
+    markdown_links: t.Literal["anchor", "md-file"] | None,
+    markdown_link_prefix: str,
+    subcommand_tree: bool,
+    subcommand_path: bool,
+    subcommand_help: bool,
     subcommand: tuple[str, ...],
 ) -> None:
     """Show help for the application or a specific subcommand."""
     ctx = help_ctx.find_root()
+
+    subcommands = _SubcommandTreeSettings(
+        recursive=subcommand_tree,
+        fullname=subcommand_path,
+        showhelp=subcommand_help,
+    )
 
     with contextlib.ExitStack() as stack:
         # Navigate to the correct subcommand
@@ -77,10 +108,22 @@ def help_command(
 
             # cf https://github.com/pallets/click/blob/834e04a75c5693be55f3cd8b8d3580f74086a353/src/click/core.py#L738
             ctx = stack.enter_context(click.Context(cmd, info_name=name, parent=ctx))
-        help_items = format_command_help(ctx, recursive=recursive)
+        help_items: t.Iterable[_MarkdownOrRich]
+        if subcommand_tree:
+            help_items = [_DefinitionList([subcommands.describe_one(ctx)])]
+        else:
+            help_items = format_command_help(
+                ctx, recursive=recursive, subcommands=subcommands
+            )
         if markdown:
+            if markdown_links is None and recursive:
+                markdown_links = "anchor"
+            markdown_settings = _AsMarkdownSettings(
+                links=markdown_links,
+                link_prefix=markdown_link_prefix,
+            )
             for item in help_items:
-                click.echo("\n".join(_as_markdown(item, showlinks=recursive)))
+                click.echo("\n".join(_as_markdown(item, markdown_settings)))
         else:
             rich.print(_as_rich_group(help_items))
 
@@ -95,7 +138,15 @@ class _FixedGroup(_FixedCommand, click.Group):
     @t.override
     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
         if not args and not ctx.resilient_parsing:
-            rich.print(_as_rich_group(format_command_help(ctx, recursive=False)))
+            rich.print(
+                _as_rich_group(
+                    format_command_help(
+                        ctx,
+                        recursive=False,
+                        subcommands=_SubcommandTreeSettings.default(),
+                    )
+                )
+            )
             ctx.exit(2)
         return super().parse_args(ctx, args)
 
@@ -198,19 +249,47 @@ type _MarkdownOrRich = (
     | _SubcommandHeading
     | _Markdown
     | _Indent
+    | t.Sequence[_MarkdownOrRich]
 )
 
 
+@dataclass(frozen=True)
+class _AsMarkdownSettings:
+    level: int = 3
+    links: t.Literal["anchor", "md-file"] | None = None
+    link_prefix: str = ""
+
+    def make_link(self, text: str, *, xref: str | None) -> str:
+        if not xref:
+            return text
+        match self.links:
+            case "anchor":
+                return f"[{text}]({self.link_prefix}#{xref})"
+            case "md-file":
+                return f"[{text}]({self.link_prefix}{xref}.md)"
+            case None:
+                return text
+            case other:  # pragma: no cover
+                t.assert_never(other)
+
+    def make_heading(self, text: str) -> str:
+        atx_prefix = "#" * self.level
+        if self.links == "anchor":
+            # workaround per <https://github.com/pypa/readme_renderer/issues/169#issuecomment-808577486>
+            text += f'<a id="{_github_slugify(text)}"></a>'
+        return f"{atx_prefix} {text}"
+
+
 def _as_markdown(  # noqa: C901  # complexity
-    item: _MarkdownOrRich, *, level: int = 3, showlinks: bool = False
+    item: _MarkdownOrRich, settings: _AsMarkdownSettings
 ) -> t.Iterable[str]:
     r"""Convert the help content to Markdown.
 
     Example: can emit headings.
 
-    >>> def print_markdown_doc(*items, showlinks=False):
+    >>> def print_markdown_doc(*items, links=None):
     ...     for item in items:
-    ...         print("\n".join(_as_markdown(item, showlinks=showlinks)))
+    ...         print("\n".join(_as_markdown(item, _AsMarkdownSettings(links=links))))
     >>> print_markdown_doc(
     ...     _Markdown("content"),
     ...     _SubcommandHeading("some info"),
@@ -230,7 +309,7 @@ def _as_markdown(  # noqa: C901  # complexity
     ...         [_DefinitionListItem("key", _Markdown("value"), xref="some-anchor")]
     ...     ),
     ...     _SubcommandHeading("some anchor"),
-    ...     showlinks=True,
+    ...     links="anchor",
     ... )
     * [`key`](#some-anchor)
       value
@@ -249,35 +328,28 @@ def _as_markdown(  # noqa: C901  # complexity
             yield item
         case _DefinitionList():
             for dl_item in item.items:
-                key = f"`{dl_item.key}`"
-                if showlinks and dl_item.xref:
-                    key = f"[{key}](#{dl_item.xref})"
+                key = settings.make_link(f"`{dl_item.key}`", xref=dl_item.xref)
                 yield f"* {key}"
-                yield textwrap.indent(dl_item.description.content, "  ")
+                for block in _as_markdown(dl_item.description, settings):
+                    yield textwrap.indent(block, "  ")
         case _Usage():
             yield f"Usage: `{item.usage}`"
         case _HelpHeading():
             yield f"**{item.text}**\n"
         case _SubcommandHeading():
-            atx_prefix = "#" * level
-            text = item.text
-            if showlinks:
-                # workaround per <https://github.com/pypa/readme_renderer/issues/169#issuecomment-808577486>
-                text += f'<a id="{_github_slugify(text)}"></a>'
             yield "\n"
-            yield f"{atx_prefix} {text}"
+            yield settings.make_heading(item.text)
             yield ""
         case _Markdown():
             yield item.content
         case _Indent():
-            yield from _as_markdown(item.content, level=level, showlinks=showlinks)
-        case other:  # pragma: no cover
-            t.assert_never(other)
+            yield from _as_markdown(item.content, settings)
+        case items:
+            for subitem in items:
+                yield from _as_markdown(subitem, settings)
 
 
-def _as_rich(
-    item: _MarkdownOrRich,
-) -> rich.console.RenderableType:
+def _as_rich(item: _MarkdownOrRich) -> rich.console.RenderableType:
     """Convert help content to Rich-printable types.
 
     Example: can render Markdown hyperlinks.
@@ -310,8 +382,8 @@ def _as_rich(
             return rich.markdown.Markdown(item.content, hyperlinks=False)
         case _Indent():
             return rich.padding.Padding(_as_rich(item.content), pad=(0, 0, 0, item.pad))
-        case other:  # pragma: no cover
-            t.assert_never(other)
+        case items:
+            return _as_rich_group(items)
 
 
 def _as_rich_group(items: t.Iterable[_MarkdownOrRich]) -> rich.console.Group:
@@ -319,19 +391,21 @@ def _as_rich_group(items: t.Iterable[_MarkdownOrRich]) -> rich.console.Group:
 
 
 def format_command_help(
-    ctx: click.Context, *, recursive: bool
+    ctx: click.Context, *, recursive: bool, subcommands: "_SubcommandTreeSettings"
 ) -> t.Iterable[_MarkdownOrRich]:
     """Format the command help as a Rich renderable.
 
     Args:
       ctx: the click-context for the current command.
-      recursive: wether to also emit subcommands
+      recursive: whether to also emit full docs subcommands
+      subcommands: how to briefly summarize subcommands
 
     Example: can format a basic command.
 
     >>> cmd = click.Command(name="foo", add_help_option=False)
     >>> ctx = cmd.make_context("foo", [])
-    >>> _render(format_command_help(ctx, recursive=False))
+    >>> subcommands = _SubcommandTreeSettings.default()
+    >>> _render(format_command_help(ctx, recursive=False, subcommands=subcommands))
     Usage: foo [OPTIONS]
     """
     yield _Usage(ctx)
@@ -341,7 +415,7 @@ def format_command_help(
         yield _Markdown(inspect.cleandoc(ctx.command.help))
 
     params = ctx.command.get_params(ctx)
-    if options := [p for p in params if isinstance(p, click.Option)]:
+    if options := [p for p in params if isinstance(p, click.Option) and not p.hidden]:
         yield ""
         yield _HelpHeading("Options:")
         yield _Indent(
@@ -355,21 +429,10 @@ def format_command_help(
             )
         )
 
-    if isinstance(ctx.command, click.Group) and (commands := ctx.command.commands):
+    if subcommand_list := subcommands.describe_subcommands(ctx):
         yield ""
         yield _HelpHeading("Commands:")
-        yield _Indent(
-            _DefinitionList(
-                [
-                    _DefinitionListItem(
-                        Text(name, style=_OPT_STYLE),
-                        _command_short_help(cmd),
-                        xref=_github_slugify(f"{ctx.command_path} {name}"),
-                    )
-                    for name, cmd in commands.items()
-                ]
-            )
-        )
+        yield _Indent(subcommand_list)
 
     if ctx.command.epilog:
         yield ""
@@ -385,7 +448,55 @@ def format_command_help(
         with click.Context(cmd, info_name=name, parent=ctx) as ctx_cmd:
             command_path = ctx_cmd.command_path
             yield _SubcommandHeading(command_path)
-            yield from format_command_help(ctx_cmd, recursive=recursive)
+            yield from format_command_help(
+                ctx_cmd, recursive=recursive, subcommands=subcommands
+            )
+
+
+@dataclass(kw_only=True)
+class _SubcommandTreeSettings:
+    recursive: bool
+    fullname: bool
+    showhelp: bool
+
+    @classmethod
+    def default(cls) -> t.Self:
+        return cls(recursive=False, fullname=False, showhelp=True)
+
+    def describe_one(self, ctx: click.Context) -> "_DefinitionListItem":
+        name = ctx.info_name
+        if self.fullname:
+            name = ctx.command_path
+        if name is None:  # pragma: no cover
+            raise ValueError("all commands must have names")
+
+        description = list[_MarkdownOrRich]()
+        if self.showhelp:
+            description.append(_command_short_help(ctx.command))
+        if self.recursive:
+            if children := self.describe_subcommands(ctx):
+                description.append(children)
+
+        return _DefinitionListItem(
+            Text(name, style=_OPT_STYLE),
+            description,
+            xref=_github_slugify(ctx.command_path),
+        )
+
+    def describe_subcommands(self, ctx: click.Context) -> "_DefinitionList | None":
+        commands: t.Mapping[str, click.Command] = {}
+        if isinstance(ctx.command, click.Group):
+            commands = ctx.command.commands
+        if not commands:
+            return None
+
+        children = list[_DefinitionListItem]()
+        for nested_name, nested_cmd in commands.items():
+            with click.Context(
+                nested_cmd, info_name=nested_name, parent=ctx
+            ) as nested_ctx:
+                children.append(self.describe_one(nested_ctx))
+        return _DefinitionList(children)
 
 
 def _github_slugify(text: str) -> str:
@@ -484,7 +595,7 @@ def _render(
 @dataclass
 class _DefinitionListItem:
     key: Text
-    description: _Markdown
+    description: _MarkdownOrRich
     xref: str | None = None
 
 

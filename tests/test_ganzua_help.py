@@ -81,17 +81,32 @@ def test_help_can_show_subcommands() -> None:
 
 
 def test_help_can_use_markdown() -> None:
-    assert run.output("help", "help", "--markdown") == snapshot(
+    assert run.output("help", "--markdown") == snapshot(
         """\
-Usage: `ganzua help [OPTIONS] [SUBCOMMAND]...`
+Usage: `ganzua [OPTIONS] COMMAND [ARGS]...`
 
-Show help for the application or a specific subcommand.
+Inspect Python dependency lockfiles (uv and Poetry).
 
 **Options:**
 
-* `--all`
-  Also show help for all subcommands.
-* `--markdown`
-  Output help in Markdown format.
+* `--help`
+  Show this help message and exit.
+
+**Commands:**
+
+* `help`
+  Show help for the application or a specific subcommand.
+* `inspect`
+  Inspect a lockfile.
+* `diff`
+  Compare two lockfiles.
+* `constraints`
+  Work with `pyproject.toml` constraints.
+* `schema`
+  Show the JSON schema for the output of the given command.
+
+For more information, see the Ganzua website at "<https://github.com/latk/ganzua>".
+
+Ganzua is licensed under the Apache-2.0 license.
 """
     )

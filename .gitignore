@@ -4,3 +4,5 @@ __pycache__/
 /dist/
 /old.pyproject.toml
 /old.uv.lock
+/scripts/mdbook
+/scripts/lychee

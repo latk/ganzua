@@ -25,6 +25,7 @@ SETUPTOOLS_DYNAMIC_VERSION_LOCKFILE = _RESOURCES / "setuptools-dynamic-version/u
 POETRY_MULTIPLE_GROUPS_PYPROJECT = _RESOURCES / "poetry-multiple-groups/pyproject.toml"
 
 README = _RESOURCES / "../README.md"
+DOCS = _RESOURCES / "../docs"
 EMPTY = pathlib.Path("/dev/null")
 
 CONSTRAINTS_PYPROJECT_CONTENTS = """\

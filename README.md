@@ -1,7 +1,9 @@
 Ganzua
 ======
 
-A tool for picking dependency information from Python lockfiles,
+<!-- ANCHOR: motivating-example -->
+
+Ganzua is  tool for picking dependency information from Python lockfiles,
 and manipulating the version constraints in `pyproject.toml` files.
 
 For example, we can summarize the differences between two `uv.lock` files.
@@ -66,7 +68,11 @@ $ ganzua constraints inspect --format=markdown tests/new-uv-project/pyproject.to
 
 For more examples and further background, see the [announcement blog post](https://lukasatkinson.de/2025/ganzua/).
 
+<!-- ANCHOR_END: motivating-example -->
+
 ## Installation
+
+<!-- ANCHOR: installation -->
 
 Ganzua is available on PyPI: <https://pypi.org/project/ganzua/>
 
@@ -96,9 +102,11 @@ Do not add Ganzua as a dependency to your project, instead prefer invoking Ganzu
 You can technically install Ganzua into an existing venv using tools like uv, Poetry, or Pip.
 But since Ganzua might require conflicting dependencies, and might even need a different Python version, this is likely to cause more problems than it solves.
 
+<!-- ANCHOR_END: installation -->
+
 ## Usage
 
-<!-- begin usage -->
+<!-- command output: ganzua help --all --markdown -->
 
 Usage: `ganzua [OPTIONS] COMMAND [ARGS]...`
 
@@ -310,9 +318,11 @@ Show the JSON schema for the output of the given command.
 * `--help`
   Show this help message and exit.
 
-<!-- end usage -->
+<!-- command output end -->
 
 ## Support
+
+<!-- ANCHOR: support -->
 
 Ganzua is Open Source software, provided to you free of charge and on an "as is" basis.
 You are not entitled to support, help, or bugfixes of any kind.
@@ -339,6 +349,8 @@ Out of scope are:
 * formatting of error messages
 * commands and flags that relate to help messages
 
+<!-- ANCHOR_END: support -->
+
 ##  What does Ganzua mean?
 
 The Spanish term *ganzúa* means lockpick. It is pronounced *gan-THU-a*.
@@ -347,6 +359,8 @@ This `ganzua` tool for interacting with Python dependency lockfiles
 is unrelated to the [2004 cryptoanalysis tool of the same name](https://ganzua.sourceforge.net/en/index.html).
 
 ## What makes Ganzua special?
+
+<!-- ANCHOR: usp -->
 
 **Ganzua is not a general-purpose tool.**
 It's focused solely on working with two modern Python project managers, uv and Poetry, and their native lockfile formats. In particular, there's no support for `requirements.txt`.
@@ -361,7 +375,11 @@ All subcommands are designed for JSON output first, with output that conforms to
 Where appropriate, Ganzua offers an optional Markdown view on the same data, which lets scripts generate human-readable summaries.
 Ganzua does not offer GitHub Actions, but it's really easy to integrate Ganzua into your CI workflows.
 
+<!-- ANCHOR_END: usp -->
+
 ## License
+
+<!-- ANCHOR: license -->
 
 Copyright 2025 Lukas Atkinson
 
@@ -376,3 +394,5 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+<!-- ANCHOR_END: license -->

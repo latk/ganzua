@@ -1,0 +1,14 @@
+[book]
+title = "Ganzua Manual"
+authors = []
+language = "en"
+src = "docs"
+
+[build]
+build-dir = "dist/docs"
+
+[output.html]
+smart-punctuation = false
+no-section-label = true
+git-repository-url = "https://github.com/latk/ganzua"
+edit-url-template = "https://github.com/latk/ganzua/blob/main/{path}"

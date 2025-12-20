@@ -1,0 +1,10 @@
+# Enable the checking of fragments in links.
+include_fragments = true
+
+# Exclude all private IPs from checking – good for security.
+exclude_all_private = true
+
+exclude = [
+  # Ignore the "edit" links.
+  '^https://github.com/latk/ganzua/blob/main/docs/.*\.md',
+]
