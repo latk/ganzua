@@ -8,9 +8,9 @@ set positional-arguments
 qa *args: sync lint types (test args) docs dist
 
 # install dependencies if necessary
-@sync:
+@sync *args:
   #!/usr/bin/env -S bash -euo pipefail
-  uv sync
+  uv sync --all-extras "$@"
   uv run ./scripts/install-tools.py
 
 # check formatting and code style
