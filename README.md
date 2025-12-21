@@ -1,6 +1,11 @@
 Ganzua
 ======
 
+[ [GitHub](https://github.com/latk/ganzua)
+| [PyPI](https://pypi.org/project/ganzua/)
+| [Documentation](https://ganzua.latk.de)
+]
+
 <!-- ANCHOR: motivating-example -->
 
 Ganzua is  tool for picking dependency information from Python lockfiles,

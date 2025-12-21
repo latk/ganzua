@@ -1,4 +1,4 @@
-# Introduction
+# Ganzua Manual
 
 > Quick Links:
 > [GitHub](https://github.com/latk/ganzua)

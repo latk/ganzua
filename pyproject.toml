@@ -27,6 +27,8 @@ ganzua = "ganzua.cli:app"
 
 [project.urls]
 Repository = "https://github.com/latk/ganzua"
+Documentation = "https://ganzua.latk.de"
+Changelog = "https://ganzua.latk.de/changelog.html"
 
 [build-system]
 requires = ["hatchling"]

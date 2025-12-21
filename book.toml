@@ -6,6 +6,7 @@ src = "docs"
 
 [build]
 build-dir = "dist/docs"
+extra-watch-dirs = ["."]
 
 [output.html]
 smart-punctuation = false

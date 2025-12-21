@@ -49,3 +49,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/deploy-pages@v4.0.5
+        id: deployment

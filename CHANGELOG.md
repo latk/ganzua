@@ -1,6 +1,44 @@
 # Changelog
 
-## v0.3.0 (2025-11-24)
+<!-- TEMPLATE for new releases:
+
+## Unreleased
+
+Breaking changes:
+
+New features:
+
+Fixes:
+
+Other:
+
+Full diff: <https://github.com/latk/ganzua/compare/{last_release}...HEAD>
+
+-->
+
+## Unreleased
+
+Breaking changes:
+
+* Schema change for `ganzua constraints inspect`: `groups` was renamed to `in_groups`.
+
+New features:
+
+* Greatly improved docs and a new website at <https://ganzua.latk.de>.
+* Track information about extras (optional dependencies) when inspecting constraints.
+* Show information about groups and extras in `ganzua constraints inspect` Markdown output.
+
+Fixes:
+
+* Sets are now shown in JSON output as sorted arrays.
+
+Other:
+
+* Rewrote test suite to prefer CLI-level end-to-end tests over unit tests.
+
+Full diff: <https://github.com/latk/ganzua/compare/v0.3.0...HEAD>
+
+## v0.3.0 (2025-11-24) {#v0.3.0}
 
 This release focuses on extracting information about package sources, but also includes quality-of-life improvements and bug fixes. There are no breaking changes.
 
@@ -12,8 +50,8 @@ New features:
 
 Fixes:
 
-* (https://github.com/latk/ganzua/issues/3) Normalize names of packages, extras, and dependency groups when loading `pyproject.toml` files, as required by the packaging specifications.
-* (https://github.com/latk/ganzua/issues/4) Handle packages without versions in `uv.lock` files. The fake version `0+undefined` will be substituted instead.
+* (<https://github.com/latk/ganzua/issues/3>) Normalize names of packages, extras, and dependency groups when loading `pyproject.toml` files, as required by the packaging specifications.
+* (<https://github.com/latk/ganzua/issues/4>) Handle packages without versions in `uv.lock` files. The fake version `0+undefined` will be substituted instead.
 
 Other:
 
@@ -21,10 +59,10 @@ Other:
 * Added a `CHANGELOG.md` file.
 * Various internal changes and testing improvements.
 
-Full Changelog: https://github.com/latk/ganzua/compare/v0.2.0...v0.3.0
+Full diff: <https://github.com/latk/ganzua/compare/v0.2.0...v0.3.0>
 
 
-## v0.2.0 (2025-09-11)
+## v0.2.0 (2025-09-11) {#v0.2.0}
 
 This release fixes some bugs that were found through real-world usage, adds convenience features like diff summaries, and implements new constraint edits.
 
@@ -38,22 +76,22 @@ New features:
 
 * New command `ganzua constraints inspect` lists all constraints in a `pyproject.toml` file, including extras, environment markers, and dependency groups. This is particularly helpful for debugging Ganzua.
 * New option `ganzua constraints reset --to=minimum` edits constraints to require at least the currently locked version, while removing any previous constraints. Essentially, this makes all direct dependencies upgradeable.
-* (https://github.com/latk/ganzua/issues/2) Add a summary line to `ganzua diff` Markdown output that counts the number of changes.
+* (<https://github.com/latk/ganzua/issues/2>) Add a summary line to `ganzua diff` Markdown output that counts the number of changes.
 * Add a `stat` section to `ganzua diff` JSON output that counts the number of changes.
 
 Fixes:
 
 * Support loading lockfiles regardless of name. Previously, lockfiles had to be named `poetry.lock` or `uv.lock`.
-* (https://github.com/latk/ganzua/issues/1) Support `pyproject.toml` files with out-of-order tables.
+* (<https://github.com/latk/ganzua/issues/1>) Support `pyproject.toml` files with out-of-order tables.
 
 Other:
 
 * Various internal changes. Improvements to `pyproject.toml` manipulation. Fewer special cases for Poetry.
 
-Full Changelog: https://github.com/latk/ganzua/compare/v0.1.0...v0.2.0
+Full diff: <https://github.com/latk/ganzua/compare/v0.1.0...v0.2.0>
 
 
-## v0.1.0 (2025-08-16)
+## v0.1.0 (2025-08-16) {#v0.1.0}
 
 Initial release.
 

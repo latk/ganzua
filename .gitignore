@@ -1,3 +1,13 @@
+# This file has multiple roles:
+#
+# - normal .gitignore file
+# - exclude files from `mdbook watch`
+#
+# We therefore also exclude some patterns that should be excluded by default,
+# e.g. `.git`
+
+/.git/
+/.venv/
 *.pyc
 __pycache__/
 /htmlcov/

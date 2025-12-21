@@ -23,5 +23,6 @@
 
 ---
 
+[Changelog](changelog.md)
 [Support](support.md)
 [License](license.md)
