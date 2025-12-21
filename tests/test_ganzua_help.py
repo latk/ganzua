@@ -4,6 +4,7 @@ from inline_snapshot import external_file, snapshot
 
 from ganzua.cli import app
 
+from . import resources
 from .helpers import CLICK_ERROR
 
 _WELL_KNOWN_COMMANDS = (
@@ -35,7 +36,7 @@ def test_schema(command: str) -> None:
     # But we only test that the output is something json-ish
     schema = run.json("schema", command)
     assert schema == dirty_equals.IsPartialDict()
-    assert schema == external_file(f"schema.{command}.json")
+    assert schema == external_file(resources.DOCS / f"cli/schema.{command}.json")
 
 
 def test_help_mentions_subcommands() -> None:

@@ -8,6 +8,8 @@ Show the JSON schema for the output of the given command.
 
 **Options:**
 
+* `--format [json|markdown]`
+  Choose the output format, e.g. Markdown. [default: json]
 * `--help`
   Show this help message and exit.
 

@@ -18,6 +18,7 @@ import ganzua
 from . import _toml as toml
 from ._cli_help import App
 from ._markdown import md_from_diff, md_from_lockfile, md_from_requirements
+from ._markdown_from_json_schema import md_from_schema
 from ._utils import error_context
 
 app = App(
@@ -48,7 +49,7 @@ class OutputFormat(enum.Enum):
 class _with_print_json[R]:  # noqa: N801  # invalid-name
     """Decorator for pretty-printing returned data from a Click command."""
 
-    adapter: pydantic.TypeAdapter[R]
+    adapter: pydantic.TypeAdapter[R] | t.Callable[[R], pydantic.JsonValue]
     markdown: t.Callable[[R], str]
 
     def __call__[**P](
@@ -68,7 +69,11 @@ class _with_print_json[R]:  # noqa: N801  # invalid-name
             data = command(*args, **kwargs)
             match format:
                 case OutputFormat.JSON:
-                    rich.print_json(data=self.adapter.dump_python(data, mode="json"))
+                    if isinstance(self.adapter, pydantic.TypeAdapter):
+                        json_data = self.adapter.dump_python(data, mode="json")
+                    else:
+                        json_data = self.adapter(data)
+                    rich.print_json(data=json_data)
                 case OutputFormat.MARKDOWN:
                     click.echo(self.markdown(data))
                 case other:  # pragma: no cover
@@ -380,7 +385,8 @@ SchemaName = t.Literal["inspect", "diff", "constraints-inspect"]
 
 @app.command()
 @click.argument("command", type=click.Choice(t.get_args(SchemaName)))
-def schema(command: SchemaName) -> None:
+@_with_print_json(adapter=lambda schema: schema, markdown=md_from_schema)
+def schema(command: SchemaName) -> pydantic.JsonValue:
     """Show the JSON schema for the output of the given command."""
     adapter: pydantic.TypeAdapter[t.Any]
     match command:
@@ -392,5 +398,4 @@ def schema(command: SchemaName) -> None:
             adapter = REQUIREMENTS_SCHEMA
         case other:  # pragma: no cover
             t.assert_never(other)
-    schema = adapter.json_schema(mode="serialization")
-    rich.print_json(data=schema)
+    return adapter.json_schema(mode="serialization")

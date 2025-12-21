@@ -80,7 +80,7 @@ class Requirement(t.TypedDict):
     potentially with complementary or contradictory contents.
     Features like `[dependency-groups]` or `[tool.poetry.extras]`
     can include the same Requirement in multiple places,
-    which is why the `groups` and `in_extras` fields may have multiple values.
+    which is why the `in_groups` and `in_extras` fields may have multiple values.
     """
 
     name: Name

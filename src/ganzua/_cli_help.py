@@ -219,11 +219,17 @@ class AppTestRunner:
             catch_exceptions=opts.get("catch_exceptions", True),
         )
         print(result.output)
-        assert result.exit_code == expect_exit  # noqa: S101  # assert
+        if result.exit_code != expect_exit:  # pragma: no cover
+            err = AssertionError("command failed with unexpected status code")
+            err.add_note(f"exited with code: {result.exit_code}")
+            err.add_note(f"expected exit code: {expect_exit}")
+            err.add_note(f"args: {[*self.args, *args]}")
+            raise err
         return result
 
     def output(self, *args: AppTestCliArg, **opts: t.Unpack[Opts]) -> str:
         """Run an app command and return the visible OUTPUT."""
+        __tracebackhide__ = True
         return self(*args, **opts).output
 
     def stdout(self, *args: AppTestCliArg, **opts: t.Unpack[Opts]) -> str:

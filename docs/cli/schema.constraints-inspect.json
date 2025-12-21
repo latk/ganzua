@@ -1,7 +1,7 @@
 {
   "$defs": {
     "Requirement": {
-      "description": "A resolver-agnostic Requirement model.\n\nThis corresponds to one dependency entry in a `pyproject.toml` file.\nThis is a lexical/textual concept about information in the file,\nintended for inspection and edits.\n\nRequirements can be difficult to interpret.\nThere might be multiple Requirements that point to the same package,\npotentially with complementary or contradictory contents.\nFeatures like `[dependency-groups]` or `[tool.poetry.extras]`\ncan include the same Requirement in multiple places,\nwhich is why the `groups` and `in_extras` fields may have multiple values.",
+      "description": "A resolver-agnostic Requirement model.\n\nThis corresponds to one dependency entry in a `pyproject.toml` file.\nThis is a lexical/textual concept about information in the file,\nintended for inspection and edits.\n\nRequirements can be difficult to interpret.\nThere might be multiple Requirements that point to the same package,\npotentially with complementary or contradictory contents.\nFeatures like `[dependency-groups]` or `[tool.poetry.extras]`\ncan include the same Requirement in multiple places,\nwhich is why the `in_groups` and `in_extras` fields may have multiple values.",
       "properties": {
         "name": {
           "description": "The name of the required package.",
