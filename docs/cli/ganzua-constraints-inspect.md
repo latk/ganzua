@@ -1,6 +1,6 @@
 # ganzua constraints inspect
 
-<!-- command output: ganzua help constraints inspect --markdown --markdown-links=md-file -->
+<!-- command output: ganzua help constraints inspect --markdown --markdown-links={slug}.md -->
 
 Usage: `ganzua constraints inspect [OPTIONS] [PYPROJECT]`
 

@@ -1,6 +1,6 @@
 # ganzua diff
 
-<!-- command output: ganzua help diff --markdown --markdown-links=md-file -->
+<!-- command output: ganzua help diff --markdown --markdown-links={slug}.md -->
 
 Usage: `ganzua diff [OPTIONS] OLD NEW`
 

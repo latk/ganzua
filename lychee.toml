@@ -1,6 +1,9 @@
 # Enable the checking of fragments in links.
 include_fragments = true
 
+# Never contact external servers.
+offline = true
+
 # Exclude all private IPs from checking – good for security.
 exclude_all_private = true
 

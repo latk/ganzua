@@ -1,9 +1,9 @@
 Ganzua
 ======
 
-[ [GitHub](https://github.com/latk/ganzua)
-| [PyPI](https://pypi.org/project/ganzua/)
-| [Documentation](https://ganzua.latk.de)
+[ GitHub: [latk/ganzua](https://github.com/latk/ganzua)
+| PyPI: [ganzua](https://pypi.org/project/ganzua/)
+| Documentation: <https://ganzua.latk.de>
 ]
 
 <!-- ANCHOR: motivating-example -->
@@ -111,219 +111,31 @@ But since Ganzua might require conflicting dependencies, and might even need a d
 
 ## Usage
 
-<!-- command output: ganzua help --all --markdown -->
-
 Usage: `ganzua [OPTIONS] COMMAND [ARGS]...`
 
-Inspect Python dependency lockfiles (uv and Poetry).
+See the [command line reference](https://ganzua.latk.de/cli/) on the website
+for detailed docs on each subcommand:
 
-**Options:**
+<!-- command output: ganzua help --markdown --subcommand-style=flat --subcommand-path --markdown-links='https://ganzua.latk.de/cli/{slug}.html' -->
 
-* `--help`
-  Show this help message and exit.
-
-**Commands:**
-
-* [`help`](#ganzua-help)
+* [`ganzua`](https://ganzua.latk.de/cli/ganzua.html)
+  Inspect Python dependency lockfiles (uv and Poetry).
+* [`ganzua help`](https://ganzua.latk.de/cli/ganzua-help.html)
   Show help for the application or a specific subcommand.
-* [`inspect`](#ganzua-inspect)
+* [`ganzua inspect`](https://ganzua.latk.de/cli/ganzua-inspect.html)
   Inspect a lockfile.
-* [`diff`](#ganzua-diff)
+* [`ganzua diff`](https://ganzua.latk.de/cli/ganzua-diff.html)
   Compare two lockfiles.
-* [`constraints`](#ganzua-constraints)
+* [`ganzua constraints`](https://ganzua.latk.de/cli/ganzua-constraints.html)
   Work with `pyproject.toml` constraints.
-* [`schema`](#ganzua-schema)
-  Show the JSON schema for the output of the given command.
-
-For more information, see the Ganzua website at "<https://github.com/latk/ganzua>".
-
-Ganzua is licensed under the Apache-2.0 license.
-
-
-### ganzua help<a id="ganzua-help"></a>
-
-Usage: `ganzua help [OPTIONS] [SUBCOMMAND]...`
-
-Show help for the application or a specific subcommand.
-
-**Options:**
-
-* `--all`
-  Also show help for all subcommands.
-* `--markdown`
-  Output help in Markdown format.
-
-
-### ganzua inspect<a id="ganzua-inspect"></a>
-
-Usage: `ganzua inspect [OPTIONS] [LOCKFILE]`
-
-Inspect a lockfile.
-
-The `LOCKFILE` should point to an `uv.lock` or `poetry.lock` file,
-or to a directory containing such a file.
-If this argument is not specified,
-the one in the current working directory will be used.
-
-**Options:**
-
-* `--format [json|markdown]`
-  Choose the output format, e.g. Markdown. [default: json]
-* `--help`
-  Show this help message and exit.
-
-
-### ganzua diff<a id="ganzua-diff"></a>
-
-Usage: `ganzua diff [OPTIONS] OLD NEW`
-
-Compare two lockfiles.
-
-The `OLD` and `NEW` arguments must each point to an `uv.lock` or `poetry.lock` file,
-or to a directory containing such a file.
-
-There is no direct support for comparing a file across Git commits,
-but it's possible to retrieve other versions via [`git show`][git-show].
-Here is an example using a Bash redirect to show non-committed changes in a lockfile:
-
-```bash
-ganzua diff <(git show HEAD:uv.lock) uv.lock
-```
-
-[git-show]: https://git-scm.com/docs/git-show
-
-**Options:**
-
-* `--format [json|markdown]`
-  Choose the output format, e.g. Markdown. [default: json]
-* `--help`
-  Show this help message and exit.
-
-
-### ganzua constraints<a id="ganzua-constraints"></a>
-
-Usage: `ganzua constraints [OPTIONS] COMMAND [ARGS]...`
-
-Work with `pyproject.toml` constraints.
-
-**Options:**
-
-* `--help`
-  Show this help message and exit.
-
-**Commands:**
-
-* [`inspect`](#ganzua-constraints-inspect)
+* [`ganzua constraints inspect`](https://ganzua.latk.de/cli/ganzua-constraints-inspect.html)
   List all constraints in the `pyproject.toml` file.
-* [`bump`](#ganzua-constraints-bump)
+* [`ganzua constraints bump`](https://ganzua.latk.de/cli/ganzua-constraints-bump.html)
   Update `pyproject.toml` dependency constraints to match the lockfile.
-* [`reset`](#ganzua-constraints-reset)
+* [`ganzua constraints reset`](https://ganzua.latk.de/cli/ganzua-constraints-reset.html)
   Remove or relax any dependency version constraints from the `pyproject.toml`.
-
-
-### ganzua constraints inspect<a id="ganzua-constraints-inspect"></a>
-
-Usage: `ganzua constraints inspect [OPTIONS] [PYPROJECT]`
-
-List all constraints in the `pyproject.toml` file.
-
-The `PYPROJECT` argument should point to a `pyproject.toml` file,
-or to a directory containing such a file.
-If this argument is not specified,
-the one in the current working directory will be used.
-
-**Options:**
-
-* `--format [json|markdown]`
-  Choose the output format, e.g. Markdown. [default: json]
-* `--help`
-  Show this help message and exit.
-
-
-### ganzua constraints bump<a id="ganzua-constraints-bump"></a>
-
-Usage: `ganzua constraints bump [OPTIONS] [PYPROJECT]`
-
-Update `pyproject.toml` dependency constraints to match the lockfile.
-
-Of course, the lockfile should always be a valid solution for the constraints.
-But often, the constraints are somewhat relaxed.
-This tool will *increment* the constraints to match the currently locked versions.
-Specifically, the locked version becomes a lower bound for the constraint.
-
-This tool will try to be as granular as the original constraint.
-For example, given the old constraint `foo>=3.5` and the new version `4.7.2`,
-the constraint would be updated to `foo>=4.7`.
-
-The `PYPROJECT` argument should point to a `pyproject.toml` file,
-or to a directory containing such a file.
-If this argument is not specified,
-the one in the current working directory will be used.
-
-**Options:**
-
-* `--lockfile PATH`
-  Where to load versions from. Inferred if possible.
-  * file: use the path as the lockfile
-  * directory: use the lockfile in that directory
-  * default: use the lockfile in the `PYPROJECT` directory
-* `--backup PATH`
-  Store a backup in this file.
-* `--help`
-  Show this help message and exit.
-
-
-### ganzua constraints reset<a id="ganzua-constraints-reset"></a>
-
-Usage: `ganzua constraints reset [OPTIONS] [PYPROJECT]`
-
-Remove or relax any dependency version constraints from the `pyproject.toml`.
-
-This can be useful for allowing uv/Poetry to update to the most recent versions,
-ignoring the previous constraints. Approximate recipe:
-
-```bash
-ganzua constraints reset --to=minimum --backup=pyproject.toml.bak
-uv lock --upgrade  # perform the upgrade
-mv pyproject.toml.bak pyproject.toml  # restore old constraints
-ganzua constraints bump
-uv lock
-```
-
-The `PYPROJECT` argument should point to a `pyproject.toml` file,
-or to a directory containing such a file.
-If this argument is not specified,
-the one in the current working directory will be used.
-
-**Options:**
-
-* `--backup PATH`
-  Store a backup in this file.
-* `--to [none|minimum]`
-  How to reset constraints.
-  * `none` (default): remove all constraints
-  * `minimum`: set constraints to the currently locked minimum, removing upper bounds
-* `--lockfile PATH`
-  Where to load current versions from (for `--to=minimum`). Inferred if possible.
-  * file: use the path as the lockfile
-  * directory: use the lockfile in that directory
-  * default: use the lockfile in the `PYPROJECT` directory
-* `--help`
-  Show this help message and exit.
-
-
-### ganzua schema<a id="ganzua-schema"></a>
-
-Usage: `ganzua schema [OPTIONS] {inspect|diff|constraints-inspect}`
-
-Show the JSON schema for the output of the given command.
-
-**Options:**
-
-* `--format [json|markdown]`
-  Choose the output format, e.g. Markdown. [default: json]
-* `--help`
-  Show this help message and exit.
+* [`ganzua schema`](https://ganzua.latk.de/cli/ganzua-schema.html)
+  Show the JSON schema for the output of the given command.
 
 <!-- command output end -->
 

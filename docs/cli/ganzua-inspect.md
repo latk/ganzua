@@ -1,6 +1,6 @@
 # ganzua inspect
 
-<!-- command output: ganzua help inspect --markdown --markdown-links=md-file -->
+<!-- command output: ganzua help inspect --markdown --markdown-links={slug}.md -->
 
 Usage: `ganzua inspect [OPTIONS] [LOCKFILE]`
 

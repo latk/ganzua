@@ -1,6 +1,6 @@
 # ganzua constraints bump
 
-<!-- command output: ganzua help constraints bump --markdown --markdown-links=md-file -->
+<!-- command output: ganzua help constraints bump --markdown --markdown-links={slug}.md -->
 
 Usage: `ganzua constraints bump [OPTIONS] [PYPROJECT]`
 

@@ -7,7 +7,7 @@
 
 * [Overview](cli/index.md)
 
-<!-- command output: ganzua help --markdown --subcommand-tree --markdown-links=md-file --markdown-link-prefix=cli/ --no-subcommand-help -->
+<!-- command output: ganzua help --markdown --subcommand-style=tree --markdown-links='cli/{slug}.md' --no-subcommand-help -->
 
 * [`ganzua`](cli/ganzua.md)
   * [`help`](cli/ganzua-help.md)

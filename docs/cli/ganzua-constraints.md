@@ -1,6 +1,6 @@
 # ganzua constraints
 
-<!-- command output: ganzua help constraints --markdown --markdown-links=md-file -->
+<!-- command output: ganzua help constraints --markdown --markdown-links={slug}.md -->
 
 Usage: `ganzua constraints [OPTIONS] COMMAND [ARGS]...`
 

@@ -61,15 +61,13 @@ _HELP_OPTION = click.Option(
     flag_value=True,
     help="Output help in Markdown format.",
 )
+@click.option("--markdown-links", type=str, default=None, hidden=True)
+@click.option("--markdown-headings", type=str, default="### {text}", hidden=True)
 @click.option(
-    "--markdown-links",
-    type=click.Choice(["anchor", "md-file"]),
-    default=None,
+    "--subcommand-style",
+    type=click.Choice(["top", "flat", "tree"]),
+    default="top",
     hidden=True,
-)
-@click.option("--markdown-link-prefix", type=str, default="", hidden=True)
-@click.option(
-    "--subcommand-tree", type=bool, is_flag=True, flag_value=True, hidden=True
 )
 @click.option(
     "--subcommand-path", type=bool, is_flag=True, flag_value=True, hidden=True
@@ -81,9 +79,9 @@ def help_command(  # noqa: PLR0913  # too-many-arguments
     help_ctx: click.Context,
     recursive: bool,
     markdown: bool,
-    markdown_links: t.Literal["anchor", "md-file"] | None,
-    markdown_link_prefix: str,
-    subcommand_tree: bool,
+    markdown_links: str | None,
+    markdown_headings: str,
+    subcommand_style: t.Literal["top", "flat", "tree"],
     subcommand_path: bool,
     subcommand_help: bool,
     subcommand: tuple[str, ...],
@@ -92,7 +90,7 @@ def help_command(  # noqa: PLR0913  # too-many-arguments
     ctx = help_ctx.find_root()
 
     subcommands = _SubcommandTreeSettings(
-        recursive=subcommand_tree,
+        style=subcommand_style,
         fullname=subcommand_path,
         showhelp=subcommand_help,
     )
@@ -109,18 +107,16 @@ def help_command(  # noqa: PLR0913  # too-many-arguments
             # cf https://github.com/pallets/click/blob/834e04a75c5693be55f3cd8b8d3580f74086a353/src/click/core.py#L738
             ctx = stack.enter_context(click.Context(cmd, info_name=name, parent=ctx))
         help_items: t.Iterable[_MarkdownOrRich]
-        if subcommand_tree:
-            help_items = [_DefinitionList([subcommands.describe_one(ctx)])]
+        if subcommands.style in ("flat", "tree"):
+            help_items = [subcommands.describe_full(ctx)]
         else:
             help_items = format_command_help(
                 ctx, recursive=recursive, subcommands=subcommands
             )
         if markdown:
-            if markdown_links is None and recursive:
-                markdown_links = "anchor"
             markdown_settings = _AsMarkdownSettings(
-                links=markdown_links,
-                link_prefix=markdown_link_prefix,
+                heading_template=markdown_headings,
+                link_template=markdown_links,
             )
             for item in help_items:
                 click.echo("\n".join(_as_markdown(item, markdown_settings)))
@@ -259,31 +255,23 @@ type _MarkdownOrRich = (
 )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class _AsMarkdownSettings:
-    level: int = 3
-    links: t.Literal["anchor", "md-file"] | None = None
-    link_prefix: str = ""
+    heading_template: str = "### {text}"
+    """Used to produce the entire Markdown header line. Placeholders: `{text}`, `{slug}`."""
+    link_template: str | None
+    """Used to produce an URL. Placeholder: `{slug}`."""
 
     def make_link(self, text: str, *, xref: str | None) -> str:
         if not xref:
             return text
-        match self.links:
-            case "anchor":
-                return f"[{text}]({self.link_prefix}#{xref})"
-            case "md-file":
-                return f"[{text}]({self.link_prefix}{xref}.md)"
-            case None:
-                return text
-            case other:  # pragma: no cover
-                t.assert_never(other)
+        if self.link_template is None:
+            return text
+        link = self.link_template.format(slug=xref)
+        return f"[{text}]({link})"
 
     def make_heading(self, text: str) -> str:
-        atx_prefix = "#" * self.level
-        if self.links == "anchor":
-            # workaround per <https://github.com/pypa/readme_renderer/issues/169#issuecomment-808577486>
-            text += f'<a id="{_github_slugify(text)}"></a>'
-        return f"{atx_prefix} {text}"
+        return self.heading_template.format(text=text, slug=_github_slugify(text))
 
 
 def _as_markdown(  # noqa: C901  # complexity
@@ -293,9 +281,15 @@ def _as_markdown(  # noqa: C901  # complexity
 
     Example: can emit headings.
 
-    >>> def print_markdown_doc(*items, links=None):
+    >>> def print_markdown_doc(*items, links=False):
+    ...     settings = _AsMarkdownSettings(link_template=None)
+    ...     if links:
+    ...         settings = _AsMarkdownSettings(
+    ...             link_template="#{slug}",
+    ...             heading_template='### {text}<a id="{slug}"></a>',
+    ...         )
     ...     for item in items:
-    ...         print("\n".join(_as_markdown(item, _AsMarkdownSettings(links=links))))
+    ...         print("\n".join(_as_markdown(item, settings)))
     >>> print_markdown_doc(
     ...     _Markdown("content"),
     ...     _SubcommandHeading("some info"),
@@ -315,7 +309,7 @@ def _as_markdown(  # noqa: C901  # complexity
     ...         [_DefinitionListItem("key", _Markdown("value"), xref="some-anchor")]
     ...     ),
     ...     _SubcommandHeading("some anchor"),
-    ...     links="anchor",
+    ...     links=True,
     ... )
     * [`key`](#some-anchor)
       value
@@ -461,15 +455,18 @@ def format_command_help(
 
 @dataclass(kw_only=True)
 class _SubcommandTreeSettings:
-    recursive: bool
+    style: t.Literal["top", "flat", "tree"]
     fullname: bool
     showhelp: bool
 
     @classmethod
     def default(cls) -> t.Self:
-        return cls(recursive=False, fullname=False, showhelp=True)
+        return cls(style="top", fullname=False, showhelp=True)
 
-    def describe_one(self, ctx: click.Context) -> "_DefinitionListItem":
+    def describe_full(self, ctx: click.Context) -> _MarkdownOrRich:
+        return _DefinitionList(list(self.describe_one(ctx)))
+
+    def describe_one(self, ctx: click.Context) -> "t.Iterable[_DefinitionListItem]":
         name = ctx.info_name
         if self.fullname:
             name = ctx.command_path
@@ -479,15 +476,19 @@ class _SubcommandTreeSettings:
         description = list[_MarkdownOrRich]()
         if self.showhelp:
             description.append(_command_short_help(ctx.command))
-        if self.recursive:
+        if self.style == "tree":
             if children := self.describe_subcommands(ctx):
                 description.append(children)
 
-        return _DefinitionListItem(
+        yield _DefinitionListItem(
             Text(name, style=_OPT_STYLE),
             description,
             xref=_github_slugify(ctx.command_path),
         )
+
+        if self.style == "flat":
+            if children := self.describe_subcommands(ctx):
+                yield from children.items
 
     def describe_subcommands(self, ctx: click.Context) -> "_DefinitionList | None":
         commands: t.Mapping[str, click.Command] = {}
@@ -501,7 +502,7 @@ class _SubcommandTreeSettings:
             with click.Context(
                 nested_cmd, info_name=nested_name, parent=ctx
             ) as nested_ctx:
-                children.append(self.describe_one(nested_ctx))
+                children.extend(self.describe_one(nested_ctx))
         return _DefinitionList(children)
 
 

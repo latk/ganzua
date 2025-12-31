@@ -80,4 +80,5 @@ lychee *args: sync
 docs: sync
   #!/usr/bin/env -S bash -euo pipefail
   ./scripts/mdbook build
-  ./scripts/lychee --config lychee.toml --root-dir dist/docs --offline 'dist/docs/**/*.html'
+  ./scripts/lychee --config lychee.toml 'dist/docs/**/*.html' --root-dir dist/docs
+  ./scripts/lychee --config lychee.toml '*.md' --remap "https://ganzua.latk.de(.*)$ file://$PWD/dist/docs\$1"

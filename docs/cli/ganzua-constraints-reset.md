@@ -1,6 +1,6 @@
 # ganzua constraints reset
 
-<!-- command output: ganzua help constraints reset --markdown --markdown-links=md-file -->
+<!-- command output: ganzua help constraints reset --markdown --markdown-links={slug}.md -->
 
 Usage: `ganzua constraints reset [OPTIONS] [PYPROJECT]`
 

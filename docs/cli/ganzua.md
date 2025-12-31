@@ -1,6 +1,6 @@
 # ganzua
 
-<!-- command output: ganzua help --markdown --markdown-links=md-file -->
+<!-- command output: ganzua help --markdown --markdown-links={slug}.md -->
 
 Usage: `ganzua [OPTIONS] COMMAND [ARGS]...`
 

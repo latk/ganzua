@@ -2,7 +2,7 @@
 
 This section documents all Ganzua subcommands.
 
-<!-- command output: ganzua help --markdown --subcommand-tree --markdown-links=md-file --subcommand-path -->
+<!-- command output: ganzua help --markdown --subcommand-style=tree --markdown-links='{slug}.md' --subcommand-path -->
 
 * [`ganzua`](ganzua.md)
   Inspect Python dependency lockfiles (uv and Poetry).
