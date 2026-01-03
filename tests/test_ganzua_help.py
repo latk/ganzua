@@ -5,7 +5,7 @@ from inline_snapshot import external_file, snapshot
 from ganzua.cli import app
 
 from . import resources
-from .helpers import CLICK_ERROR
+from .helpers import CLICK_ERROR, parametrized
 
 _WELL_KNOWN_COMMANDS = (
     "inspect",
@@ -67,10 +67,17 @@ def test_help_subcommand() -> None:
     assert run.output("inspect", "--help") == run.output("help", "inspect")
 
 
-def test_help_rejects_unknown_commands() -> None:
-    result = run("help", "this-is-not-a-command", expect_exit=CLICK_ERROR)
+@parametrized(
+    "path",
+    {
+        "nonexistent": "this-is-not-a-command",
+        "not-subcommand": "inspect diff",
+    },
+)
+def test_help_rejects_unknown_commands(path: str) -> None:
+    result = run("help", *path.split(), expect_exit=CLICK_ERROR)
     assert result.stderr.startswith("Usage: ganzua help")
-    assert result.stderr.endswith("no such subcommand: this-is-not-a-command\n")
+    assert result.stderr.endswith(f"no such subcommand: {path}\n")
 
 
 def test_help_can_show_subcommands() -> None:
