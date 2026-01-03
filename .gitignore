@@ -6,13 +6,17 @@
 # We therefore also exclude some patterns that should be excluded by default,
 # e.g. `.git`
 
-/.git/
-/.venv/
 *.pyc
-__pycache__/
-/htmlcov/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+/.coverage*
+/.git/
 /dist/
+/htmlcov/
 /old.pyproject.toml
 /old.uv.lock
-/scripts/mdbook
 /scripts/lychee
+/scripts/mdbook
+__pycache__/
