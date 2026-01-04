@@ -165,6 +165,9 @@ class AppTestRunner:
         catch_exceptions: bool
         """Whether to catch exceptions (other than `SystemExit`), default `True`."""
 
+        print: bool
+        """Whether to print the command output for debugging, default `True`."""
+
     def bind(self, *args: AppTestCliArg) -> t.Self:
         """Create new runner that prefixes the given args (partial application)."""
         return type(self)(app=self.app, args=(*self.args, *args))
@@ -183,7 +186,8 @@ class AppTestRunner:
             [os.fspath(arg) for arg in (*self.args, *args)],
             catch_exceptions=opts.get("catch_exceptions", True),
         )
-        print(result.output)
+        if opts.get("print", True):
+            print(result.output)
         if result.exit_code != expect_exit:  # pragma: no cover
             err = AssertionError("command failed with unexpected status code")
             err.add_note(f"exited with code: {result.exit_code}")

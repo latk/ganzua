@@ -15,7 +15,7 @@ For example, we can summarize the differences between two `uv.lock` files.
 Ganzua is designed for scripting, so by default we get JSON output:
 
 ```console
-$ ganzua diff corpus/{old,new}-uv-project/uv.lock
+$ ganzua diff corpus/old-uv-project corpus/new-uv-project
 {
   "stat": {
     "total": 2,
@@ -49,7 +49,7 @@ $ ganzua diff corpus/{old,new}-uv-project/uv.lock
 We can also opt in to Markdown (GFM) output, which will produce a summary and a table:
 
 ```console
-$ ganzua diff --format=markdown corpus/{old,new}-uv-project/uv.lock
+$ ganzua diff --format=markdown corpus/old-uv-project corpus/new-uv-project
 2 changed packages (1 added, 1 updated)
 
 | package           | old      | new    | notes |
@@ -215,3 +215,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 <!-- ANCHOR_END: license -->
+
+<!-- expected doctest commands: 3 -->
