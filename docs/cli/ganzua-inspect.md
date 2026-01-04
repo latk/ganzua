@@ -20,6 +20,121 @@ the one in the current working directory will be used.
 
 <!-- command output end -->
 
+## Examples
+
+We can load various example lockfiles:
+
+<details><summary><code>$ ganzua inspect corpus/old-uv-project</code></summary>
+
+```json
+{
+  "packages": {
+    "example": {
+      "version": "0.1.0",
+      "source": {
+        "direct": "."
+      }
+    },
+    "typing-extensions": {
+      "version": "3.10.0.2",
+      "source": "pypi"
+    }
+  }
+}
+```
+
+</details>
+
+<details><summary><code>$ ganzua inspect corpus/new-uv-project</code></summary>
+
+```json
+{
+  "packages": {
+    "annotated-types": {
+      "version": "0.7.0",
+      "source": "pypi"
+    },
+    "example": {
+      "version": "0.1.0",
+      "source": {
+        "direct": "."
+      }
+    },
+    "typing-extensions": {
+      "version": "4.14.1",
+      "source": "pypi"
+    }
+  }
+}
+```
+
+</details>
+
+<details><summary><code>$ ganzua inspect corpus/old-poetry-project</code></summary>
+
+```json
+{
+  "packages": {
+    "typing-extensions": {
+      "version": "3.10.0.2",
+      "source": "default"
+    }
+  }
+}
+```
+
+</details>
+
+<details><summary><code>$ ganzua inspect corpus/new-poetry-project</code></summary>
+
+```json
+{
+  "packages": {
+    "annotated-types": {
+      "version": "0.7.0",
+      "source": "default"
+    },
+    "typing-extensions": {
+      "version": "4.14.1",
+      "source": "default"
+    }
+  }
+}
+```
+
+</details>
+
+Instead of producing JSON output, we can summarize lockfiles as Markdown:
+
+```console
+$ ganzua inspect corpus/old-uv-project --format=markdown
+| package           | version  |
+|-------------------|----------|
+| example           | 0.1.0    |
+| typing-extensions | 3.10.0.2 |
+```
+
+It is possible for a locked package to have no version
+(see [issue #4](https://github.com/latk/ganzua/issues/4)).
+In this case, Ganzua will use the pseudo-version `0+undefined`:
+
+<details><summary><code>$ ganzua inspect corpus/setuptools-dynamic-version</code></summary>
+
+```json
+{
+  "packages": {
+    "setuptools-dynamic-version": {
+      "version": "0+undefined",
+      "source": {
+        "direct": "."
+      }
+    }
+  }
+}
+```
+
+</details>
+
 ## JSON Schema
 
 Download: [schema.inspect.json](schema.inspect.json)

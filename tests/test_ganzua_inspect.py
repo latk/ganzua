@@ -4,7 +4,6 @@ import secrets
 
 import pydantic
 import pytest
-from inline_snapshot import snapshot
 
 from ganzua.cli import app
 
@@ -33,50 +32,6 @@ def test_can_load_empty_uv(tmp_path: pathlib.Path) -> None:
 def test_can_load_empty_poetry(tmp_path: pathlib.Path) -> None:
     lockfile = write_file(tmp_path / "poetry.lock", data=example_poetry_lockfile())
     assert inspect.json(lockfile) == {"packages": {}}
-
-
-def test_can_load_old_uv() -> None:
-    assert inspect.json(resources.OLD_UV_LOCKFILE) == snapshot(
-        {
-            "packages": {
-                "example": {"version": "0.1.0", "source": {"direct": "."}},
-                "typing-extensions": {"version": "3.10.0.2", "source": "pypi"},
-            }
-        }
-    )
-
-
-def test_can_load_new_uv() -> None:
-    assert inspect.json(resources.NEW_UV_LOCKFILE) == snapshot(
-        {
-            "packages": {
-                "annotated-types": {"version": "0.7.0", "source": "pypi"},
-                "example": {"version": "0.1.0", "source": {"direct": "."}},
-                "typing-extensions": {"version": "4.14.1", "source": "pypi"},
-            }
-        }
-    )
-
-
-def test_can_load_old_poetry() -> None:
-    assert inspect.json(resources.OLD_POETRY_LOCKFILE) == snapshot(
-        {
-            "packages": {
-                "typing-extensions": {"version": "3.10.0.2", "source": "default"},
-            }
-        }
-    )
-
-
-def test_can_load_new_poetry() -> None:
-    assert inspect.json(resources.NEW_POETRY_LOCKFILE) == snapshot(
-        {
-            "packages": {
-                "annotated-types": {"version": "0.7.0", "source": "default"},
-                "typing-extensions": {"version": "4.14.1", "source": "default"},
-            }
-        }
-    )
 
 
 @parametrized(
@@ -114,29 +69,3 @@ def test_can_locate_lockfile(tmp_path: pathlib.Path) -> None:
         # but finds the lockfile if present
         write_file(tmp_path / "uv.lock", source=lockfile)
         assert inspect.json() == output
-
-
-def test_markdown() -> None:
-    output = inspect.output("--format=markdown", resources.OLD_UV_LOCKFILE)
-    assert output == snapshot(
-        """\
-| package           | version  |
-|-------------------|----------|
-| example           | 0.1.0    |
-| typing-extensions | 3.10.0.2 |
-"""
-    )
-
-
-def test_can_parse_package_without_version_uv() -> None:
-    """Test for <https://github.com/latk/ganzua/issues/4>."""
-    assert inspect.json(resources.SETUPTOOLS_DYNAMIC_VERSION_LOCKFILE) == snapshot(
-        {
-            "packages": {
-                "setuptools-dynamic-version": {
-                    "version": "0+undefined",
-                    "source": {"direct": "."},
-                }
-            }
-        }
-    )

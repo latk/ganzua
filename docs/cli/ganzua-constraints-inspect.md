@@ -20,6 +20,102 @@ the one in the current working directory will be used.
 
 <!-- command output end -->
 
+
+## Examples
+
+Can inspect the constraints of a `pyproject.toml` file as JSON or Markdown:
+
+<details><summary><code>$ ganzua constraints inspect corpus/new-uv-project</code></summary>
+
+```json
+{
+  "requirements": [
+    {
+      "name": "annotated-types",
+      "specifier": ">=0.7.0"
+    },
+    {
+      "name": "typing-extensions",
+      "specifier": ">=4"
+    }
+  ]
+}
+```
+
+</details>
+
+<details><summary><code>$ ganzua constraints inspect corpus/new-uv-project --format=markdown</code></summary>
+
+```
+| package           | version |
+|-------------------|---------|
+| annotated-types   | >=0.7.0 |
+| typing-extensions | >=4     |
+```
+
+</details>
+
+The same package can appear in multiple constraints, in particular:
+
+* in different extras: `[package.optional-dependencies]`, `[tool.poetry.extras]`
+* in different groups: `[dependency-groups]`, `[tool.poetry.group.*.dependencies]`
+
+Due to inheritance mechanisms like `{include-group = "…"}`, the same constraint can appear in multiple extras (Poetry only) and multiple groups (all flavors).
+
+Here are some examples of how the Ganzua output looks in these cases:
+
+<details><summary><code>$ ganzua constraints inspect corpus/poetry-multiple-groups</code></summary>
+
+```json
+{
+  "requirements": [
+    {
+      "name": "annotated-types",
+      "specifier": ">=0.7.0"
+    },
+    {
+      "name": "annotated-types",
+      "specifier": "<0.8.0",
+      "in_groups": [
+        "dev",
+        "types"
+      ]
+    },
+    {
+      "name": "typing-extensions",
+      "specifier": "<5.0.0,>=4.15.0",
+      "in_groups": [
+        "types"
+      ]
+    },
+    {
+      "name": "typing-extensions",
+      "specifier": "^4.15",
+      "in_extras": [
+        "dev",
+        "types"
+      ]
+    }
+  ]
+}
+```
+
+</details>
+
+<details><summary><code>$ ganzua constraints inspect corpus/poetry-multiple-groups --format=markdown</code></summary>
+
+```
+| package           | version         | group/extra                |
+|-------------------|-----------------|----------------------------|
+| annotated-types   | <0.8.0          | group `dev`, group `types` |
+| annotated-types   | >=0.7.0         |                            |
+| typing-extensions | <5.0.0,>=4.15.0 | group `types`              |
+| typing-extensions | ^4.15           | extra `dev`, extra `types` |
+```
+
+</details>
+
+
 ## JSON Schema
 
 Download: [schema.constraints-inspect.json](schema.constraints-inspect.json)

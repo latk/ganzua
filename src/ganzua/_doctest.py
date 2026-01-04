@@ -1,5 +1,6 @@
 """Custom doctest-style functionality."""
 
+import html
 import pathlib
 import re
 import shlex
@@ -122,6 +123,10 @@ class Runner:
     EXPECTED_DOCTEST_COMMANDS = re.compile(r"<!-- expected doctest commands: (\d+) -->")
     CONSOLE_BLOCK_START = re.compile("(```+) *console *")
     CONSOLE_COMMAND = re.compile("[$] (.+)")
+    COLLAPSIBLE_BLOCK_START = re.compile(
+        "<details><summary><code>[$] (.+)</code></summary>"
+    )
+    COLLAPSIBLE_BLOCK_END = "</details>"
 
     def __post_init__(self) -> None:
         self.executed_doctest_commands: int = 0
@@ -160,10 +165,7 @@ class Runner:
         line = next(self.iter)
 
         if m := self.COMMAND_OUTPUT_START.fullmatch(line):
-            if not self.consume_until_incl(self.COMMAND_OUTPUT_END):
-                line.raise_syntax_error(
-                    f"must have matching `{self.COMMAND_OUTPUT_END}`"
-                )
+            self.consume_until_closing(self.COMMAND_OUTPUT_END, loc=line)
 
             yield line
             yield ""
@@ -181,6 +183,21 @@ class Runner:
                 end_fence=end_fence, loc=line
             )
             yield end_fence
+
+        elif m := self.COLLAPSIBLE_BLOCK_START.fullmatch(line):
+            self.consume_until_closing(self.COLLAPSIBLE_BLOCK_END, loc=line)
+
+            yield line
+            yield ""
+            output = self.command_output(html.unescape(m[1]), line=line)
+            if output.startswith(("{", "[")):
+                yield "```json"
+            else:
+                yield "```"
+            yield output
+            yield "```"
+            yield ""
+            yield self.COLLAPSIBLE_BLOCK_END
 
         else:
             yield line
@@ -204,12 +221,12 @@ class Runner:
                 pass  # skip existing output lines
         loc.raise_syntax_error("must have matching closing fence")
 
-    def consume_until_incl(self, end: str) -> bool:
+    def consume_until_closing(self, end: str, *, loc: _Line) -> None:
         """Consume all lines until the `end` line is found."""
-        for line in self.iter:  # noqa: SIM110  # make iterator state clearer
+        for line in self.iter:
             if line == end:
-                return True
-        return False
+                return
+        loc.raise_syntax_error(f"must have matching `{end}`")
 
     def command_output(self, command: str, *, line: _Line) -> str:
         match shlex.split(command):
