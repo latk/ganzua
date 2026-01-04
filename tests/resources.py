@@ -1,7 +1,7 @@
 import importlib.resources
 import pathlib
 
-_RESOURCES = importlib.resources.files()
+ROOT = importlib.resources.files() / ".."
 
 # The `importlib.resources` API only guarantees the `Traversable` interface.
 # This matters when resources aren't installed as actual files,
@@ -9,24 +9,25 @@ _RESOURCES = importlib.resources.files()
 # However, these resources are only used during development,
 # which always uses an editable install.
 # So we know that these resources are ordinary file paths.
-assert isinstance(_RESOURCES, pathlib.Path)  # noqa: S101  # assert
+assert isinstance(ROOT, pathlib.Path)  # noqa: S101  # assert
 
-OLD_UV_LOCKFILE = _RESOURCES / "old-uv-project/uv.lock"
-NEW_UV_LOCKFILE = _RESOURCES / "new-uv-project/uv.lock"
-MINOR_UV_LOCKFILE = _RESOURCES / "minor-uv-project/uv.lock"
-OLD_UV_PYPROJECT = _RESOURCES / "old-uv-project/pyproject.toml"
-NEW_UV_PYPROJECT = _RESOURCES / "new-uv-project/pyproject.toml"
-OLD_POETRY_LOCKFILE = _RESOURCES / "old-poetry-project/poetry.lock"
-NEW_POETRY_LOCKFILE = _RESOURCES / "new-poetry-project/poetry.lock"
-NEW_POETRY_PYPROJECT = _RESOURCES / "new-poetry-project/pyproject.toml"
-SOURCES_POETRY_LOCKFILE = _RESOURCES / "sources-poetry/poetry.lock"
-SOURCES_UV_LOCKFILE = _RESOURCES / "sources-uv/uv.lock"
-SETUPTOOLS_DYNAMIC_VERSION_LOCKFILE = _RESOURCES / "setuptools-dynamic-version/uv.lock"
-POETRY_MULTIPLE_GROUPS_PYPROJECT = _RESOURCES / "poetry-multiple-groups/pyproject.toml"
+CORPUS = ROOT / "corpus"
+OLD_UV_LOCKFILE = CORPUS / "old-uv-project/uv.lock"
+NEW_UV_LOCKFILE = CORPUS / "new-uv-project/uv.lock"
+MINOR_UV_LOCKFILE = CORPUS / "minor-uv-project/uv.lock"
+OLD_UV_PYPROJECT = CORPUS / "old-uv-project/pyproject.toml"
+NEW_UV_PYPROJECT = CORPUS / "new-uv-project/pyproject.toml"
+OLD_POETRY_LOCKFILE = CORPUS / "old-poetry-project/poetry.lock"
+NEW_POETRY_LOCKFILE = CORPUS / "new-poetry-project/poetry.lock"
+NEW_POETRY_PYPROJECT = CORPUS / "new-poetry-project/pyproject.toml"
+SOURCES_POETRY_LOCKFILE = CORPUS / "sources-poetry/poetry.lock"
+SOURCES_UV_LOCKFILE = CORPUS / "sources-uv/uv.lock"
+SETUPTOOLS_DYNAMIC_VERSION_LOCKFILE = CORPUS / "setuptools-dynamic-version/uv.lock"
+POETRY_MULTIPLE_GROUPS_PYPROJECT = CORPUS / "poetry-multiple-groups/pyproject.toml"
 
-README = _RESOURCES / "../README.md"
-CHANGELOG = _RESOURCES / "../CHANGELOG.md"
-DOCS = _RESOURCES / "../docs"
+README = ROOT / "README.md"
+CHANGELOG = ROOT / "CHANGELOG.md"
+DOCS = ROOT / "docs"
 EMPTY = pathlib.Path("/dev/null")
 
 CONSTRAINTS_PYPROJECT_CONTENTS = """\

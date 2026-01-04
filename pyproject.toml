@@ -94,6 +94,7 @@ pylint.max-returns = 10
 # tests may use asserts and do not need docstrings
 "tests/**.py" = ["D100"]
 "tests/test_**.py" = ["S101", "D103"]
+"corpus/**.py" = ["D100"]
 
 [tool.ruff.format]
 docstring-code-format = true

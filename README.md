@@ -15,7 +15,7 @@ For example, we can summarize the differences between two `uv.lock` files.
 Ganzua is designed for scripting, so by default we get JSON output:
 
 ```console
-$ ganzua diff tests/{old,new}-uv-project/uv.lock
+$ ganzua diff corpus/{old,new}-uv-project/uv.lock
 {
   "stat": {
     "total": 2,
@@ -49,7 +49,7 @@ $ ganzua diff tests/{old,new}-uv-project/uv.lock
 We can also opt in to Markdown (GFM) output, which will produce a summary and a table:
 
 ```console
-$ ganzua diff --format=markdown tests/{old,new}-uv-project/uv.lock
+$ ganzua diff --format=markdown corpus/{old,new}-uv-project/uv.lock
 2 changed packages (1 added, 1 updated)
 
 | package           | old      | new    | notes |
@@ -64,7 +64,7 @@ Aside from inspecting or diffing lockfiles,
 we can extract and manipulate constraints from `pyproject.toml` files:
 
 ```console
-$ ganzua constraints inspect --format=markdown tests/new-uv-project/pyproject.toml
+$ ganzua constraints inspect --format=markdown corpus/new-uv-project/pyproject.toml
 | package           | version |
 |-------------------|---------|
 | annotated-types   | >=0.7.0 |
