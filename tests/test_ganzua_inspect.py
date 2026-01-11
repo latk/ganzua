@@ -5,16 +5,11 @@ import secrets
 import pydantic
 import pytest
 
+from ganzua._doctest import example_poetry_lockfile, example_uv_lockfile
 from ganzua.cli import app
 
 from . import resources
-from .helpers import (
-    CLICK_ERROR,
-    example_poetry_lockfile,
-    example_uv_lockfile,
-    parametrized,
-    write_file,
-)
+from .helpers import CLICK_ERROR, parametrized, write_file
 
 inspect = app.testrunner().bind("inspect")
 

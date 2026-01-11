@@ -70,7 +70,7 @@ Can show JSON diffs:
 
 Can also show the diff as Markdown:
 
-<details><summary><code>$ ganzua diff --format=markdown corpus/old-uv-project corpus/new-uv-project</code></summary>
+<details><summary><code>$ ganzua diff corpus/old-uv-project corpus/new-uv-project --format=markdown</code></summary>
 
 ```
 2 changed packages (1 added, 1 updated)
@@ -87,7 +87,7 @@ Can also show the diff as Markdown:
 
 Here's the same diff in reverse, which now shows a `(D)` downgrade notice:
 
-<details><summary><code>$ ganzua diff --format=markdown corpus/new-uv-project corpus/old-uv-project</code></summary>
+<details><summary><code>$ ganzua diff corpus/new-uv-project corpus/old-uv-project --format=markdown</code></summary>
 
 ```
 2 changed packages (1 updated, 1 removed)
@@ -103,10 +103,37 @@ Here's the same diff in reverse, which now shows a `(D)` downgrade notice:
 
 </details>
 
+Test cases for demonstrating how the `(M)`/`is_major_change` note works:
+
+<!-- doctest: check ganzua diff notes -->
+
+| package                     | old   | new     | notes |
+|-----------------------------|-------|---------|-------|
+| epoch-changed               | 1.2.3 | 1!1.2.3 | (M)   |
+| epoch-zero                  | 1.2.3 | 0!1.2.3 |       |
+| existence-added             | -     | 1.2.3   |       |
+| existence-removed           | 1.2.3 | -       |       |
+| major                       | 1.2.3 | 2.1.0   | (M)   |
+| minor                       | 1.2.3 | 1.3.4   |       |
+| validity-invalid-to-invalid | foo   | bar     | (M)   |
+| validity-invalid-to-valid   | foo   | 1.2.3   | (M)   |
+| validity-valid-to-invalid   | 1.2.3 | foo     | (M)   |
+| zerover-change              | 0.1.2 | 0.2.0   | (M)   |
+| zerover-same                | 0.1.2 | 0.1.3   |       |
+
+Test cases for demonstrating how the `(D)`/`is_downgrade` note works:
+
+<!-- doctest: check ganzua diff notes -->
+
+| package   | old   | new   | notes |
+|-----------|-------|-------|-------|
+| downgrade | 1.3.4 | 1.0.1 | (D)   |
+| upgrade   | 1.0.1 | 1.3.4 |       |
+
 The Markdown diff can show notices when the source of a package changes.
 When multiple entries have the same note, their IDs are deduplicated:
 
-<details><summary><code>$ ganzua diff --format=markdown corpus/sources-poetry corpus/sources-uv</code></summary>
+<details><summary><code>$ ganzua diff corpus/sources-poetry corpus/sources-uv --format=markdown</code></summary>
 
 ```
 6 changed packages (1 added, 5 updated)
@@ -140,12 +167,74 @@ If there are no notes, the entire column is omitted:
 
 </details>
 
-When a there are no changes, the Markdown output omits the table:
+When a there are no changes, only the summary is shown.
+The Markdown output omits the table:
 
-<details><summary><code>$ ganzua diff --format=markdown corpus/new-uv-project corpus/new-uv-project</code></summary>
+<details><summary><code>$ ganzua diff corpus/new-uv-project corpus/new-uv-project</code></summary>
+
+```json
+{
+  "stat": {
+    "total": 0,
+    "added": 0,
+    "removed": 0,
+    "updated": 0
+  },
+  "packages": {}
+}
+```
+
+</details>
+
+<details><summary><code>$ ganzua diff corpus/new-uv-project corpus/new-uv-project --format=markdown</code></summary>
 
 ```
 0 changed packages
+```
+
+</details>
+
+The input paths may point to directories or lockfiles.
+The following invocations are all equivalent:
+
+<!-- doctest: compare output -->
+
+* `$ ganzua diff corpus/old-uv-project         corpus/new-uv-project`
+* `$ ganzua diff corpus/old-uv-project         corpus/new-uv-project/uv.lock`
+* `$ ganzua diff corpus/old-uv-project/uv.lock corpus/new-uv-project`
+* `$ ganzua diff corpus/old-uv-project/uv.lock corpus/new-uv-project/uv.lock`
+
+<details><summary>output for the above commands</summary>
+
+```json
+{
+  "stat": {
+    "total": 2,
+    "added": 1,
+    "removed": 0,
+    "updated": 1
+  },
+  "packages": {
+    "annotated-types": {
+      "old": null,
+      "new": {
+        "version": "0.7.0",
+        "source": "pypi"
+      }
+    },
+    "typing-extensions": {
+      "old": {
+        "version": "3.10.0.2",
+        "source": "pypi"
+      },
+      "new": {
+        "version": "4.14.1",
+        "source": "pypi"
+      },
+      "is_major_change": true
+    }
+  }
+}
 ```
 
 </details>

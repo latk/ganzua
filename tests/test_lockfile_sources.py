@@ -3,11 +3,12 @@ import pathlib
 from inline_snapshot import snapshot
 
 import ganzua
+from ganzua._doctest import example_poetry_lockfile, example_uv_lockfile
 from ganzua._markdown import md_from_source
 from ganzua._package_source import Source, SourceDirect, SourceRegistry
-from tests.helpers import example_poetry_lockfile, example_uv_lockfile, write_file
 
 from . import resources
+from .helpers import write_file
 
 
 def test_can_load_sources_poetry() -> None:

@@ -114,6 +114,39 @@ $ ganzua inspect corpus/old-uv-project --format=markdown
 | typing-extensions | 3.10.0.2 |
 ```
 
+The input paths may point to directories or lockfiles.
+The following invocations are all equivalent:
+
+<!-- doctest: compare output -->
+
+* `$ ganzua inspect corpus/new-uv-project`
+* `$ ganzua inspect corpus/new-uv-project/uv.lock`
+
+<details><summary>output for the above commands</summary>
+
+```json
+{
+  "packages": {
+    "annotated-types": {
+      "version": "0.7.0",
+      "source": "pypi"
+    },
+    "example": {
+      "version": "0.1.0",
+      "source": {
+        "direct": "."
+      }
+    },
+    "typing-extensions": {
+      "version": "4.14.1",
+      "source": "pypi"
+    }
+  }
+}
+```
+
+</details>
+
 It is possible for a locked package to have no version
 (see [issue #4](https://github.com/latk/ganzua/issues/4)).
 In this case, Ganzua will use the pseudo-version `0+undefined`:

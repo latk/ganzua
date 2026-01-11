@@ -3,16 +3,11 @@ import pathlib
 
 from inline_snapshot import snapshot
 
+from ganzua._doctest import example_poetry_lockfile, example_uv_lockfile
 from ganzua.cli import app
 
 from . import resources
-from .helpers import (
-    CLICK_ERROR,
-    example_poetry_lockfile,
-    example_uv_lockfile,
-    parametrized,
-    write_file,
-)
+from .helpers import CLICK_ERROR, parametrized, write_file
 
 bump = app.testrunner().bind("constraints", "bump")
 
