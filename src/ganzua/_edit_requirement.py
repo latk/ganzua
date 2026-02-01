@@ -6,13 +6,11 @@ from packaging.utils import canonicalize_version
 from packaging.version import Version
 
 from ._lockfile import Lockfile
-from ._requirement import Requirement
-
-Kind = t.Literal["pep508", "poetry"]
+from ._requirement import Requirement, RequirementWithKind
 
 
 class EditRequirement(t.Protocol):  # pragma: no cover
-    def apply(self, req: Requirement, *, kind: Kind) -> None: ...
+    def apply(self, req: RequirementWithKind) -> None: ...
 
 
 @dataclass
@@ -22,13 +20,13 @@ class UpdateRequirement(EditRequirement):
     lockfile: Lockfile
 
     @t.override
-    def apply(self, req: Requirement, *, kind: Kind) -> None:
+    def apply(self, req: RequirementWithKind) -> None:
         target = self.lockfile["packages"].get(req["name"])
         if not target:
             return
         target_version = Version(target["version"])
 
-        match kind:
+        match req["kind"]:
             case "pep508":
                 old_specifier = SpecifierSet(req["specifier"])
                 updated_specifier = _update_specifier_set(old_specifier, target_version)
@@ -55,8 +53,8 @@ class UnconstrainRequirement(EditRequirement):
     """Remove any constraints from the requirement."""
 
     @t.override
-    def apply(self, req: Requirement, *, kind: Kind) -> None:
-        match kind:
+    def apply(self, req: RequirementWithKind) -> None:
+        match req["kind"]:
             case "pep508":
                 req["specifier"] = ""
             case "poetry":
@@ -72,7 +70,7 @@ class SetMinimumRequirement(EditRequirement):
     lockfile: Lockfile
 
     @t.override
-    def apply(self, req: Requirement, *, kind: Kind) -> None:
+    def apply(self, req: RequirementWithKind) -> None:
         target = self.lockfile["packages"].get(req["name"])
         if not target:
             return
@@ -86,7 +84,7 @@ class CollectRequirement(EditRequirement):
     reqs: list[Requirement]
 
     @t.override
-    def apply(self, req: Requirement, *, kind: Kind) -> None:
+    def apply(self, req: RequirementWithKind) -> None:
         self.reqs.append(req)
 
 

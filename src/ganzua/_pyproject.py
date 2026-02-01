@@ -9,7 +9,7 @@ from ._edit_requirement import EditRequirement
 from ._pretty_specifier_set import PrettySpecifierSet
 from ._requirement import (
     Name,
-    Requirement,
+    RequirementWithKind,
     normalized_name,
     parse_requirement_from_pep508,
 )
@@ -113,7 +113,7 @@ class _Editor:
             if version is None:
                 continue
 
-            req = Requirement(name=name, specifier=version)
+            req = RequirementWithKind(name=name, specifier=version, kind="poetry")
 
             if extras := frozenset(
                 normalized_name(e)
@@ -133,7 +133,7 @@ class _Editor:
                 if in_extras := frozenset(self.poetry_extras_for_package.get(name, [])):
                     req["in_extras"] = in_extras
 
-            edit.apply(req, kind="poetry")
+            edit.apply(req)
             if version != req["specifier"]:
                 version_ref.replace(req["specifier"])
 
@@ -151,7 +151,7 @@ def apply_one_pep508_edit(
     """
     req = packaging.requirements.Requirement(raw_requirement)
     data = parse_requirement_from_pep508(req, in_groups=in_groups, in_extra=in_extra)
-    edit.apply(data, kind="pep508")
+    edit.apply(data)
     new_specifier = PrettySpecifierSet(data["specifier"])
     if req.specifier == new_specifier:
         return raw_requirement

@@ -4,7 +4,7 @@ import typing as t
 from ganzua import Lockfile
 from ganzua._edit_requirement import UnconstrainRequirement, UpdateRequirement
 from ganzua._requirement import (
-    Requirement,
+    RequirementWithKind,
     assert_normalized_name,
     parse_requirement_from_pep508,
 )
@@ -20,7 +20,7 @@ _LOCKFILE: Lockfile = {
 def _assert_updated_req(input: str, expected: str) -> None:
     __tracebackhide__ = True  # better Pytest errors
     req = parse_requirement_from_pep508(input)
-    UpdateRequirement(_LOCKFILE).apply(req, kind="pep508")
+    UpdateRequirement(_LOCKFILE).apply(req)
     # TODO compare normalized form
     assert req == parse_requirement_from_pep508(expected)
 
@@ -29,15 +29,19 @@ def _assert_updated_poetry_req(
     name: t.LiteralString, input: str, expected: str
 ) -> None:
     __tracebackhide__ = True
-    req = Requirement(name=assert_normalized_name(name), specifier=input)
-    UpdateRequirement(_LOCKFILE).apply(req, kind="poetry")
-    assert req == Requirement(name=assert_normalized_name(name), specifier=expected)
+    req = RequirementWithKind(
+        oname=assert_normalized_name(name), specifier=input, kind="poetry"
+    )
+    UpdateRequirement(_LOCKFILE).apply(req)
+    assert req == RequirementWithKind(
+        name=assert_normalized_name(name), specifier=expected, kind="poetry"
+    )
 
 
 def _assert_unconstrained_req(input: str, expected: str) -> None:
     __tracebackhide__ = True
     req = parse_requirement_from_pep508(input)
-    UnconstrainRequirement().apply(req, kind="pep508")
+    UnconstrainRequirement().apply(req)
     # TODO compare normalized form
     assert req == parse_requirement_from_pep508(expected)
 
@@ -181,6 +185,10 @@ def test_unconstrain_requirement() -> None:
 
 
 def test_unconstrain_requirement_poetry() -> None:
-    req = Requirement(name=assert_normalized_name("foo"), specifier="^1.2.3")
-    UnconstrainRequirement().apply(req, kind="poetry")
-    assert req == Requirement(name=assert_normalized_name("foo"), specifier="*")
+    req = RequirementWithKind(
+        name=assert_normalized_name("foo"), specifier="^1.2.3", kind="poetry"
+    )
+    UnconstrainRequirement().apply(req)
+    assert req == RequirementWithKind(
+        name=assert_normalized_name("foo"), specifier="*", kind="poetry"
+    )

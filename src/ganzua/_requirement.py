@@ -117,6 +117,10 @@ class Requirement(t.TypedDict):
     # """URL for an URL-dependency."""
 
 
+class RequirementWithKind(Requirement):
+    kind: t.Literal["pep508", "poetry"]
+
+
 class Requirements(t.TypedDict):
     requirements: t.Sequence[Requirement]
 
@@ -126,10 +130,12 @@ def parse_requirement_from_pep508(
     *,
     in_groups: frozenset[Name] = frozenset(),
     in_extra: Name | None = None,
-) -> Requirement:
+) -> RequirementWithKind:
     if isinstance(req, str):
         req = Pep508Requirement(req)
-    data = Requirement(name=normalized_name(req.name), specifier=str(req.specifier))
+    data = RequirementWithKind(
+        name=normalized_name(req.name), specifier=str(req.specifier), kind="pep508"
+    )
     if req.extras:
         data["extras"] = frozenset(normalized_name(n) for n in req.extras)
     if req.marker:
