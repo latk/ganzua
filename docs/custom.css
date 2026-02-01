@@ -1,0 +1,23 @@
+/* make <details> elements more visible */
+#mdbook-content details {
+    border: solid 1px var(--table-border-color);
+    border-radius: 0.5em;
+    margin: 0.5em 0;
+    padding: 0.5em;
+
+    & > summary:first-of-type {
+        background: var(--table-alternate-bg);
+        margin: -0.5em;
+        padding: 0.5em;
+    }
+
+    &:open > summary:first-of-type {
+        margin-bottom: 0.5em;
+        border-bottom: solid 1px var(--table-border-color);
+    }
+
+    /* if the <details> only contains a single code block, collapse margins */
+    & > summary:first-child + pre:last-child {
+        margin: -0.5em;
+    }
+}

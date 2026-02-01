@@ -13,3 +13,4 @@ smart-punctuation = false
 no-section-label = true
 git-repository-url = "https://github.com/latk/ganzua"
 edit-url-template = "https://github.com/latk/ganzua/blob/main/{path}"
+additional-css = ["docs/custom.css"]
