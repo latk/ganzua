@@ -10,6 +10,12 @@ from dataclasses import dataclass
 
 import pydantic
 
+from ganzua._edit_requirement import UpdateRequirement
+from ganzua._pyproject import apply_one_pep508_edit
+
+from . import Lockfile
+from . import _markdown as md
+from ._requirement import RequirementWithKind, normalized_name
 from .cli import app
 
 
@@ -77,6 +83,7 @@ class Runner:
             ConsoleCodeBlock(),
             CollapsibleOutputBlock(),
             DoctestCheckGanzuaDiffNotes(),
+            DoctestCheckGanzuaConstraintsBump(),
             DoctestCompareOutput(),
         ]
 
@@ -120,7 +127,7 @@ class Runner:
                 yield from directive.process(self, line.with_data(m))
                 return
 
-        if line.strip().startswith("<!-- doctest:"):
+        if re.match(r"^\s*<!-- doctests?:", line):
             raise line.make_err("unknown directive")
 
         yield line
@@ -289,7 +296,7 @@ class _Input(_PeekableIter[_Line]):
         Spec: https://github.github.com/gfm/#tables-extension-
 
         >>> Runner.run_table_example(
-        ...     "context", "| col |", "|--|", "| 1.2 |", model=t.Any
+        ...     "context", "| col |", "| -- |", "| 1.2 |", model=t.Any
         ... )
         [{'col': '1.2'}]
 
@@ -353,7 +360,7 @@ class _Input(_PeekableIter[_Line]):
             yield line.with_data(parsed)
 
     def _next_table_row(
-        self, *, normalize: t.Callable[[str], str] = str.strip
+        self, *, normalize: t.Callable[[str], str] | None = None
     ) -> _ParsedLine[tuple[str, ...]] | None:
         """Consume the next line if it looks like a table row.
 
@@ -369,12 +376,26 @@ class _Input(_PeekableIter[_Line]):
         >>> input._next_table_row().data
         ('with', 'leading', 'bar')
         """
+        if normalize is None:
+            normalize = self._normalize_data_cell
         if not (line := self.peek()) or "|" not in line:
             return None
         # leading/trailing pipes are optional and should not affect the cell count
         cells = line.strip().removeprefix("|").removesuffix("|").split("|")
         next(self)  # commit
         return line.with_data(tuple(normalize(col) for col in cells))
+
+    @staticmethod
+    def _normalize_data_cell(cell: str) -> str:
+        """Normalize the cell by removing space and Markdown inline code.
+
+        >>> _Input._normalize_data_cell(" ``inline `code` ``  ")
+        'inline `code`'
+        """
+        cell = cell.strip()
+        if m := re.fullmatch(r"(?x)([`]++) ((?:[^`]++|(?!\1)[`])++) \1", cell):
+            return m[2].strip()
+        return cell
 
     @staticmethod
     def _normalize_table_delimiter_cell(cell: str) -> str:
@@ -388,7 +409,7 @@ class _Input(_PeekableIter[_Line]):
         'something else'
         """
         # may have leading, trailing, or surrounding ":"
-        cell = cell.removeprefix(":").removesuffix(":")
+        cell = cell.strip().removeprefix(":").removesuffix(":")
         # only hyphens are allowed
         return cell.replace("-", "") or "-"
 
@@ -553,6 +574,60 @@ class DoctestCheckGanzuaDiffNotes(DoctestSyntax):
             version = ex.old if old_new == "old" else ex.new
             if version != "-":
                 yield ExamplePackage(name=ex.package, version=version)
+
+
+class DoctestCheckGanzuaConstraintsBump(DoctestSyntax):
+    START: t.ClassVar = re.compile("<!-- doctest: check ganzua constraints bump -->")
+
+    @dataclass
+    class Example:
+        locked: str
+        old: str
+        new: str
+
+        def lockfile(self) -> Lockfile:
+            package, version = self.locked.split(maxsplit=1)
+            return Lockfile(
+                packages={package: {"version": version, "source": "default"}}
+            )
+
+        def bumped(self) -> t.Self:
+            edit = UpdateRequirement(self.lockfile())
+
+            if " = " in self.old:
+                package, version = self.old.split(" = ", maxsplit=1)
+                req = RequirementWithKind(
+                    name=normalized_name(package), specifier=version, kind="poetry"
+                )
+                edit.apply(req)
+                bumped = f"{req['name']} = {req['specifier']}"
+            else:
+                bumped = apply_one_pep508_edit(
+                    self.old, edit, in_groups=frozenset(), in_extra=None
+                )
+
+            return type(self)(self.locked, self.old, bumped)
+
+        def as_md_tuple(self) -> tuple[str, str, str]:
+            return (
+                md.quote_code(self.locked),
+                md.quote_code(self.old),
+                md.quote_code(self.new),
+            )
+
+    @t.override
+    def process(self, runner: Runner, loc: _Line, /) -> t.Iterator[str]:
+        yield loc
+        yield from runner.input.consume_blank_lines()
+
+        bumped_examples = [
+            line.data.bumped().as_md_tuple()
+            for line in runner.input.consume_table(loc=loc, model=self.Example)
+            if line.data is not None
+        ]
+        yield from (
+            md.table(("locked", "old", "new"), bumped_examples).strip().splitlines()
+        )
 
 
 class DoctestCompareOutput(DoctestSyntax):

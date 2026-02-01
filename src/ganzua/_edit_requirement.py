@@ -114,7 +114,7 @@ def _update_poetry_specifier(spec: str, target: Version) -> str:
     # Poetry compatibility constraint
     if spec.startswith("~"):
         return _update_poetry_specifier_translated(
-            spec, target, poetry_operator="~", pep440_operator="~="
+            spec, target, poetry_operator="~", pep440_operator=">="
         )
 
     # bare numbers are treated as `==` specifiers (exact or prefix)
@@ -158,7 +158,7 @@ def _update_specifier(spec: Specifier, target: Version) -> Specifier | None:
     <https://packaging.python.org/en/latest/specifications/version-specifiers/>
     """
     match spec.operator:
-        case "!=" | "<" | ">" | "<=" | "===":
+        case "!=" | "<" | ">" | "<=":
             # Can't reliably change these constraints.
             # Return them if they are still valid, else discard.
             if spec.contains(target):
@@ -178,6 +178,9 @@ def _update_specifier(spec: Specifier, target: Version) -> Specifier | None:
             if canonicalize_version(target) == canonicalize_version(spec.version):
                 return spec  # no change needed
             return Specifier(f"=={target}")
+
+        case "===":  # arbitrary equality
+            return Specifier(f"==={target}")
 
         case "~=" | ">=":
             current = Version(spec.version)

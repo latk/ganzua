@@ -1,3 +1,4 @@
+import re
 import typing as t
 from dataclasses import dataclass
 
@@ -9,7 +10,7 @@ from ._requirement import Requirement, Requirements
 
 def md_from_lockfile(lockfile: Lockfile) -> str:
     """Summarize the Lockfile as a Markdown table."""
-    return _table(
+    return table(
         ("package", "version"),
         sorted(
             (package, data["version"])
@@ -98,7 +99,7 @@ class _DiffTable:
         )
 
     def render(self) -> t.Iterable[str]:
-        yield _table(
+        yield table(
             ("package", "old", "new", "notes"),
             [
                 (row.package, row.old, row.new, row.render_notes())
@@ -159,7 +160,7 @@ def _diff_summary_details(diff: Diff) -> t.Iterator[str]:
 
 def md_from_requirements(reqs: Requirements) -> str:
     """Summarize Requirements as a Markdown table."""
-    return _table(
+    return table(
         ("package", "version", "group/extra"),
         sorted(
             (r["name"], r["specifier"], _requirement_group_list(r))
@@ -178,7 +179,7 @@ def _requirement_group_list(req: Requirement) -> str:
     )
 
 
-def _table[Row: tuple[str, ...]](
+def table[Row: tuple[str, ...]](
     header: Row,
     values: t.Sequence[Row],
     *,
@@ -188,7 +189,7 @@ def _table[Row: tuple[str, ...]](
 
     Example: columns are properly aligned.
 
-    >>> print(_table(("a", "bbb"), [("111", "2"), ("3", "4")]))
+    >>> print(table(("a", "bbb"), [("111", "2"), ("3", "4")]))
     | a   | bbb |
     |-----|-----|
     | 111 | 2   |
@@ -197,7 +198,7 @@ def _table[Row: tuple[str, ...]](
     Example: drop empty columns.
 
     >>> print(
-    ...     _table(
+    ...     table(
     ...         ("a", "b", "c"),
     ...         [("a1", "", "c1"), ("a2", "", "c2")],
     ...         collapsible_cols=("a", "b", "c"),
@@ -221,7 +222,7 @@ def _table[Row: tuple[str, ...]](
         )
 
     if any(width is None for width in col_widths_or_empty):
-        return _table(
+        return table(
             select_cols_with_data(header),
             [select_cols_with_data(row) for row in values],
             collapsible_cols=(),
@@ -253,3 +254,18 @@ def _col_width(
 
 def _justify_cols(row: tuple[str, ...], widths: tuple[int, ...]) -> tuple[str, ...]:
     return tuple(cell.ljust(width) for cell, width in zip(row, widths, strict=True))
+
+
+def quote_code(code: str) -> str:
+    """Quote the content as inline Markdown code.
+
+    >>> quote_code("foo")
+    '`foo`'
+
+    >>> quote_code("foo `bar`")
+    '`` foo `bar` ``'
+    """
+    if backticks := max((len(m[0]) for m in re.finditer("[`]++", code)), default=0):
+        delim = "`" * (backticks + 1)
+        return f"{delim} {code} {delim}"
+    return f"`{code}`"
