@@ -25,6 +25,7 @@ def test_readme() -> None:
     assert readme == external_file(str(resources.README), format=".txt")
 
 
+# ANCHOR: test_docs
 @pytest.mark.parametrize(
     "path",
     resources.DOCS.glob("**/*.md"),
@@ -33,6 +34,7 @@ def test_readme() -> None:
 def test_docs(path: pathlib.Path) -> None:
     markdown = Runner.run(path)
     assert markdown == external_file(str(path), format=".txt")
+    # ANCHOR_END: test_docs
 
 
 def test_changelog_mentions_current_version() -> None:

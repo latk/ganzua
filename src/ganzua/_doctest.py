@@ -1,9 +1,11 @@
 """Custom doctest-style functionality."""
 
+import contextlib
 import html
 import pathlib
 import re
 import shlex
+import shutil
 import tempfile
 import typing as t
 from dataclasses import dataclass
@@ -54,30 +56,31 @@ class _SyntaxError(Exception):
         self.add_note(f"note: around here: {line}")
 
 
+_OutputType: t.TypeAlias = t.Literal["json", "toml"] | None
+
+
+class _OutputWithType(str):
+    type: _OutputType
+
+    def __new__(cls, value: str, *, type: _OutputType) -> t.Self:
+        self = super().__new__(cls, value)
+        self.type = type
+        return self
+
+
 class Runner:
     r"""Run and update all examples in a Markdown file.
 
     This is implemented as a single-pass parser that processes line by line.
-
-    By default, passes through content:
-
-    >>> Runner.run_example("foo", "bar", "baz")
-    'foo\nbar\nbaz'
-
-    Complains when there are unknown `<!-- doctest:` directives
-
-    >>> Runner.run_example("<!-- doctest: foo bar -->")
-    Traceback (most recent call last):
-    ganzua._doctest._SyntaxError: unknown directive
-    note: at example:1
-    note: around here: <!-- doctest: foo bar -->
     """
 
-    def __init__(self, iter: "_Input") -> None:
+    def __init__(self, iter: "_Input", example_dir: pathlib.Path) -> None:
         self.input = iter
         self.executed_doctest_commands: int = 0
         self.ganzua = app.testrunner()
+        self.example_dir = example_dir
         self.directives: t.Sequence[DoctestSyntax] = [
+            DoctestExample(),  # register first so that contents aren't processed
             CommandOutputDirective(),
             ExpectedDoctestCommandsDirective(),
             ConsoleCodeBlock(),
@@ -85,19 +88,26 @@ class Runner:
             DoctestCheckGanzuaDiffNotes(),
             DoctestCheckGanzuaConstraintsBump(),
             DoctestCompareOutput(),
+            DoctestCleanExample(),
+            CreateLockfile(),
         ]
 
     @classmethod
     def run(cls, path: pathlib.Path) -> str:
         """Entrypoint intended for real use."""
         input = _Input.new_from_lines(path.read_text().rstrip().splitlines(), path=path)
-        return "\n".join(cls(input).process_all_lines())
+        with tempfile.TemporaryDirectory() as example_dir:
+            runner = cls(input, pathlib.Path(example_dir))
+            return "\n".join(runner.process_all_lines())
 
     @classmethod
     def run_example(cls, *lines: str) -> str:
         """Entrypoint intended for doctests."""
         input = _Input.new_from_lines(lines, path="example")
-        return "\n".join(cls(input).process_all_lines()).strip()
+        with tempfile.TemporaryDirectory() as example_dir:
+            runner = cls(input, pathlib.Path(example_dir))
+            output = list(runner.process_all_lines())
+            return "\n".join(output).strip()
 
     @classmethod
     def run_table_example[T](cls, *lines: str, model: type[T]) -> list[T]:
@@ -132,22 +142,86 @@ class Runner:
 
         yield line
 
-    def emit_output_block(self, output: str) -> t.Iterator[str]:
-        if output.startswith(("{", "[")):
-            yield "```json"
-        else:
-            yield "```"
+    def emit_output_block(self, output: _OutputWithType) -> t.Iterator[str]:
+        yield f"```{output.type or ''}"
         yield output
         yield "```"
 
-    def command_output(self, command: str, *, line: _Line) -> str:
-        match shlex.split(command):
+    def _expand_variables(self, arg: str) -> str:
+        env = {
+            "EXAMPLE": str(self.example_dir),
+            "CORPUS": str(pathlib.Path("corpus").resolve()),
+        }
+        return re.sub(
+            r"[$]([A-Z_]++)(?=$|/)|[$][{]([A-Z_]++)[}]",
+            lambda m: env[m[1] or m[2]],
+            arg,
+        )
+
+    def _unexpand_variables(self, data: str) -> str:
+        env = {
+            "EXAMPLE": str(self.example_dir),
+            "CORPUS": str(pathlib.Path("corpus").resolve()),
+        }
+        reverse = {value: key for key, value in env.items()}
+        return re.sub(
+            "("
+            + "|".join(re.escape(value) for value in sorted(env.values(), reverse=True))
+            + ")",
+            lambda m: "${" + reverse[m[1]] + "}",
+            data,
+        )
+
+    def path_is_writeable(self, path: pathlib.Path | str) -> bool:
+        return pathlib.Path(path).resolve().is_relative_to(self.example_dir)
+
+    def command_output(
+        self, command: str, *, line: _Line, raise_for_error: bool = True
+    ) -> _OutputWithType:
+        match [self._expand_variables(arg) for arg in shlex.split(command)]:
             case ["ganzua", *args]:
-                return self.ganzua.output(*args, print=False).strip()
+                return self._command_output_ganzua(
+                    args, line=line, raise_for_error=raise_for_error
+                )
             case ["echo", *args]:  # useful for testing
-                return " ".join(args)
+                return _OutputWithType(" ".join(args), type=None)
+            case ["cat", s]:
+                source = pathlib.Path(s)
+                output = _OutputWithType(source.read_text().rstrip(), type=None)
+                if source.suffix == ".toml":
+                    output.type = "toml"
+                return output
+            case ["cp", source, dest] if self.path_is_writeable(dest):
+                shutil.copyfile(source, dest)
+                return _OutputWithType("", type=None)
+            case ["touch", dest] if self.path_is_writeable(dest):
+                pathlib.Path(dest).touch()
+                return _OutputWithType("", type=None)
+            case ["ls", dirname]:
+                file_listing = sorted(p.name for p in pathlib.Path(dirname).iterdir())
+                return _OutputWithType("\n".join(file_listing), type=None)
+            case ["env", "-C", dest, "ganzua", *args]:
+                with contextlib.chdir(dest):
+                    return self._command_output_ganzua(
+                        args, line=line, raise_for_error=raise_for_error
+                    )
             case _:  # pragma: no cover
                 raise line.make_err(f"unsupported command: {command}")
+
+    def _command_output_ganzua(
+        self, args: t.Sequence[str], *, line: _Line, raise_for_error: bool
+    ) -> _OutputWithType:
+        result = self.ganzua(*args, print=False, raise_for_exit=False)
+        if result.exit_code and raise_for_error:  # pragma: no cover
+            raise line.make_err(f"command exited with status={result.exit_code}")
+        output = result.output.strip()
+        type: _OutputType = None
+        if output.startswith(("{", "[")):
+            type = "json"
+        output = self._unexpand_variables(output)
+        if result.exit_code and not raise_for_error:
+            output += f"\n[command exited with status {result.exit_code}]"
+        return _OutputWithType(output.strip(), type=type)
 
 
 class _PeekableIter[T]:
@@ -258,6 +332,18 @@ class _Input(_PeekableIter[_Line]):
                 return
         raise loc.make_err(f"must have matching `{end}`")
 
+    def consume_if[R](
+        self, parser: t.Callable[[_Line], R | None]
+    ) -> _ParsedLine[R] | None:
+        """Consume the next line if the parser matches, attaching the output as data to the line."""
+        for line in self:
+            mapped = parser(line)
+            if mapped is None:
+                self.back(line)
+                break
+            return line.with_data(mapped)
+        return None
+
     def consume_while_parsed[R](
         self, parser: t.Callable[[_Line], R | None], /
     ) -> t.Iterator[_ParsedLine[R]]:
@@ -278,12 +364,8 @@ class _Input(_PeekableIter[_Line]):
         ...     print(f"{line} - {line.data}")
         c - 1
         """
-        for line in self:
-            mapped = parser(line)
-            if mapped is None:
-                self.back(line)
-                break
-            yield line.with_data(mapped)
+        while (line := self.consume_if(parser)) is not None:
+            yield line
 
     def consume_table[T](
         self, loc: _Line, model: type[T]
@@ -423,19 +505,6 @@ class DoctestSyntax(t.Protocol):
 
 
 class CommandOutputDirective(DoctestSyntax):
-    """Replace a comment-delimited region with output from the command.
-
-    This is useful for auto-generating Markdown sections.
-
-    Complains when a command output region is not closed:
-
-    >>> Runner.run_example("<!-- command output: foo -->", "ignored")
-    Traceback (most recent call last):
-    ganzua._doctest._SyntaxError: must have matching `<!-- command output end -->`
-    note: at example:1
-    note: around here: <!-- command output: foo -->
-    """
-
     START: t.ClassVar = re.compile("<!-- command output: (.+) -->")
     END: t.ClassVar = "<!-- command output end -->"
 
@@ -456,32 +525,15 @@ class CommandOutputDirective(DoctestSyntax):
 
 
 class ExpectedDoctestCommandsDirective(DoctestSyntax):
-    START: t.ClassVar = re.compile("<!-- expected doctest commands: (.+) -->")
+    START: t.ClassVar = re.compile("<!-- doctest: ran (.+) commands -->")
 
     @t.override
     def process(self, runner: Runner, _line: _Line) -> t.Iterator[str]:
-        yield f"<!-- expected doctest commands: {runner.executed_doctest_commands} -->"
+        yield f"<!-- doctest: ran {runner.executed_doctest_commands} commands -->"
 
 
 class ConsoleCodeBlock(DoctestSyntax):
-    """A `console` code block combining `$ command` lines and output.
-
-    Complains when a console block has no commands:
-
-    >>> Runner.run_example("``` console", "bla bla", "```")
-    Traceback (most recent call last):
-    ganzua._doctest._SyntaxError: must have at least one `$ ...` command line
-    note: at example:1
-    note: around here: ``` console
-
-    Complains when a console block has no closing fence:
-
-    >>> Runner.run_example("```` console", "$ ganzua help", "```")
-    Traceback (most recent call last):
-    ganzua._doctest._SyntaxError: must have matching closing fence
-    note: at example:1
-    note: around here: ```` console
-    """
+    """A `console` code block combining `$ command` lines and output."""
 
     START: t.ClassVar = re.compile("(```+) *console *")
     COMMAND: t.ClassVar = re.compile("[$] (.+)")
@@ -502,7 +554,10 @@ class ConsoleCodeBlock(DoctestSyntax):
                 has_command = True
                 runner.executed_doctest_commands += 1
                 yield line
-                yield runner.command_output(m[1], line=line)
+                if output := runner.command_output(
+                    m[1], line=line, raise_for_error=False
+                ):
+                    yield output
             elif not has_command:
                 raise loc.make_err("must have at least one `$ ...` command line")
             else:
@@ -525,7 +580,9 @@ class CollapsibleOutputBlock(DoctestSyntax):
 
         yield line
         yield ""
-        output = runner.command_output(html.unescape(command_html_escaped), line=line)
+        output = runner.command_output(
+            html.unescape(command_html_escaped), line=line, raise_for_error=False
+        )
         yield from runner.emit_output_block(output)
         yield ""
         yield self.END
@@ -631,53 +688,7 @@ class DoctestCheckGanzuaConstraintsBump(DoctestSyntax):
 
 
 class DoctestCompareOutput(DoctestSyntax):
-    """Run a list of commands and compare their output.
-
-    Complains when there are now commands:
-
-    >>> Runner.run_example("<!-- doctest: compare output -->", "not a command list")
-    Traceback (most recent call last):
-    ganzua._doctest._SyntaxError: must be followed by at least one command list item
-    note: at example:1
-    note: around here: <!-- doctest: compare output -->
-
-    Creates output block if necessary:
-
-    >>> print(
-    ...     Runner.run_example(
-    ...         "<!-- doctest: compare output -->",
-    ...         "* `$ echo hi`",
-    ...         "* `$ echo bye`",
-    ...         "",
-    ...         "trailing content",
-    ...     )
-    ... )
-    <!-- doctest: compare output -->
-    * `$ echo hi`
-    * `$ echo bye`
-    <BLANKLINE>
-    <details><summary>output for the above commands</summary>
-    <BLANKLINE>
-    Output for:
-    <BLANKLINE>
-    * `$ echo hi`
-    <BLANKLINE>
-    ```
-    hi
-    ```
-    <BLANKLINE>
-    Output for:
-    <BLANKLINE>
-    * `$ echo bye`
-    <BLANKLINE>
-    ```
-    bye
-    ```
-    <BLANKLINE>
-    </details>
-    <BLANKLINE>
-    trailing content
-    """
+    """Run a list of commands and compare their output."""
 
     START: t.ClassVar = re.compile("<!-- doctest: compare output -->")
     COMMAND_LIST_ITEM = re.compile("[*-] `[$] (.+)`")
@@ -688,7 +699,7 @@ class DoctestCompareOutput(DoctestSyntax):
     def process(self, runner: Runner, loc: _Line, /) -> t.Iterator[str]:
         yield loc
         yield from runner.input.consume_blank_lines()
-        commands_by_output = dict[str, list[str]]()
+        commands_by_output = dict[_OutputWithType, list[str]]()
         yield from self.consume_command_list(runner, commands_by_output)
         if not commands_by_output:
             raise loc.make_err("must be followed by at least one command list item")
@@ -714,7 +725,7 @@ class DoctestCompareOutput(DoctestSyntax):
             yield ""
 
     def consume_command_list(
-        self, runner: Runner, commands_by_output: dict[str, list[str]]
+        self, runner: Runner, commands_by_output: dict[_OutputWithType, list[str]]
     ) -> t.Iterator[str]:
         for line in runner.input.consume_while_parsed(self.COMMAND_LIST_ITEM.fullmatch):
             yield line
@@ -725,6 +736,100 @@ class DoctestCompareOutput(DoctestSyntax):
     def skip_output_block_if_exists(self, runner: Runner) -> bool:
         if line := runner.input.next_if_eq(self.OUTPUT_START):
             for _ in runner.input.consume_until_closing(self.OUTPUT_END, loc=line):
+                pass
+            return True
+        return False
+
+
+class DoctestCleanExample(DoctestSyntax):
+    START: t.ClassVar = re.compile("<!-- doctest: clean example -->")
+
+    @t.override
+    def process(self, runner: Runner, line: _Line, /) -> t.Iterator[str]:
+        yield line
+        shutil.rmtree(runner.example_dir)
+        runner.example_dir.mkdir()
+
+
+class CreateLockfile(DoctestSyntax):
+    START: t.ClassVar = re.compile(
+        r"<!-- doctest: create (uv|poetry) lockfile ([$]EXAMPLE/\S+) -->"
+    )
+
+    @t.override
+    def process(
+        self, runner: "Runner", loc: _ParsedLine[re.Match[str]], /
+    ) -> t.Iterator[str]:
+        yield loc
+        kind = loc.data.group(1)
+        dest = runner._expand_variables(loc.data.group(2))
+        if not runner.path_is_writeable(dest):  # pragma: no cover
+            raise loc.make_err("cannot write to destination")
+
+        yield from runner.input.consume_blank_lines()
+
+        packages = list[ExamplePackage]()
+        for line in runner.input.consume_table(loc, model=ExamplePackage):
+            yield line
+            if line.data is not None:
+                packages.append(line.data)
+
+        if kind == "uv":
+            data = example_uv_lockfile(*packages)
+        elif kind == "poetry":
+            data = example_poetry_lockfile(*packages)
+        else:  # pragma: no cover
+            raise loc.make_err("unknown lockfile kind")
+
+        pathlib.Path(dest).write_text(data)
+
+
+class DoctestExample(DoctestSyntax):
+    START: t.ClassVar = re.compile(r"(```+) *(md|markdown),doctest-example *")
+    OUTPUT_START: t.ClassVar = re.compile(
+        r"(```+) *(?:(?:md|markdown),doctest-output|doctest-error) *"
+    )
+
+    @t.override
+    def process(
+        self, runner: "Runner", loc: _ParsedLine[re.Match[str]]
+    ) -> t.Iterator[str]:
+        end_fence, markdown = loc.data.groups()
+        yield loc
+
+        # collect code block contents
+        input = []
+        for line in runner.input:
+            yield line
+            if line == end_fence:
+                break
+            input.append(line)
+        else:
+            raise loc.make_err("must have matching closing fence")
+
+        # remove trailing output block
+        for _ in runner.input.consume_blank_lines():
+            pass
+        has_existing_output = self.skip_output_block_if_exists(runner)
+
+        # Run the collected lines in a separate runner, and emit output.
+        try:
+            output = Runner.run_example(*input)
+        except _SyntaxError as err:
+            yield f"{end_fence}doctest-error"
+            yield from "\n".join((f"Error: {err}", *err.__notes__)).splitlines()
+            yield f"{end_fence}"
+        else:
+            yield f"{end_fence}{markdown},doctest-output"
+            yield from output.splitlines()
+            yield f"{end_fence}"
+        if not has_existing_output:
+            yield ""
+
+    def skip_output_block_if_exists(self, runner: Runner) -> bool:
+        if line := runner.input.consume_if(self.OUTPUT_START.fullmatch):
+            (end_fence,) = line.data.groups()
+            for _ in runner.input.consume_until_closing(end_fence, loc=line):
                 pass
             return True
         return False

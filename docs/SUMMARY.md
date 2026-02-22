@@ -25,4 +25,5 @@
 
 [Changelog](changelog.md)
 [Support](support.md)
+[Testing strategy](testing.md)
 [License](license.md)

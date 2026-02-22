@@ -173,7 +173,7 @@ class AppTestRunner:
         return type(self)(app=self.app, args=(*self.args, *args))
 
     def __call__(
-        self, *args: AppTestCliArg, **opts: t.Unpack[Opts]
+        self, *args: AppTestCliArg, raise_for_exit: bool = True, **opts: t.Unpack[Opts]
     ) -> "click.testing.Result":
         """Run an app command."""
         import click.testing  # noqa: PLC0415  # import-outside-toplevel
@@ -186,10 +186,11 @@ class AppTestRunner:
             [os.fspath(arg) for arg in (*self.args, *args)],
             catch_exceptions=opts.get("catch_exceptions", True),
         )
-        if opts.get("print", True):
+        ok = result.exit_code == expect_exit
+        if opts.get("print", True) or not ok:
             print(result.output)
-        if result.exit_code != expect_exit:  # pragma: no cover
-            err = AssertionError("command failed with unexpected status code")
+        if not ok and raise_for_exit:  # pragma: no cover
+            err = AssertionError("command failed with unexpected exit code")
             err.add_note(f"exited with code: {result.exit_code}")
             err.add_note(f"expected exit code: {expect_exit}")
             err.add_note(f"args: {[*self.args, *args]}")

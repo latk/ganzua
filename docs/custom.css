@@ -21,3 +21,50 @@
         margin: -0.5em;
     }
 }
+
+/* Show doctest examples side-by-side.
+ * Each ::before label is given a small tab header shape.
+ */
+#mdbook-content {
+    --transparent-red: hsla(0, 100%, 50%, 0.3);
+
+    div.doctest-example, details.doctest-example::details-content {
+        display: flex;
+        flex-flow: row wrap;
+        gap: 0 1em;
+        width: 100%;
+    }
+
+    div.doctest-example, details.doctest-example {
+        & > summary {
+            flex: 0 0 100%;  /* fill entire flex row */
+        }
+
+        & > pre {
+            flex: 1;
+
+            &:has(> code.doctest-example)::before {
+                content: "Input:";
+            }
+            &:has(> code.doctest-output)::before {
+                content: "Output:";
+            }
+            &:has(> code.doctest-error, > code.language-doctest-error)::before {
+                content: "Error:";
+                background: var(--transparent-red);
+            }
+
+            &::before {
+                background: var(--table-alternate-bg);
+                padding: 2px 1em;
+                padding-bottom: 0;
+                font-family: sans-serif;
+                clip-path: polygon(0.5em 0%, calc(100% - 0.5em) 0%, 100% 100%, 0% 100%);
+            }
+        }
+    }
+
+    pre > code.doctest-error, pre > code.language-doctest-error {
+        background: var(--transparent-red);
+    }
+}

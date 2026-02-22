@@ -216,4 +216,4 @@ limitations under the License.
 
 <!-- ANCHOR_END: license -->
 
-<!-- expected doctest commands: 3 -->
+<!-- doctest: ran 3 commands -->
