@@ -30,41 +30,9 @@ CHANGELOG = ROOT / "CHANGELOG.md"
 DOCS = ROOT / "docs"
 EMPTY = pathlib.Path("/dev/null")
 
-CONSTRAINTS_PYPROJECT_CONTENTS = """\
-[project]
-name = "example"
-version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [
-    "Typing.Extensions>=3,<4",  # moar type annotations
-    "merrily-ignored",
-    [42, "also ignored"],  # we ignore invalid junk
-]
-
-[project.optional-dependencies]
-extra1 = [
-    "annotated-types >=0.6.1, ==0.6.*",
-]
-extra2 = false  # known invalid
-extra3 = ["ndr"]
-
-[dependency-groups]
-group-a = ["typing-extensions ~=3.4"]
-group-b = [{include-group = "group-a"}, "annotated-types ~=0.6.1"]
-"""
+CONSTRAINTS_PYPROJECT = CORPUS / "constraints-uv-pyproject.toml"
+CONSTRAINTS_POETRY_PYPROJECT = CORPUS / "constraints-poetry-pyproject.toml"
+CONSTRAINTS_PYPROJECT_CONTENTS = CONSTRAINTS_PYPROJECT.read_text()
 """Example for testing constraint operations."""
-
-CONSTRAINTS_POETRY_PYPROJECT_CONTENTS = """\
-[tool.poetry.dependencies]
-Typing_Extensions = "^3.2"
-ignored-garbage = { not-a-version = true }
-
-[build-system]
-
-[tool.poetry.group.poetry-a.dependencies]
-typing-extensions = { version = "^3.4" }
-already-unconstrained = "*"
-"""
+CONSTRAINTS_POETRY_PYPROJECT_CONTENTS = CONSTRAINTS_POETRY_PYPROJECT.read_text()
 """Example for testing constrain operations with some Poetry-specific features."""

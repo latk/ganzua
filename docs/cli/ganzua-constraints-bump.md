@@ -34,7 +34,326 @@ the one in the current working directory will be used.
 
 <!-- command output end -->
 
-## Examples
+## Examples {#examples-cli}
+
+These examples demonstrate the command line interface.
+Further below are [examples of how different version constraint operators are bumped](#examples-constraints).
+
+### Uv Example
+
+<!-- doctest: clean example -->
+
+Ganzua will edit standard/uv `pyproject.toml` files.
+
+Given an example directory with a `pyproject.toml` file with outdated constraints:
+
+```console
+$ cp $CORPUS/constraints-uv-pyproject.toml $EXAMPLE/pyproject.toml
+```
+
+And given an `uv.lock` file with the following contents:
+
+<!-- doctest: create uv lockfile $EXAMPLE/uv.lock -->
+
+| name              | version |
+|-------------------|---------|
+| annotated-types   | 0.7.0   |
+| example           | 0.2.0   |
+| typing-extensions | 4.14.1  |
+
+When we bump the constraints (and make a backup):
+
+```console
+$ ganzua constraints bump $EXAMPLE --backup=$EXAMPLE/backup-pyproject.toml
+```
+
+Then the `pyproject.toml` file contains updated constraints,
+whereas the backup contains the old version.
+
+<!-- doctest: compare output -->
+* `$ cat $EXAMPLE/pyproject.toml`
+* `$ cat $EXAMPLE/backup-pyproject.toml`
+* `$ cat $CORPUS/constraints-uv-pyproject.toml`
+
+<details><summary>output for the above commands</summary>
+
+Output for:
+
+* `$ cat $EXAMPLE/pyproject.toml`
+
+```toml
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "Typing.Extensions>=4,<5",  # moar type annotations
+    "merrily-ignored",
+    [42, "also ignored"],  # we ignore invalid junk
+]
+
+[project.optional-dependencies]
+extra1 = [
+    "annotated-types>=0.7.0,==0.7.*",
+]
+extra2 = false  # known invalid
+extra3 = ["ndr"]
+
+[dependency-groups]
+group-a = ["typing-extensions~=4.14"]
+group-b = [{include-group = "group-a"}, "annotated-types~=0.7.0"]
+```
+
+Output for:
+
+* `$ cat $EXAMPLE/backup-pyproject.toml`
+* `$ cat $CORPUS/constraints-uv-pyproject.toml`
+
+```toml
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "Typing.Extensions>=3,<4",  # moar type annotations
+    "merrily-ignored",
+    [42, "also ignored"],  # we ignore invalid junk
+]
+
+[project.optional-dependencies]
+extra1 = [
+    "annotated-types >=0.6.1, ==0.6.*",
+]
+extra2 = false  # known invalid
+extra3 = ["ndr"]
+
+[dependency-groups]
+group-a = ["typing-extensions ~=3.4"]
+group-b = [{include-group = "group-a"}, "annotated-types ~=0.6.1"]
+```
+
+</details>
+
+### Poetry example
+
+We can also do the same with Poetry `pyproject.toml` files.
+
+<!-- doctest: clean example -->
+
+Given an example directory with a `pyproject.toml` file with outdated constraints:
+
+```console
+$ cp corpus/constraints-poetry-pyproject.toml $EXAMPLE/pyproject.toml
+```
+
+And given a `poetry.lock` file with the following content:
+
+<!-- doctest: create poetry lockfile $EXAMPLE/poetry.lock -->
+
+| name              | version |
+|-------------------|---------|
+| annotated-types   | 0.7.0   |
+| example           | 0.2.0   |
+| typing-extensions | 4.14.1  |
+
+When we bump the constraints:
+
+```console
+$ ganzua constraints bump $EXAMPLE
+```
+
+Then the `pyproject.toml` file contains updated constraints.
+
+<details><summary><code>$ cat $EXAMPLE/pyproject.toml</code></summary>
+
+```toml
+[tool.poetry.dependencies]
+Typing_Extensions = "^4.14"
+ignored-garbage = { not-a-version = true }
+
+[build-system]
+
+[tool.poetry.group.poetry-a.dependencies]
+typing-extensions = { version = "^4.14" }
+already-unconstrained = "*"
+```
+
+</details>
+
+### No-op example
+
+<!-- doctest: clean example -->
+
+When the constraints are already up to date, Ganzua doesn't modify them.
+
+Given a `pyproject.toml` file:
+
+```console
+$ cp corpus/new-uv-project/pyproject.toml $EXAMPLE/pyproject.toml
+```
+
+When we bump constraints using an already-matching lockfile:
+
+```console
+$ ganzua constraints bump --lockfile=corpus/new-uv-project/uv.lock $EXAMPLE/pyproject.toml
+```
+
+Then the old and new file are the same.
+
+<!-- doctest: compare output -->
+
+* `$ cat corpus/new-uv-project/pyproject.toml`
+* `$ cat $EXAMPLE/pyproject.toml`
+
+<details><summary>output for the above commands</summary>
+
+```toml
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "annotated-types>=0.7.0",
+    "typing-extensions>=4",
+]
+```
+
+</details>
+
+### Empty example
+
+<!-- doctest: clean example -->
+
+Since Ganzua does not validate that the `pyproject.toml` file is semantically valid,
+it's also possible to edit an empty file.
+
+Given an empty `pyproject.toml` file:
+
+```console
+$ touch $EXAMPLE/pyproject.toml
+```
+
+When we bump the constraints in the empty `pyproject.toml` file,
+then Ganzua succeeds,
+and the `pyproject.toml` file remains empty:
+
+```console
+$ ganzua constraints bump --lockfile=corpus/new-uv-project/uv.lock $EXAMPLE/pyproject.toml
+$ cat $EXAMPLE/pyproject.toml
+```
+
+### Default files example
+
+<!-- doctest: clean example -->
+
+Ganzua tries to infer the `pyproject.toml` and lockfile.
+
+**Empty directory:**
+Running Ganzua against an empty directory will fail, as it cannot locate a `pyproject.toml` file in there.
+
+```console
+$ env -C $EXAMPLE ganzua constraints bump --lockfile=$CORPUS/new-uv-project/uv.lock
+Usage: ganzua constraints bump [OPTIONS] [PYPROJECT]
+Try 'ganzua constraints bump --help' for help.
+
+Error: Did not find default `pyproject.toml`.
+[command exited with status 2]
+```
+
+**Infering `pyproject.toml`:**
+If no `pyproject.toml` file is specified explicitly, Ganzua will look for it in the current working directory.
+If a path to a directory is given, the file in that directory will be used.
+
+For this example, let's create a `pyproject.toml` file:
+
+```console
+$ cp $CORPUS/old-uv-project/pyproject.toml $EXAMPLE/pyproject.toml
+$ ls $EXAMPLE
+pyproject.toml
+```
+
+Now, all of the following commands are equivalent:
+
+```console
+$ env -C $EXAMPLE ganzua constraints bump --lockfile=$CORPUS/new-uv-project/uv.lock
+$ env -C $EXAMPLE ganzua constraints bump --lockfile=$CORPUS/new-uv-project/uv.lock pyproject.toml
+$ env -C $EXAMPLE ganzua constraints bump --lockfile=$CORPUS/new-uv-project/uv.lock .
+$ ganzua constraints bump --lockfile=$CORPUS/new-uv-project/uv.lock $EXAMPLE/pyproject.toml
+$ ganzua constraints bump --lockfile=$CORPUS/new-uv-project/uv.lock $EXAMPLE
+```
+
+**Lockfile is required:**
+If we leave out the explicit `--lockfile` argument, then Ganzua will fail, because there's currently no lockfile in the example directory:
+
+```console
+$ ls $EXAMPLE
+pyproject.toml
+$ env -C $EXAMPLE ganzua constraints bump
+Usage: ganzua constraints bump [OPTIONS] [PYPROJECT]
+Try 'ganzua constraints bump --help' for help.
+
+Error: Could not infer `--lockfile` for `.`.
+[command exited with status 2]
+```
+
+But an explicit lockfile succeeds:
+
+```console
+$ env -C $EXAMPLE ganzua constraints bump --lockfile=$CORPUS/new-uv-project/uv.lock
+```
+
+**Infering lockfiles:**
+If no explicit `--lockfile` is given, then Ganzua will look for an `uv.lock` or `poetry.lock` file in the directory of the `pyproject.toml` file.
+The lockfile may also be given as a different directory, in which case Ganzua will look for the lockfile in that directory.
+
+
+If we add a lockfile in the example directory, then we can leave out the lockfile.
+
+```console
+$ cp $CORPUS/new-uv-project/uv.lock $EXAMPLE/uv.lock
+$ ls $EXAMPLE
+pyproject.toml
+uv.lock
+```
+
+So now these commands are equivalent:
+
+```console
+$ ganzua constraints bump $EXAMPLE
+$ ganzua constraints bump --lockfile=$EXAMPLE $EXAMPLE
+$ ganzua constraints bump --lockfile=$EXAMPLE/uv.lock $EXAMPLE
+$ env -C $EXAMPLE ganzua constraints bump
+$ env -C $EXAMPLE ganzua constraints bump --lockfile=./
+$ env -C $EXAMPLE ganzua constraints bump --lockfile=uv.lock
+```
+
+**Conflicting lockfiles:**
+If there are multiple candidate lockfiles in the directory, then Ganzua will report a conflict, unless a full path to a specific lockfile is given:
+
+```console
+$ touch $EXAMPLE/poetry.lock
+$ ls $EXAMPLE
+poetry.lock
+pyproject.toml
+uv.lock
+$ ganzua constraints bump $EXAMPLE
+Usage: ganzua constraints bump [OPTIONS] [PYPROJECT]
+Try 'ganzua constraints bump --help' for help.
+
+Error: Could not infer `--lockfile` for `${EXAMPLE}`.
+Note: Candidate lockfile: ${EXAMPLE}/uv.lock
+Note: Candidate lockfile: ${EXAMPLE}/poetry.lock
+[command exited with status 2]
+$ ganzua constraints bump $EXAMPLE --lockfile=$EXAMPLE/uv.lock
+```
+
+## Examples of different constraints {#examples-constraints}
 
 The following examples illustrate how version bumping works.
 

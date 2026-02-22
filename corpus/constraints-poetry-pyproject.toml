@@ -1,0 +1,9 @@
+[tool.poetry.dependencies]
+Typing_Extensions = "^3.2"
+ignored-garbage = { not-a-version = true }
+
+[build-system]
+
+[tool.poetry.group.poetry-a.dependencies]
+typing-extensions = { version = "^3.4" }
+already-unconstrained = "*"
