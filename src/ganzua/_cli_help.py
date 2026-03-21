@@ -202,11 +202,6 @@ class AppTestRunner:
         __tracebackhide__ = True
         return self(*args, **opts).output
 
-    def stdout(self, *args: AppTestCliArg, **opts: t.Unpack[Opts]) -> str:
-        """Run an app command and return captured STDOUT."""
-        __tracebackhide__ = True
-        return self(*args, **opts).stdout
-
     def json(
         self, *args: AppTestCliArg, **opts: t.Unpack[Opts]
     ) -> "pydantic.JsonValue":
