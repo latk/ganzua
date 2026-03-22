@@ -1,6 +1,6 @@
 [project]
 name = "ganzua"
-version = "0.3.0"
+version = "0.3.0"  # do not edit manually, use `scripts/bump_version.py`
 description = "extract dependency information from lockfiles"
 readme = "README.md"
 authors = [
@@ -91,10 +91,16 @@ pydocstyle.convention = "google"
 pylint.max-returns = 10
 
 [tool.ruff.lint.per-file-ignores]
-# tests may use asserts and do not need docstrings
 "tests/**.py" = ["D100"]
-"tests/test_**.py" = ["S101", "D103"]
+"tests/test_**.py" = [
+  "S101",  # tests may use `assert`
+  "D103",  # test functions don't need docstrings
+]
 "corpus/**.py" = ["D100"]
+"scripts/**.py" = [
+  "D100",  # scripts do not need module docstrigns
+  "S607",  # scripts run on the local system, so PATH problems are less relevant
+]
 
 [tool.ruff.format]
 docstring-code-format = true

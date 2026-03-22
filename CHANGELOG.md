@@ -1,6 +1,12 @@
 # Changelog
 
-<!-- TEMPLATE for new releases:
+<!-- INSTRUCTIONS:
+
+- fill out the `Unreleased` section before a release
+- if no `Unreleased` section exists, use the below template for new releases
+- run `scripts/bump_version.py` to finalize an `Unreleased` section prior to tagging
+
+TEMPLATE for new releases:
 
 ## Unreleased
 

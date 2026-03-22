@@ -82,3 +82,7 @@ docs: sync
   ./scripts/mdbook build
   ./scripts/lychee --config lychee.toml 'dist/docs/**/*.html' --root-dir dist/docs
   ./scripts/lychee --config lychee.toml '*.md' --remap "https://ganzua.latk.de(.*)$ file://$PWD/dist/docs\$1"
+
+# update the Ganzua version number + fix up docs and Changelog
+bump-version *args:
+  ./scripts/bump_version.py "$@"
