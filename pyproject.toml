@@ -46,7 +46,7 @@ dev = [
 ]
 
 [tool.uv.workspace]
-exclude = ["tests/*"]
+exclude = ["tests/*", "corpus/*"]
 
 [tool.hatch.build.targets.sdist]
 include = [

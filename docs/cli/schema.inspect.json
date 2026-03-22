@@ -2,6 +2,11 @@
   "$defs": {
     "LockedPackage": {
       "properties": {
+        "name": {
+          "description": "Name of the package.\n\n*Added in Ganzua NEXT:* previously, the package name was implicit.",
+          "title": "Name",
+          "type": "string"
+        },
         "version": {
           "title": "Version",
           "type": "string"
@@ -27,6 +32,7 @@
         }
       },
       "required": [
+        "name",
         "version",
         "source"
       ],
@@ -79,11 +85,12 @@
   },
   "properties": {
     "packages": {
-      "additionalProperties": {
+      "description": "All packages in the lockfile.\n\nIn case of split versions, there can be multiple entries with the same package name.\n\n*Changed in Ganzua NEXT:* `packages` is now a list.\nPreviously, it was a `name → LockedPackage` table.",
+      "items": {
         "$ref": "#/$defs/LockedPackage"
       },
       "title": "Packages",
-      "type": "object"
+      "type": "array"
     }
   },
   "required": [

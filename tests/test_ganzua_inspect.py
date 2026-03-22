@@ -4,6 +4,7 @@ import secrets
 
 import pydantic
 import pytest
+from inline_snapshot import snapshot
 
 from ganzua._doctest import example_poetry_lockfile, example_uv_lockfile
 from ganzua.cli import app
@@ -21,12 +22,12 @@ def test_rejects_blank_file() -> None:
 
 def test_can_load_empty_uv(tmp_path: pathlib.Path) -> None:
     lockfile = write_file(tmp_path / "uv.lock", data=example_uv_lockfile())
-    assert inspect.json(lockfile) == {"packages": {}}
+    assert inspect.json(lockfile) == snapshot({"packages": []})
 
 
 def test_can_load_empty_poetry(tmp_path: pathlib.Path) -> None:
     lockfile = write_file(tmp_path / "poetry.lock", data=example_poetry_lockfile())
-    assert inspect.json(lockfile) == {"packages": {}}
+    assert inspect.json(lockfile) == snapshot({"packages": []})
 
 
 @parametrized(

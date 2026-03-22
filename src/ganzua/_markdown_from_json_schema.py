@@ -128,8 +128,6 @@ class _Renderer:
                 return "null"
             case {"type": "object", "properties": _}:  # pragma: no cover
                 raise SchemaNotSupportedError(spec)
-            case {"type": "object", "additionalProperties": value_type}:
-                return f"map(string → {self.md_from_type_reference(value_type)})"
             case {"type": "array", "items": item_type}:
                 return f"array({self.md_from_type_reference(item_type)})"
             case {"$ref": str(ptr)}:

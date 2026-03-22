@@ -414,6 +414,118 @@ The constraints in the `pyproject.toml` file have been reset to a lower bound wi
 <!-- command output end -->
 
 
+### Resetting to minimum with split versions
+
+<!-- doctest: clean example -->
+
+If a project has split versions for a package, all requirements will be reset to the minimum of all candidate versions.
+
+**This is not entirely correct** and might break subsequent package resolution, because markers/extras/groups are not currently taken into account.
+It can also lead to implicit downgrades.
+
+The exact behavior here is **not considered stable** and might change in the future, as ways are found to resolve these problems.
+
+Let's look at an example project with split version:
+
+```console
+$ cp $CORPUS/split/pyproject.toml $EXAMPLE/pyproject.toml
+$ cp $CORPUS/split/uv.lock $EXAMPLE/uv.lock
+```
+
+Current `pyproject.toml` file:
+
+<details open><summary><code>$ cat $EXAMPLE/pyproject.toml</code></summary>
+
+```toml
+[project]
+name = "split"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "typing_extensions >=4 ; python_version >= '3.14'",
+  "typing_extensions >=3,<4 ; python_version < '3.14'",
+]
+```
+
+</details>
+
+Currently locked versions:
+
+<!-- command output: ganzua inspect $EXAMPLE --format=markdown -->
+
+| package           | version  |
+|-------------------|----------|
+| split             | 0.1.0    |
+| typing-extensions | 3.10.0.2 |
+| typing-extensions | 4.15.0   |
+
+<!-- command output end -->
+
+Now we reset their constraints to the minimum, which will show a warning about the potential conflict:
+
+```console
+$ ganzua constraints reset --to=minimum $EXAMPLE
+ganzua: package `typing-extensions` has multiple candidate versions: 3.10.0.2, 4.15.0
+```
+
+Constraints afterwards:
+
+<details open><summary><code>$ cat $EXAMPLE/pyproject.toml</code></summary>
+
+```toml
+[project]
+name = "split"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "typing_extensions>=3.10.0.2; python_version >= \"3.14\"",
+  "typing_extensions>=3.10.0.2; python_version < \"3.14\"",
+]
+```
+
+</details>
+
+<details><summary>same for Poetry</summary>
+
+Set up a fresh example:
+
+<!-- doctest: clean example -->
+
+```console
+$ cp $CORPUS/split/pyproject.toml $EXAMPLE/pyproject.toml
+$ cp $CORPUS/split/poetry.lock $EXAMPLE/poetry.lock
+```
+
+Run Ganzua, which will again emit a warning:
+
+```console
+$ ganzua constraints reset --to=minimum $EXAMPLE
+ganzua: package `typing-extensions` has multiple candidate versions: 3.10.0.2, 4.15.0
+```
+
+Constraints afterwards:
+
+<details open><summary><code>$ cat $EXAMPLE/pyproject.toml</code></summary>
+
+```toml
+[project]
+name = "split"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "typing_extensions>=3.10.0.2; python_version >= \"3.14\"",
+  "typing_extensions>=3.10.0.2; python_version < \"3.14\"",
+]
+```
+
+</details>
+
+</details>
+
+
 ### Resolving the minimum version requires a lockfile
 
 <!-- doctest: clean example -->

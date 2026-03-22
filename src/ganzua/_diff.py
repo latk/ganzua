@@ -1,10 +1,11 @@
+import itertools
 import typing as t
 from dataclasses import dataclass
 
 import pydantic
 from packaging.version import InvalidVersion, Version
 
-from ._lockfile import LockedPackage, Lockfile
+from ._lockfile import LockedPackage, LockfileByName
 
 
 def _is_falsey(value: object) -> bool:
@@ -14,6 +15,12 @@ def _is_falsey(value: object) -> bool:
 @pydantic.with_config(use_attribute_docstrings=True)
 @dataclass(kw_only=True)
 class DiffEntry:
+    name: str
+    """Name of the package being diffed.
+
+    *Added in Ganzua NEXT:* previously, the package name was implicit.
+    """
+
     old: LockedPackage | None
     new: LockedPackage | None
 
@@ -48,42 +55,51 @@ class DiffStat:
 @dataclass(kw_only=True)
 class Diff:
     stat: DiffStat
-    packages: dict[str, DiffEntry]
+    packages: list[DiffEntry]
 
 
-def diff(old: Lockfile, new: Lockfile) -> Diff:
+def diff(old: LockfileByName, new: LockfileByName) -> Diff:
     """Show version changes between the two lockfiles."""
     the_diff: Diff = Diff(
         stat=DiffStat(total=0, added=0, removed=0, updated=0),
-        packages={},
+        packages=[],
     )
-    for package_name in sorted({*old["packages"], *new["packages"]}):
-        entry = _package_diff(
-            old=old["packages"].get(package_name),
-            new=new["packages"].get(package_name),
-        )
-        if entry is None:
-            continue
-        the_diff.packages[package_name] = entry
-        the_diff.stat.total += 1
-        the_diff.stat.added += entry.old is None
-        the_diff.stat.removed += entry.new is None
-        the_diff.stat.updated += entry.old is not None and entry.new is not None
+    for package_name in sorted({*old, *new}):
+        for entry in _package_diff(
+            old=old.get(package_name, []),
+            new=new.get(package_name, []),
+        ):
+            the_diff.packages.append(entry)
+            the_diff.stat.total += 1
+            the_diff.stat.added += entry.old is None
+            the_diff.stat.removed += entry.new is None
+            the_diff.stat.updated += entry.old is not None and entry.new is not None
     return the_diff
 
 
 def _package_diff(
-    *, old: LockedPackage | None, new: LockedPackage | None
-) -> DiffEntry | None:
-    if old == new:
-        return None
-    return DiffEntry(
-        old=old,
-        new=new,
-        is_major_change=_is_major_change(old, new),
-        is_downgrade=_is_downgrade(old, new),
-        is_source_change=_is_source_change(old, new),
-    )
+    *, old: t.Sequence[LockedPackage], new: t.Sequence[LockedPackage]
+) -> t.Iterator[DiffEntry]:
+    """Show differences between packages of the same name."""
+    name = (old or new)[0]["name"]  # we know at least one side is non-empty
+
+    # remove common elements
+    old_uniq = [p for p in old if p not in new]
+    new_uniq = [p for p in new if p not in old]
+
+    # Just do pairwise comparisons for now.
+    # If either side is longer, the excess packages will be counted as added/removed,
+    # all other packages will count as modified.
+    # In the future, it might be possible to pair up packages more cleverly.
+    for old_p, new_p in itertools.zip_longest(old_uniq, new_uniq, fillvalue=None):
+        yield DiffEntry(
+            name=name,
+            old=old_p,
+            new=new_p,
+            is_major_change=_is_major_change(old_p, new_p),
+            is_downgrade=_is_downgrade(old_p, new_p),
+            is_source_change=_is_source_change(old_p, new_p),
+        )
 
 
 def _is_major_change(old: LockedPackage | None, new: LockedPackage | None) -> bool:

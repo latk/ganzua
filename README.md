@@ -23,26 +23,31 @@ $ ganzua diff corpus/old-uv-project corpus/new-uv-project
     "removed": 0,
     "updated": 1
   },
-  "packages": {
-    "annotated-types": {
+  "packages": [
+    {
+      "name": "annotated-types",
       "old": null,
       "new": {
+        "name": "annotated-types",
         "version": "0.7.0",
         "source": "pypi"
       }
     },
-    "typing-extensions": {
+    {
+      "name": "typing-extensions",
       "old": {
+        "name": "typing-extensions",
         "version": "3.10.0.2",
         "source": "pypi"
       },
       "new": {
+        "name": "typing-extensions",
         "version": "4.14.1",
         "source": "pypi"
       },
       "is_major_change": true
     }
-  }
+  ]
 }
 ```
 

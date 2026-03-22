@@ -12,10 +12,7 @@ def md_from_lockfile(lockfile: Lockfile) -> str:
     """Summarize the Lockfile as a Markdown table."""
     return table(
         ("package", "version"),
-        sorted(
-            (package, data["version"])
-            for (package, data) in lockfile["packages"].items()
-        ),
+        sorted((p["name"], p["version"]) for p in lockfile["packages"]),
     )
 
 
@@ -68,7 +65,7 @@ class _DiffTable:
     rows: list[_MdDiffRow]
     footnotes: _NotesRegistry
 
-    def add(self, package: str, data: DiffEntry) -> None:
+    def add(self, data: DiffEntry) -> None:
         def pick_version(p: LockedPackage | None) -> str:
             if p is None:
                 return "-"
@@ -91,7 +88,7 @@ class _DiffTable:
 
         self.rows.append(
             _MdDiffRow(
-                package,
+                data.name,
                 pick_version(data.old),
                 pick_version(data.new),
                 list(pick_footnotes(data)),
@@ -125,8 +122,8 @@ def md_from_diff(diff: Diff) -> str:
 
     table = _DiffTable(rows=[], footnotes=_NotesRegistry({}))
 
-    for package, data in diff.packages.items():
-        table.add(package, data)
+    for data in diff.packages:
+        table.add(data)
 
     sections: list[str] = [summary]
     sections.extend(table.render())

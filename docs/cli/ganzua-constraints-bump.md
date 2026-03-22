@@ -248,6 +248,79 @@ $ ganzua constraints bump --lockfile=corpus/new-uv-project/uv.lock $EXAMPLE/pypr
 $ cat $EXAMPLE/pyproject.toml
 ```
 
+### Split versions
+
+If a project has split versions for a package, matching requirements will be skipped.
+It is not possible to determine which requirement is supposed to be matched up with which locked version, so these instances will have to be fixed manually.
+Note that depending on workflow, this means the lockfile and the `pyproject.toml` might become inconsistent.
+
+The exact behavior here is **not considered stable**.
+Future Ganzua versions may change the handling of split versions if solutions to these problems are found.
+
+Let's look at a concrete example with a split version:
+
+```console
+$ cp $CORPUS/split/old.pyproject.toml $EXAMPLE/pyproject.toml
+$ cp $CORPUS/split/uv.lock $EXAMPLE/uv.lock
+```
+
+Current `pyproject.toml` file:
+
+<details open><summary><code>$ cat $EXAMPLE/pyproject.toml</code></summary>
+
+```toml
+[project]
+name = "split"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "typing_extensions >=4.7.1 ; python_version >= '3.14'",
+  "typing_extensions >=3.7.2,<4 ; python_version < '3.14'",
+]
+```
+
+</details>
+
+Currently locked versions:
+
+<!-- command output: ganzua inspect $EXAMPLE --format=markdown -->
+
+| package           | version  |
+|-------------------|----------|
+| split             | 0.1.0    |
+| typing-extensions | 3.10.0.2 |
+| typing-extensions | 4.15.0   |
+
+<!-- command output end -->
+
+Now we try to bump the old constraints:
+
+```console
+$ ganzua constraints bump $EXAMPLE
+ganzua: package `typing-extensions` has multiple candidate versions: 3.10.0.2, 4.15.0
+```
+
+But all we get is a warning.
+The constraints remain unchanged:
+
+<details><summary><code>$ cat $EXAMPLE/pyproject.toml</code></summary>
+
+```toml
+[project]
+name = "split"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "typing_extensions >=4.7.1 ; python_version >= '3.14'",
+  "typing_extensions >=3.7.2,<4 ; python_version < '3.14'",
+]
+```
+
+</details>
+
+
 ### Default files example
 
 <!-- doctest: clean example -->

@@ -37,19 +37,22 @@ reference = "example"
     assert diff.json(old, new) == snapshot(
         {
             "stat": {"total": 2, "added": 0, "removed": 0, "updated": 2},
-            "packages": {
-                "changed": {
-                    "old": {"version": "1.2.3", "source": "pypi"},
+            "packages": [
+                {
+                    "name": "changed",
+                    "old": {"name": "changed", "version": "1.2.3", "source": "pypi"},
                     "new": {
+                        "name": "changed",
                         "version": "1.2.3",
                         "source": {"registry": "https://registry.example/"},
                     },
                     "is_source_change": True,
                 },
-                "same": {
-                    "old": {"version": "1.2.3", "source": "default"},
-                    "new": {"version": "1.2.4", "source": "default"},
+                {
+                    "name": "same",
+                    "old": {"name": "same", "version": "1.2.3", "source": "default"},
+                    "new": {"name": "same", "version": "1.2.4", "source": "default"},
                 },
-            },
+            ],
         }
     )

@@ -28,18 +28,20 @@ We can load various example lockfiles:
 
 ```json
 {
-  "packages": {
-    "example": {
+  "packages": [
+    {
+      "name": "example",
       "version": "0.1.0",
       "source": {
         "direct": "."
       }
     },
-    "typing-extensions": {
+    {
+      "name": "typing-extensions",
       "version": "3.10.0.2",
       "source": "pypi"
     }
-  }
+  ]
 }
 ```
 
@@ -49,22 +51,25 @@ We can load various example lockfiles:
 
 ```json
 {
-  "packages": {
-    "annotated-types": {
+  "packages": [
+    {
+      "name": "annotated-types",
       "version": "0.7.0",
       "source": "pypi"
     },
-    "example": {
+    {
+      "name": "example",
       "version": "0.1.0",
       "source": {
         "direct": "."
       }
     },
-    "typing-extensions": {
+    {
+      "name": "typing-extensions",
       "version": "4.14.1",
       "source": "pypi"
     }
-  }
+  ]
 }
 ```
 
@@ -74,12 +79,13 @@ We can load various example lockfiles:
 
 ```json
 {
-  "packages": {
-    "typing-extensions": {
+  "packages": [
+    {
+      "name": "typing-extensions",
       "version": "3.10.0.2",
       "source": "default"
     }
-  }
+  ]
 }
 ```
 
@@ -89,16 +95,18 @@ We can load various example lockfiles:
 
 ```json
 {
-  "packages": {
-    "annotated-types": {
+  "packages": [
+    {
+      "name": "annotated-types",
       "version": "0.7.0",
       "source": "default"
     },
-    "typing-extensions": {
+    {
+      "name": "typing-extensions",
       "version": "4.14.1",
       "source": "default"
     }
-  }
+  ]
 }
 ```
 
@@ -126,22 +134,25 @@ The following invocations are all equivalent:
 
 ```json
 {
-  "packages": {
-    "annotated-types": {
+  "packages": [
+    {
+      "name": "annotated-types",
       "version": "0.7.0",
       "source": "pypi"
     },
-    "example": {
+    {
+      "name": "example",
       "version": "0.1.0",
       "source": {
         "direct": "."
       }
     },
-    "typing-extensions": {
+    {
+      "name": "typing-extensions",
       "version": "4.14.1",
       "source": "pypi"
     }
-  }
+  ]
 }
 ```
 
@@ -155,18 +166,93 @@ In this case, Ganzua will use the pseudo-version `0+undefined`:
 
 ```json
 {
-  "packages": {
-    "setuptools-dynamic-version": {
+  "packages": [
+    {
+      "name": "setuptools-dynamic-version",
       "version": "0+undefined",
       "source": {
         "direct": "."
       }
     }
-  }
+  ]
 }
 ```
 
 </details>
+
+### Split versions
+
+It is possible for a project to have multiple conflicting requirements, e.g. for different Python versions, extras, or groups:
+
+<details><summary><code>$ cat $CORPUS/split/pyproject.toml</code></summary>
+
+```toml
+[project]
+name = "split"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "typing_extensions >=4 ; python_version >= '3.14'",
+  "typing_extensions >=3,<4 ; python_version < '3.14'",
+]
+```
+
+</details>
+
+When inspecting the lockfile, Ganzua will show all candidates:
+
+<details><summary><code>$ ganzua inspect $CORPUS/split/uv.lock</code></summary>
+
+```json
+{
+  "packages": [
+    {
+      "name": "split",
+      "version": "0.1.0",
+      "source": {
+        "direct": "."
+      }
+    },
+    {
+      "name": "typing-extensions",
+      "version": "3.10.0.2",
+      "source": "pypi"
+    },
+    {
+      "name": "typing-extensions",
+      "version": "4.15.0",
+      "source": "pypi"
+    }
+  ]
+}
+```
+
+</details>
+
+<details><summary><code>$ ganzua inspect $CORPUS/split/poetry.lock</code></summary>
+
+```json
+{
+  "packages": [
+    {
+      "name": "typing-extensions",
+      "version": "3.10.0.2",
+      "source": "default"
+    },
+    {
+      "name": "typing-extensions",
+      "version": "4.15.0",
+      "source": "default"
+    }
+  ]
+}
+```
+
+</details>
+
+For background on this, see the issue [ganzua#5](https://github.com/latk/ganzua/issues/5).
+
 
 ## JSON Schema
 
@@ -176,12 +262,22 @@ Download: [schema.inspect.json](schema.inspect.json)
 
 **Properties:**
 
-* **`packages`**: map(string → [LockedPackage](#type.LockedPackage))
+* **`packages`**: array([LockedPackage](#type.LockedPackage))\
+  All packages in the lockfile.
+
+  In case of split versions, there can be multiple entries with the same package name.
+
+  *Changed in Ganzua NEXT:* `packages` is now a list.
+  Previously, it was a `name → LockedPackage` table.
 
 ### type `LockedPackage` {#type.LockedPackage}
 
 **Properties:**
 
+* **`name`**: string\
+  Name of the package.
+
+  *Added in Ganzua NEXT:* previously, the package name was implicit.
 * **`version`**: string
 * **`source`**: `pypi` | `default` | `other` | [SourceRegistry](#type.SourceRegistry) | [SourceDirect](#type.SourceDirect)
 

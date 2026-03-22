@@ -13,9 +13,9 @@ from dataclasses import dataclass
 import pydantic
 
 from ganzua._edit_requirement import UpdateRequirement
+from ganzua._lockfile import LockfileByName, lockfile_by_name
 from ganzua._pyproject import apply_one_pep508_edit
 
-from . import Lockfile
 from . import _markdown as md
 from ._requirement import RequirementWithKind, normalized_name
 from .cli import app
@@ -567,7 +567,9 @@ class ConsoleCodeBlock(DoctestSyntax):
 
 
 class CollapsibleOutputBlock(DoctestSyntax):
-    START: t.ClassVar = re.compile("<details><summary><code>[$] (.+)</code></summary>")
+    START: t.ClassVar = re.compile(
+        "<details(?: open)?><summary><code>[$] (.+)</code></summary>"
+    )
     END: t.ClassVar = "</details>"
 
     @t.override
@@ -642,14 +644,21 @@ class DoctestCheckGanzuaConstraintsBump(DoctestSyntax):
         old: str
         new: str
 
-        def lockfile(self) -> Lockfile:
+        def lockfile(self) -> LockfileByName:
             package, version = self.locked.split(maxsplit=1)
-            return Lockfile(
-                packages={package: {"version": version, "source": "default"}}
+            return lockfile_by_name(
+                {
+                    "packages": [
+                        {"name": package, "version": version, "source": "default"}
+                    ],
+                }
             )
 
         def bumped(self) -> t.Self:
-            edit = UpdateRequirement(self.lockfile())
+            edit = UpdateRequirement(
+                lockfile=self.lockfile(),
+                warn_multiple_versions=lambda *_: None,  # lockfile is unambiguous
+            )
 
             if " = " in self.old:
                 package, version = self.old.split(" = ", maxsplit=1)

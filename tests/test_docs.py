@@ -7,6 +7,7 @@ from inline_snapshot import external_file
 
 from ganzua import UpdateRequirement
 from ganzua._doctest import Runner
+from ganzua._lockfile import lockfile_by_name
 from ganzua._pyproject import apply_one_pep508_edit
 
 from . import resources
@@ -64,7 +65,14 @@ def _bump_mentioned_versions(readme: str) -> str:
     ganzua_constraint = re.compile(rf"\b ganzua \s* {version_many}", flags=re.X | re.I)
 
     edit = UpdateRequirement(
-        {"packages": {"ganzua": {"version": _GANZUA_VERSION, "source": "other"}}}
+        lockfile=lockfile_by_name(
+            {
+                "packages": [
+                    {"name": "ganzua", "version": _GANZUA_VERSION, "source": "other"}
+                ]
+            }
+        ),
+        warn_multiple_versions=lambda *_: None,  # lockfile is unambiguous
     )
 
     return ganzua_constraint.sub(

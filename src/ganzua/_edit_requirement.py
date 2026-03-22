@@ -5,7 +5,7 @@ from packaging.specifiers import Specifier, SpecifierSet
 from packaging.utils import canonicalize_version
 from packaging.version import Version
 
-from ._lockfile import Lockfile
+from ._lockfile import LockfileByName
 from ._requirement import Requirement, RequirementWithKind
 
 
@@ -13,18 +13,29 @@ class EditRequirement(t.Protocol):  # pragma: no cover
     def apply(self, req: RequirementWithKind) -> None: ...
 
 
-@dataclass
+@dataclass(kw_only=True)
 class UpdateRequirement(EditRequirement):
     """Update a requirement constraint to match the locked version."""
 
-    lockfile: Lockfile
+    lockfile: LockfileByName
+    warn_multiple_versions: t.Callable[[str, tuple[Version, ...]], None]
 
     @t.override
     def apply(self, req: RequirementWithKind) -> None:
-        target = self.lockfile["packages"].get(req["name"])
-        if not target:
-            return
-        target_version = Version(target["version"])
+        match self.lockfile.get(req["name"], ()):
+            case [target]:
+                target_version = Version(target["version"])
+            case []:
+                return
+            case multiple_packages:
+                multiple_versions = sorted(
+                    Version(p["version"]) for p in multiple_packages
+                )
+                self.warn_multiple_versions(req["name"], tuple(multiple_versions))
+                # There is absolutely no correct way to deal with multiple versions,
+                # at least without dealing with resolution markers.
+                # In this situation, it is best to do nothing, and let the user resolve any conflicts.
+                return
 
         match req["kind"]:
             case "pep508":
@@ -67,14 +78,27 @@ class UnconstrainRequirement(EditRequirement):
 class SetMinimumRequirement(EditRequirement):
     """Set the constraints to the minimum locked version."""
 
-    lockfile: Lockfile
+    lockfile: LockfileByName
+    warn_multiple_versions: t.Callable[[str, tuple[Version, ...]], None]
 
     @t.override
     def apply(self, req: RequirementWithKind) -> None:
-        target = self.lockfile["packages"].get(req["name"])
-        if not target:
-            return
-        req["specifier"] = f">={target['version']}"
+        match self.lockfile.get(req["name"], ()):
+            case [target]:
+                target_version = Version(target["version"])
+            case []:
+                return
+            case multiple_packages:
+                multiple_versions = sorted(
+                    Version(p["version"]) for p in multiple_packages
+                )
+                self.warn_multiple_versions(req["name"], tuple(multiple_versions))
+                # For setting a `>=` lower bound,
+                # it is generally safe to pick the lowest version,
+                # though this might break resolution if that version is incompatible with markers,
+                # and could lead to an implicit downgrade.
+                target_version = multiple_versions[0]
+        req["specifier"] = f">={target_version}"
 
 
 @dataclass

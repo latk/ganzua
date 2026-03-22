@@ -43,26 +43,31 @@ Can show JSON diffs:
     "removed": 0,
     "updated": 1
   },
-  "packages": {
-    "annotated-types": {
+  "packages": [
+    {
+      "name": "annotated-types",
       "old": null,
       "new": {
+        "name": "annotated-types",
         "version": "0.7.0",
         "source": "pypi"
       }
     },
-    "typing-extensions": {
+    {
+      "name": "typing-extensions",
       "old": {
+        "name": "typing-extensions",
         "version": "3.10.0.2",
         "source": "pypi"
       },
       "new": {
+        "name": "typing-extensions",
         "version": "4.14.1",
         "source": "pypi"
       },
       "is_major_change": true
     }
-  }
+  ]
 }
 ```
 
@@ -180,7 +185,7 @@ The Markdown output omits the table:
     "removed": 0,
     "updated": 0
   },
-  "packages": {}
+  "packages": []
 }
 ```
 
@@ -214,26 +219,31 @@ The following invocations are all equivalent:
     "removed": 0,
     "updated": 1
   },
-  "packages": {
-    "annotated-types": {
+  "packages": [
+    {
+      "name": "annotated-types",
       "old": null,
       "new": {
+        "name": "annotated-types",
         "version": "0.7.0",
         "source": "pypi"
       }
     },
-    "typing-extensions": {
+    {
+      "name": "typing-extensions",
       "old": {
+        "name": "typing-extensions",
         "version": "3.10.0.2",
         "source": "pypi"
       },
       "new": {
+        "name": "typing-extensions",
         "version": "4.14.1",
         "source": "pypi"
       },
       "is_major_change": true
     }
-  }
+  ]
 }
 ```
 
@@ -249,7 +259,7 @@ Download: [schema.diff.json](schema.diff.json)
 **Properties:**
 
 * **`stat`**: [DiffStat](#type.DiffStat)
-* **`packages`**: map(string → [DiffEntry](#type.DiffEntry))
+* **`packages`**: array([DiffEntry](#type.DiffEntry))
 
 ### type `DiffStat` {#type.DiffStat}
 
@@ -264,6 +274,10 @@ Download: [schema.diff.json](schema.diff.json)
 
 **Properties:**
 
+* **`name`**: string\
+  Name of the package being diffed.
+
+  *Added in Ganzua NEXT:* previously, the package name was implicit.
 * **`old`**: [LockedPackage](#type.LockedPackage) | null
 * **`new`**: [LockedPackage](#type.LockedPackage) | null
 * **`is_major_change`**?: bool\
@@ -280,6 +294,10 @@ Download: [schema.diff.json](schema.diff.json)
 
 **Properties:**
 
+* **`name`**: string\
+  Name of the package.
+
+  *Added in Ganzua NEXT:* previously, the package name was implicit.
 * **`version`**: string
 * **`source`**: `pypi` | `default` | `other` | [SourceRegistry](#type.SourceRegistry) | [SourceDirect](#type.SourceDirect)
 

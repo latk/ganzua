@@ -12,8 +12,10 @@ from dataclasses import dataclass
 import click
 import pydantic
 import rich
+from packaging.version import Version
 
 import ganzua
+from ganzua._lockfile import lockfile_by_name
 
 from . import _toml as toml
 from ._cli_help import App
@@ -147,8 +149,8 @@ def diff(ctx: click.Context, old: pathlib.Path, new: pathlib.Path) -> ganzua.Dif
         err_msg=lambda project_dir: f"Could not infer `NEW` for `{project_dir}`.",
     )
     return ganzua.diff(
-        ganzua.lockfile_from(old),
-        ganzua.lockfile_from(new),
+        lockfile_by_name(ganzua.lockfile_from(old)),
+        lockfile_by_name(ganzua.lockfile_from(new)),
     )
 
 
@@ -264,6 +266,7 @@ def constraints_bump(
     If this argument is not specified,
     the one in the current working directory will be used.
     """
+    warnings = _PlainWarnings()
     pyproject = _find_pyproject_toml(ctx, pyproject)
     lockfile = _find_lockfile(
         ctx,
@@ -277,7 +280,13 @@ def constraints_bump(
 
     locked = ganzua.lockfile_from(lockfile)
     with _toml_edit_scope(pyproject) as doc:
-        ganzua.edit_pyproject(doc, ganzua.UpdateRequirement(locked))
+        ganzua.edit_pyproject(
+            doc,
+            ganzua.UpdateRequirement(
+                lockfile=lockfile_by_name(locked),
+                warn_multiple_versions=warnings.warn_multiple_candidate_versions,
+            ),
+        )
 
 
 class ConstraintResetGoal(enum.Enum):
@@ -341,6 +350,7 @@ def constraints_reset(
     If this argument is not specified,
     the one in the current working directory will be used.
     """
+    warnings = _PlainWarnings()
     pyproject = _find_pyproject_toml(ctx, pyproject)
 
     edit: ganzua.EditRequirement
@@ -355,7 +365,10 @@ def constraints_reset(
                 err_msg=lambda project_dir: f"Could not infer `--lockfile` for `{project_dir}`.",
                 note="Using `--to=minimum` requires a `--lockfile`.",
             )
-            edit = ganzua.SetMinimumRequirement(ganzua.lockfile_from(lockfile))
+            edit = ganzua.SetMinimumRequirement(
+                lockfile_by_name(ganzua.lockfile_from(lockfile)),
+                warnings.warn_multiple_candidate_versions,
+            )
         case other:  # pragma: no cover
             t.assert_never(other)
 
@@ -399,3 +412,21 @@ def schema(command: SchemaName) -> pydantic.JsonValue:
         case other:  # pragma: no cover
             t.assert_never(other)
     return adapter.json_schema(mode="serialization")
+
+
+class _PlainWarnings:
+    def __init__(self) -> None:
+        self.seen = set[str]()
+
+    def warn(self, msg: str) -> None:
+        if msg in self.seen:
+            return
+        click.echo(f"ganzua: {msg}", err=True)
+        self.seen.add(msg)
+
+    def warn_multiple_candidate_versions(
+        self, package: str, versions: tuple[Version, ...]
+    ) -> None:
+        versions_str = ", ".join(str(v) for v in versions)
+        msg = f"package `{package}` has multiple candidate versions: {versions_str}"
+        self.warn(msg)

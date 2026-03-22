@@ -22,12 +22,29 @@ that use a dynamic version, see <https://github.com/latk/ganzua/issues/4>.
 
 
 class LockedPackage(t.TypedDict):
+    name: str
+    """Name of the package.
+
+    *Added in Ganzua NEXT:* previously, the package name was implicit.
+    """
+
     version: str
     source: Source
 
 
+@pydantic.with_config(use_attribute_docstrings=True)
 class Lockfile(t.TypedDict):
-    packages: dict[str, LockedPackage]
+    packages: list[LockedPackage]
+    """All packages in the lockfile.
+
+    In case of split versions, there can be multiple entries with the same package name.
+
+    *Changed in Ganzua NEXT:* `packages` is now a list.
+    Previously, it was a `name → LockedPackage` table.
+    """
+
+
+LockfileByName = t.NewType("LockfileByName", dict[str, list[LockedPackage]])
 
 
 def lockfile_from(path: PathLike) -> Lockfile:
@@ -37,28 +54,28 @@ def lockfile_from(path: PathLike) -> Lockfile:
         )
 
         match input_lockfile:
-            case UvLockfileV1(package=packages):
-                return Lockfile(
-                    packages={
-                        p["name"]: LockedPackage(
-                            version=p.get("version", UNDEFINED_VERSION),
-                            source=_map_uv_source(p["source"]),
-                        )
-                        for p in packages
-                    }
-                )
-            case PoetryLockfileV2(package=packages):
-                return Lockfile(
-                    packages={
-                        p["name"]: LockedPackage(
-                            version=p["version"],
-                            source=_map_poetry_source(p.get("source")),
-                        )
-                        for p in packages
-                    }
-                )
+            case UvLockfileV1(package=uv_packages):
+                packages = [
+                    LockedPackage(
+                        name=p["name"],
+                        version=p.get("version", UNDEFINED_VERSION),
+                        source=_map_uv_source(p["source"]),
+                    )
+                    for p in uv_packages
+                ]
+            case PoetryLockfileV2(package=poetry_packages):
+                packages = [
+                    LockedPackage(
+                        name=p["name"],
+                        version=p["version"],
+                        source=_map_poetry_source(p.get("source")),
+                    )
+                    for p in poetry_packages
+                ]
             case other:  # pragma: no cover
                 t.assert_never(other)
+
+    return Lockfile(packages=sorted(packages, key=lambda p: (p["name"], p["version"])))
 
 
 class UvLockfileV1Source(t.TypedDict, total=False):
@@ -306,3 +323,10 @@ def _make_vcs_url_from_uv_direct_url(vcs: t.Literal["git"], direct_url: str) -> 
 
     # Finally, reconstruct the proper URL.
     return _make_vcs_url(vcs, str(u), hash=rev, subdirectory=subdirectory)
+
+
+def lockfile_by_name(lockfile: Lockfile) -> LockfileByName:
+    by_name: dict[str, list[LockedPackage]] = {}
+    for p in lockfile["packages"]:
+        by_name.setdefault(p["name"], []).append(p)
+    return LockfileByName(by_name)

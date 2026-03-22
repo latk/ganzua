@@ -337,6 +337,26 @@ foo bar
 
 </div>
 
+If the collapsible block should be open by default, the `<details open>` attribute may be used.
+
+<details class="doctest-example"><summary>May have the <code>open</code> attribute</summary>
+
+```````md,doctest-example
+<details open><summary><code>$ echo foo bar</code></summary>
+</details>
+```````
+```````md,doctest-output
+<details open><summary><code>$ echo foo bar</code></summary>
+
+```
+foo bar
+```
+
+</details>
+```````
+
+</details>
+
 ### Check Ganzua diff notes
 
 A special utility for testing the notes feature of [`ganzua diff`](cli/ganzua-diff.html).
@@ -681,12 +701,13 @@ we can observe that the output format is detected as JSON and properly syntax-hi
 
 ```json
 {
-  "packages": {
-    "foo": {
+  "packages": [
+    {
+      "name": "foo",
       "version": "1.2.3",
       "source": "pypi"
     }
-  }
+  ]
 }
 ```
 
@@ -785,22 +806,25 @@ For example, these two commands end up inspecting the same project:
 
 ```json
 {
-  "packages": {
-    "annotated-types": {
+  "packages": [
+    {
+      "name": "annotated-types",
       "version": "0.7.0",
       "source": "pypi"
     },
-    "example": {
+    {
+      "name": "example",
       "version": "0.1.0",
       "source": {
         "direct": "."
       }
     },
-    "typing-extensions": {
+    {
+      "name": "typing-extensions",
       "version": "4.14.1",
       "source": "pypi"
     }
-  }
+  ]
 }
 ```
 

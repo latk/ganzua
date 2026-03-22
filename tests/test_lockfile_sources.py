@@ -15,34 +15,36 @@ def test_can_load_sources_poetry() -> None:
     parsed = ganzua.lockfile_from(resources.SOURCES_POETRY_LOCKFILE)
     assert parsed == snapshot(
         {
-            "packages": {
-                "click": {"version": "8.3.0", "source": "default"},
-                "click-example-repo": {
+            "packages": [
+                {"name": "click", "version": "8.3.0", "source": "default"},
+                {
+                    "name": "click-example-repo",
                     "version": "1.0.0",
                     "source": SourceDirect(
                         direct="git+https://github.com/pallets/click.git@309ce9178707e1efaf994f191d062edbdffd5ce6#subdirectory=examples/repo"
                     ),
                 },
-                "colorama": {"version": "0.4.6", "source": "default"},
-                "coverage": {
+                {"name": "colorama", "version": "0.4.6", "source": "default"},
+                {
+                    "name": "coverage",
                     "version": "7.10.7",
                     "source": SourceRegistry(registry="https://test.pypi.org/simple"),
                 },
-                "idna": {"version": "3.11", "source": "default"},
-                "multidict": {
+                {"name": "idna", "version": "3.11", "source": "default"},
+                {
+                    "name": "multidict",
                     "version": "6.7.0",
                     "source": SourceDirect(
                         direct="https://files.pythonhosted.org/packages/b7/da/7d22601b625e241d4f23ef1ebff8acfc60da633c9e7e7922e24d10f592b3/multidict-6.7.0-py3-none-any.whl"
                     ),
                 },
-                "propcache": {"version": "0.4.1", "source": "default"},
-                "yarl": {"version": "1.22.0", "source": "pypi"},
-            }
+                {"name": "propcache", "version": "0.4.1", "source": "default"},
+                {"name": "yarl", "version": "1.22.0", "source": "pypi"},
+            ]
         }
     )
     assert {
-        name: md_from_source(data["source"])
-        for name, data in parsed["packages"].items()
+        data["name"]: md_from_source(data["source"]) for data in parsed["packages"]
     } == snapshot(
         {
             "click": "default",
@@ -102,35 +104,41 @@ def test_can_load_sources_uv() -> None:
     parsed = ganzua.lockfile_from(resources.SOURCES_UV_LOCKFILE)
     assert parsed == snapshot(
         {
-            "packages": {
-                "click": {"version": "8.3.0", "source": "pypi"},
-                "click-example-repo": {
+            "packages": [
+                {"name": "click", "version": "8.3.0", "source": "pypi"},
+                {
+                    "name": "click-example-repo",
                     "version": "1.0.0",
                     "source": SourceDirect(
                         direct="git+https://github.com/pallets/click.git@f67abc6fe7dd3d878879a4f004866bf5acefa9b4#subdirectory=examples/repo"
                     ),
                 },
-                "colorama": {"version": "0.4.6", "source": "pypi"},
-                "coverage": {
+                {"name": "colorama", "version": "0.4.6", "source": "pypi"},
+                {
+                    "name": "coverage",
                     "version": "7.10.7",
                     "source": SourceRegistry(registry="https://test.pypi.org/simple"),
                 },
-                "idna": {"version": "3.11", "source": "pypi"},
-                "multidict": {
+                {"name": "idna", "version": "3.11", "source": "pypi"},
+                {
+                    "name": "multidict",
                     "version": "6.7.0",
                     "source": SourceDirect(
                         direct="https://files.pythonhosted.org/packages/b7/da/7d22601b625e241d4f23ef1ebff8acfc60da633c9e7e7922e24d10f592b3/multidict-6.7.0-py3-none-any.whl"
                     ),
                 },
-                "propcache": {"version": "0.4.1", "source": "pypi"},
-                "sources-uv": {"version": "0.1.0", "source": SourceDirect(direct=".")},
-                "yarl": {"version": "1.22.0", "source": "pypi"},
-            }
+                {"name": "propcache", "version": "0.4.1", "source": "pypi"},
+                {
+                    "name": "sources-uv",
+                    "version": "0.1.0",
+                    "source": SourceDirect(direct="."),
+                },
+                {"name": "yarl", "version": "1.22.0", "source": "pypi"},
+            ]
         }
     )
     assert {
-        name: md_from_source(data["source"])
-        for name, data in parsed["packages"].items()
+        data["name"]: md_from_source(data["source"]) for data in parsed["packages"]
     } == snapshot(
         {
             "click": "pypi",
@@ -184,14 +192,15 @@ def _assert_parse_poetry_source(
 
     parsed = ganzua.lockfile_from(lockfile)
     assert parsed == {
-        "packages": {
-            "example": {
+        "packages": [
+            {
+                "name": "example",
                 "version": "0.1.0",
                 "source": expected_source,
             }
-        }
+        ]
     }
-    assert md_from_source(parsed["packages"]["example"]["source"]) == expected_markdown
+    assert md_from_source(parsed["packages"][0]["source"]) == expected_markdown
 
 
 def _assert_parse_uv_source(
@@ -208,11 +217,12 @@ def _assert_parse_uv_source(
 
     parsed = ganzua.lockfile_from(lockfile)
     assert parsed == {
-        "packages": {
-            "example": {
+        "packages": [
+            {
+                "name": "example",
                 "version": "0.1.0",
                 "source": expected_source,
             }
-        }
+        ]
     }
-    assert md_from_source(parsed["packages"]["example"]["source"]) == expected_markdown
+    assert md_from_source(parsed["packages"][0]["source"]) == expected_markdown

@@ -2,6 +2,11 @@
   "$defs": {
     "DiffEntry": {
       "properties": {
+        "name": {
+          "description": "Name of the package being diffed.\n\n*Added in Ganzua NEXT:* previously, the package name was implicit.",
+          "title": "Name",
+          "type": "string"
+        },
         "old": {
           "anyOf": [
             {
@@ -42,6 +47,7 @@
         }
       },
       "required": [
+        "name",
         "old",
         "new"
       ],
@@ -78,6 +84,11 @@
     },
     "LockedPackage": {
       "properties": {
+        "name": {
+          "description": "Name of the package.\n\n*Added in Ganzua NEXT:* previously, the package name was implicit.",
+          "title": "Name",
+          "type": "string"
+        },
         "version": {
           "title": "Version",
           "type": "string"
@@ -103,6 +114,7 @@
         }
       },
       "required": [
+        "name",
         "version",
         "source"
       ],
@@ -158,11 +170,11 @@
       "$ref": "#/$defs/DiffStat"
     },
     "packages": {
-      "additionalProperties": {
+      "items": {
         "$ref": "#/$defs/DiffEntry"
       },
       "title": "Packages",
-      "type": "object"
+      "type": "array"
     }
   },
   "required": [
