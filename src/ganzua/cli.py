@@ -15,10 +15,11 @@ import rich
 from packaging.version import Version
 
 import ganzua
-from ganzua._lockfile import lockfile_by_name
 
 from . import _toml as toml
 from ._cli_help import App
+from ._filters import Filter, filter_lockfile
+from ._lockfile import lockfile_by_name
 from ._markdown import md_from_diff, md_from_lockfile, md_from_requirements
 from ._markdown_from_json_schema import md_from_schema
 from ._utils import error_context
@@ -96,9 +97,18 @@ REQUIREMENTS_SCHEMA = pydantic.TypeAdapter(ganzua.Requirements)
 
 @app.command()
 @click.argument("lockfile", type=_ExistingPath, required=False)
+@click.option(
+    "--name",
+    metavar="FILTER",
+    type=Filter.PARAM_TYPE,
+    default=Filter.default(),
+    help="Include/exclude packages to inspect by name. [default: show all]",
+)
 @_with_print_json(LOCKFILE_SCHEMA, md_from_lockfile)
 @click.pass_context
-def inspect(ctx: click.Context, lockfile: pathlib.Path | None) -> ganzua.Lockfile:
+def inspect(
+    ctx: click.Context, lockfile: pathlib.Path | None, name: Filter
+) -> ganzua.Lockfile:
     """Inspect a lockfile.
 
     The `LOCKFILE` should point to an `uv.lock` or `poetry.lock` file,
@@ -112,7 +122,9 @@ def inspect(ctx: click.Context, lockfile: pathlib.Path | None) -> ganzua.Lockfil
         project_dir=pathlib.Path(),
         err_msg=lambda project_dir: f"Could not infer `LOCKFILE` for `{project_dir}`.",
     )
-    return ganzua.lockfile_from(lockfile)
+
+    lockfile_data = ganzua.lockfile_from(lockfile)
+    return filter_lockfile(lockfile_data, name_filter=name)
 
 
 @app.command()

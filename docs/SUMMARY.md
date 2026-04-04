@@ -21,6 +21,10 @@
 
 <!-- command output end -->
 
+# Feature Reference
+
+* [Filters](filters.md)
+
 ---
 
 [Changelog](changelog.md)

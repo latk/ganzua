@@ -13,6 +13,8 @@ the one in the current working directory will be used.
 
 **Options:**
 
+* `--name FILTER`
+  Include/exclude packages to inspect by name. [default: show all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]
 * `--help`
@@ -251,7 +253,61 @@ When inspecting the lockfile, Ganzua will show all candidates:
 
 </details>
 
+Split version support was added in *Ganzua NEXT*.
 For background on this, see the issue [ganzua#5](https://github.com/latk/ganzua/issues/5).
+
+### Filtering
+
+<!-- doctest: clean example -->
+
+<!--
+```console
+$ cp corpus/new-uv-project/uv.lock $EXAMPLE/uv.lock
+```
+-->
+
+Normally, inspecting a lockfile will show all results:
+
+<details open><summary><code>$ ganzua inspect $EXAMPLE --format=markdown</code></summary>
+
+```
+| package           | version |
+|-------------------|---------|
+| annotated-types   | 0.7.0   |
+| example           | 0.1.0   |
+| typing-extensions | 4.14.1  |
+```
+
+</details>
+
+However, we can filter by `--name` to only look at a specific package:
+
+<details open><summary><code>$ ganzua inspect $EXAMPLE --name=annotated-types --format=markdown</code></summary>
+
+```
+| package         | version |
+|-----------------|---------|
+| annotated-types | 0.7.0   |
+```
+
+</details>
+
+Can also use glob patterns to select matching packages:
+
+<details><summary><code>$ ganzua inspect $EXAMPLE --name='*ex*' --format=markdown</code></summary>
+
+```
+| package           | version |
+|-------------------|---------|
+| example           | 0.1.0   |
+| typing-extensions | 4.14.1  |
+```
+
+</details>
+
+For further details on filters, see the [filter manual](../filters.md).
+
+Filtering was added in *Ganzua NEXT*.
 
 
 ## JSON Schema

@@ -205,10 +205,15 @@ def table[Row: tuple[str, ...]](
     |----|----|
     | a1 | c1 |
     | a2 | c2 |
+
+    Example: empty tables.
+    >>> print(table(("a", "b"), [], collapsible_cols=("b",)))
+    | a |
+    |---|
     """
     col_widths_or_empty = tuple(
         _col_width(col_name, col_values, collapsible=(col_name in collapsible_cols))
-        for col_name, col_values in zip(header, zip(*values, strict=True), strict=True)
+        for col_name, col_values in _columns_from_records(header, *values)
     )
 
     def select_cols_with_data(row: Row) -> tuple[str, ...]:
@@ -234,6 +239,15 @@ def table[Row: tuple[str, ...]](
         "| " + " | ".join(_justify_cols(row, col_widths)) + " |" for row in values
     )
     return "\n".join(lines)
+
+
+def _columns_from_records[Row: tuple[str, ...]](
+    header: Row, *values: Row
+) -> t.Iterable[tuple[str, t.Sequence[str]]]:
+    if not values:
+        return [(h, []) for h in header]
+    columnar_values: t.Iterable[tuple[str, ...]] = zip(*values, strict=True)
+    return zip(header, columnar_values, strict=True)
 
 
 def _col_width(

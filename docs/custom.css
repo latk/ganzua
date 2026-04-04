@@ -68,3 +68,13 @@
         background: var(--transparent-red);
     }
 }
+
+/* make inline code within blockquotes more visible */
+#mdbook-content blockquote {
+    code {
+        outline: solid 1px hsl(from currentColor h s l / 0.5);
+    }
+    pre > code {
+        outline: none;
+    }
+}
