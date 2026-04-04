@@ -13,6 +13,8 @@ the one in the current working directory will be used.
 
 **Options:**
 
+* `--name FILTER`
+  Include/exclude constraints to show by package name. [default: show all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]
 * `--help`
@@ -109,6 +111,22 @@ Here are some examples of how the Ganzua output looks in these cases:
 |-------------------|-----------------|----------------------------|
 | annotated-types   | <0.8.0          | group `dev`, group `types` |
 | annotated-types   | >=0.7.0         |                            |
+| typing-extensions | <5.0.0,>=4.15.0 | group `types`              |
+| typing-extensions | ^4.15           | extra `dev`, extra `types` |
+```
+
+</details>
+
+We can use filters to restrict the output to certain requirements.
+The `--name` filter lets us limit results by package name.
+For further details on filters, read the [filters manual](../filters.md).
+Filters were added in *Ganzua NEXT*.
+
+<details><summary><code>$ ganzua constraints inspect corpus/poetry-multiple-groups --format=markdown --name='!annotated*'</code></summary>
+
+```
+| package           | version         | group/extra                |
+|-------------------|-----------------|----------------------------|
 | typing-extensions | <5.0.0,>=4.15.0 | group `types`              |
 | typing-extensions | ^4.15           | extra `dev`, extra `types` |
 ```

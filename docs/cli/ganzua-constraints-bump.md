@@ -29,6 +29,8 @@ the one in the current working directory will be used.
   * default: use the lockfile in the `PYPROJECT` directory
 * `--backup PATH`
   Store a backup in this file.
+* `--name FILTER`
+  Include/exclude constraints to edit by package name. [default: edit all]
 * `--help`
   Show this help message and exit.
 
@@ -425,6 +427,71 @@ Note: Candidate lockfile: ${EXAMPLE}/poetry.lock
 [command exited with status 2]
 $ ganzua constraints bump $EXAMPLE --lockfile=$EXAMPLE/uv.lock
 ```
+
+### Filters
+
+Can use filters to only bump certain constraints.
+Read the [filter manual](../filters.md) for further details on how filters work.
+
+*Added in Ganzua NEXT*: `--name` filters.
+
+<!-- doctest: clean example -->
+
+Let's recall the above [uv example](#uv-example).
+
+```console
+$ cp $CORPUS/constraints-uv-pyproject.toml $EXAMPLE/pyproject.toml
+```
+
+<!-- doctest: create uv lockfile $EXAMPLE/uv.lock -->
+
+| name              | version |
+|-------------------|---------|
+| annotated-types   | 0.7.0   |
+| example           | 0.2.0   |
+| typing-extensions | 4.14.1  |
+
+We can now decide that we only want to bump the `typing-extensions` constraints, not the `annotated-types` constraints:
+
+```console
+$ ganzua constraints bump $EXAMPLE --name=typing-extensions --backup=$EXAMPLE/old.toml
+```
+
+Old constraints:
+
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE/old.toml --format=markdown</code></summary>
+
+```
+| package           | version         | group/extra                      |
+|-------------------|-----------------|----------------------------------|
+| annotated-types   | ==0.6.*,>=0.6.1 | extra `extra1`                   |
+| annotated-types   | ~=0.6.1         | group `group-b`                  |
+| merrily-ignored   |                 |                                  |
+| ndr               |                 | extra `extra3`                   |
+| typing-extensions | <4,>=3          |                                  |
+| typing-extensions | ~=3.4           | group `group-a`, group `group-b` |
+```
+
+</details>
+
+Updated constraints:
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE --format=markdown</code></summary>
+
+```
+| package           | version         | group/extra                      |
+|-------------------|-----------------|----------------------------------|
+| annotated-types   | ==0.6.*,>=0.6.1 | extra `extra1`                   |
+| annotated-types   | ~=0.6.1         | group `group-b`                  |
+| merrily-ignored   |                 |                                  |
+| ndr               |                 | extra `extra3`                   |
+| typing-extensions | <5,>=4          |                                  |
+| typing-extensions | ~=4.14          | group `group-a`, group `group-b` |
+```
+
+</details>
+
 
 ## Examples of different constraints {#examples-constraints}
 

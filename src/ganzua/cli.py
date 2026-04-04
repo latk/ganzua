@@ -18,6 +18,7 @@ import ganzua
 
 from . import _toml as toml
 from ._cli_help import App
+from ._edit_requirement import FilteredEdit
 from ._filters import Filter, filter_lockfile
 from ._lockfile import lockfile_by_name
 from ._markdown import md_from_diff, md_from_lockfile, md_from_requirements
@@ -130,9 +131,18 @@ def inspect(
 @app.command()
 @click.argument("old", type=_ExistingPath)
 @click.argument("new", type=_ExistingPath)
+@click.option(
+    "--name",
+    metavar="FILTER",
+    type=Filter.PARAM_TYPE,
+    default=Filter.default(),
+    help="Include/exclude packages to diff by name. [default: diff all]",
+)
 @_with_print_json(DIFF_SCHEMA, md_from_diff)
 @click.pass_context
-def diff(ctx: click.Context, old: pathlib.Path, new: pathlib.Path) -> ganzua.Diff:
+def diff(
+    ctx: click.Context, old: pathlib.Path, new: pathlib.Path, name: Filter
+) -> ganzua.Diff:
     """Compare two lockfiles.
 
     The `OLD` and `NEW` arguments must each point to an `uv.lock` or `poetry.lock` file,
@@ -161,8 +171,8 @@ def diff(ctx: click.Context, old: pathlib.Path, new: pathlib.Path) -> ganzua.Dif
         err_msg=lambda project_dir: f"Could not infer `NEW` for `{project_dir}`.",
     )
     return ganzua.diff(
-        lockfile_by_name(ganzua.lockfile_from(old)),
-        lockfile_by_name(ganzua.lockfile_from(new)),
+        lockfile_by_name(filter_lockfile(ganzua.lockfile_from(old), name_filter=name)),
+        lockfile_by_name(filter_lockfile(ganzua.lockfile_from(new), name_filter=name)),
     )
 
 
@@ -220,10 +230,17 @@ def _find_lockfile(
 
 @constraints.command("inspect")
 @click.argument("pyproject", type=_ExistingPath, required=False)
+@click.option(
+    "--name",
+    metavar="FILTER",
+    type=Filter.PARAM_TYPE,
+    default=Filter.default(),
+    help="Include/exclude constraints to show by package name. [default: show all]",
+)
 @_with_print_json(REQUIREMENTS_SCHEMA, md_from_requirements)
 @click.pass_context
 def constraints_inspect(
-    ctx: click.Context, pyproject: pathlib.Path | None
+    ctx: click.Context, pyproject: pathlib.Path | None, name: Filter
 ) -> ganzua.Requirements:
     """List all constraints in the `pyproject.toml` file.
 
@@ -237,7 +254,7 @@ def constraints_inspect(
     with error_context(f"while parsing {pyproject}"):
         doc = toml.RefRoot.parse(pyproject.read_text())
     collector = ganzua.CollectRequirement([])
-    ganzua.edit_pyproject(doc, collector)
+    ganzua.edit_pyproject(doc, FilteredEdit(collector, name=name))
     return ganzua.Requirements(requirements=collector.reqs)
 
 
@@ -255,12 +272,20 @@ Where to load versions from. Inferred if possible.
 """,
 )
 @click.option("--backup", type=click.Path(), help="Store a backup in this file.")
+@click.option(
+    "--name",
+    metavar="FILTER",
+    type=Filter.PARAM_TYPE,
+    default=Filter.default(),
+    help="Include/exclude constraints to edit by package name. [default: edit all]",
+)
 @click.pass_context
 def constraints_bump(
     ctx: click.Context,
     pyproject: pathlib.Path | None,
     lockfile: pathlib.Path | None,
     backup: pathlib.Path | None,
+    name: Filter,
 ) -> None:
     """Update `pyproject.toml` dependency constraints to match the lockfile.
 
@@ -291,14 +316,13 @@ def constraints_bump(
         shutil.copy(pyproject, backup)
 
     locked = ganzua.lockfile_from(lockfile)
+    edit: ganzua.EditRequirement = ganzua.UpdateRequirement(
+        lockfile=lockfile_by_name(locked),
+        warn_multiple_versions=warnings.warn_multiple_candidate_versions,
+    )
+    edit = FilteredEdit(edit, name=name)
     with _toml_edit_scope(pyproject) as doc:
-        ganzua.edit_pyproject(
-            doc,
-            ganzua.UpdateRequirement(
-                lockfile=lockfile_by_name(locked),
-                warn_multiple_versions=warnings.warn_multiple_candidate_versions,
-            ),
-        )
+        ganzua.edit_pyproject(doc, edit)
 
 
 class ConstraintResetGoal(enum.Enum):
@@ -335,14 +359,22 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
 * default: use the lockfile in the `PYPROJECT` directory
 """,
 )
+@click.option(
+    "--name",
+    metavar="FILTER",
+    type=Filter.PARAM_TYPE,
+    default=Filter.default(),
+    help="Include/exclude constraints to edit by package name. [default: edit all]",
+)
 @click.pass_context
-def constraints_reset(
+def constraints_reset(  # noqa: PLR0913  # too-many-arguments
     ctx: click.Context,
     pyproject: pathlib.Path | None,
     *,
     backup: pathlib.Path | None,
     lockfile: pathlib.Path | None,
     to: ConstraintResetGoal,
+    name: Filter,
 ) -> None:
     """Remove or relax any dependency version constraints from the `pyproject.toml`.
 
@@ -383,6 +415,8 @@ def constraints_reset(
             )
         case other:  # pragma: no cover
             t.assert_never(other)
+
+    edit = FilteredEdit(edit, name=name)
 
     if backup is not None:
         shutil.copy(pyproject, backup)

@@ -1,3 +1,4 @@
+import dataclasses
 import typing as t
 from dataclasses import dataclass
 
@@ -5,6 +6,7 @@ from packaging.specifiers import Specifier, SpecifierSet
 from packaging.utils import canonicalize_version
 from packaging.version import Version
 
+from ._filters import Filter
 from ._lockfile import LockfileByName
 from ._requirement import Requirement, RequirementWithKind
 
@@ -110,6 +112,21 @@ class CollectRequirement(EditRequirement):
     @t.override
     def apply(self, req: RequirementWithKind) -> None:
         self.reqs.append(req)
+
+
+@dataclass
+class FilteredEdit(EditRequirement):
+    """Decorator that only applies the inner edit to matching requirements."""
+
+    inner: EditRequirement
+    _: dataclasses.KW_ONLY
+    name: Filter
+
+    @t.override
+    def apply(self, req: RequirementWithKind) -> None:
+        if not self.name.matches(req["name"]):
+            return
+        self.inner.apply(req)
 
 
 def _update_poetry_specifier(spec: str, target: Version) -> str:

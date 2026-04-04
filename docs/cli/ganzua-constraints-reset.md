@@ -35,6 +35,8 @@ the one in the current working directory will be used.
   * file: use the path as the lockfile
   * directory: use the lockfile in that directory
   * default: use the lockfile in the `PYPROJECT` directory
+* `--name FILTER`
+  Include/exclude constraints to edit by package name. [default: edit all]
 * `--help`
   Show this help message and exit.
 
@@ -593,3 +595,58 @@ $ ganzua constraints reset $EXAMPLE
 
 That is, we can specify a directory or a file path,
 and omit this argument entirely if we want to act on the project in the current working directory.
+
+### Filters
+
+<!-- doctest: clean example -->
+
+Can use filters to only reset certain constraints.
+Read the [filter manual](../filters.md) for further details on how filters work.
+
+*Added in Ganzua NEXT:* `--name` filters.
+
+Let's set up a fresh example project.
+
+```console
+$ cp $CORPUS/constraints-uv-pyproject.toml $EXAMPLE/pyproject.toml
+```
+
+We can look at the current constraints:
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE --format=markdown</code></summary>
+
+```
+| package           | version         | group/extra                      |
+|-------------------|-----------------|----------------------------------|
+| annotated-types   | ==0.6.*,>=0.6.1 | extra `extra1`                   |
+| annotated-types   | ~=0.6.1         | group `group-b`                  |
+| merrily-ignored   |                 |                                  |
+| ndr               |                 | extra `extra3`                   |
+| typing-extensions | <4,>=3          |                                  |
+| typing-extensions | ~=3.4           | group `group-a`, group `group-b` |
+```
+
+</details>
+
+We can use the `--name` filter to only reset the Typing-Extensions versions:
+
+```console
+$ ganzua constraints reset $EXAMPLE --name typing-extensions
+```
+
+In the updated constraints, we see that the version numbers have been removed, but not for other dependencies:
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE --format=markdown</code></summary>
+
+```
+| package           | version         | group/extra                      |
+|-------------------|-----------------|----------------------------------|
+| annotated-types   | ==0.6.*,>=0.6.1 | extra `extra1`                   |
+| annotated-types   | ~=0.6.1         | group `group-b`                  |
+| merrily-ignored   |                 |                                  |
+| ndr               |                 | extra `extra3`                   |
+| typing-extensions |                 |                                  |
+| typing-extensions |                 | group `group-a`, group `group-b` |
+```
+
+</details>

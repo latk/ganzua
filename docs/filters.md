@@ -3,8 +3,24 @@
 Filters can be used to restrict Ganzua to operate only on certain dependencies.
 Which filters are supported depends on the exact subcommand.
 
-* [`ganzua inspect`](/cli/ganzua-inspect.md) (`--name`)\
+* [`ganzua inspect`](cli/ganzua-inspect.md) (`--name`)\
   Select which packages are shown in the output.\
+  Added in *Ganzua NEXT*.
+
+* [`ganzua diff`](cli/ganzua-diff.md) (`--name`)\
+  Select which packages are included in the diff.\
+  Added in *Ganzua NEXT*.
+
+* [`ganzua constraints inspect`](cli/ganzua-constraints-inspect.md) (`--name`)\
+  Select which constraints are shown in the output.\
+  Added in *Ganzua NEXT*.
+
+* [`ganzua constraints bump`](cli/ganzua-constraints-bump.md) (`--name`)\
+  Select which constraints are edited.\
+  Added in *Ganzua NEXT*.
+
+* [`ganzua constraints reset`](cli/ganzua-constraints-reset.md) (`--name`)\
+  Select which constraints are edited.\
   Added in *Ganzua NEXT*.
 
 The following sections describe

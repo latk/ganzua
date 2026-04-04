@@ -21,6 +21,8 @@ ganzua diff <(git show HEAD:uv.lock) uv.lock
 
 **Options:**
 
+* `--name FILTER`
+  Include/exclude packages to diff by name. [default: diff all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]
 * `--help`
@@ -245,6 +247,32 @@ The following invocations are all equivalent:
     }
   ]
 }
+```
+
+</details>
+
+Can filter the packages to be diffed by name.
+For more details, see the [filter manual](../filters.md).
+Filtering was added in Ganzua NEXT.
+
+<details><summary><code>$ ganzua diff $CORPUS/old-uv-project $CORPUS/new-uv-project --name='typing*' --format=markdown</code></summary>
+
+```
+1 changed packages (1 updated)
+
+| package           | old      | new    | notes |
+|-------------------|----------|--------|-------|
+| typing-extensions | 3.10.0.2 | 4.14.1 | (M)   |
+
+* (M) major change
+```
+
+</details>
+
+<details><summary><code>$ ganzua diff $CORPUS/old-uv-project $CORPUS/new-uv-project --name='nonexistent' --format=markdown</code></summary>
+
+```
+0 changed packages
 ```
 
 </details>
