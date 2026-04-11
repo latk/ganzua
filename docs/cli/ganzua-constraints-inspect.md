@@ -171,6 +171,10 @@ which is why the `in_groups` and `in_extras` fields may have multiple values.
   Environment marker expression describing when this requirement should be installed.
 * **`in_groups`**?: array(string)\
   Dependency groups that this requirement is part of.
+
+  *Changed in Ganzua NEXT:* renamed from `groups`.
+
+  *Added in Ganzua 0.2.0.*
 * **`in_extras`**?: array(string)\
   Extras that this optional requirement is part of.
 
@@ -182,5 +186,7 @@ which is why the `in_groups` and `in_extras` fields may have multiple values.
 
   * When using `[tool.poetry.extras]`, one requirement can be part of multiple extras.
   * The `marker` might also reference extras.
+
+  *Added in Ganzua NEXT.*
 
 <!-- command output end -->

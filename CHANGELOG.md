@@ -24,19 +24,45 @@ Full diff: <https://github.com/latk/ganzua/compare/{last_release}...HEAD>
 
 ## Unreleased
 
+This release brings fixes and quality-of-life improvements that were found through continued real-world usage.
+This includes a new `--name` filter system, support for split versions, and information about which extras each constraint is part of.
+Unfortunately, this required breaking changes to the JSON schema.
+
 Breaking changes:
 
-* Schema change for `ganzua constraints inspect`: `groups` was renamed to `in_groups`.
+* Schema change for `ganzua inspect`: `packages` is now a list, not a dictionary.
+  See “split versions” below.
+  Previously, Ganzua would silently pick the last occurrence of each package.
+  Now, all versions are shown, and no information is lost.
+* Schema change for `ganzua constraints inspect`: renamed the `groups` JSON field to `in_groups`.
 
 New features:
 
 * Greatly improved docs and a new website at <https://ganzua.latk.de>.
-* Track information about extras (optional dependencies) when inspecting constraints.
-* Show information about groups and extras in `ganzua constraints inspect` Markdown output.
+  * The examples in the docs now serve as the primary test suite.
+  * Each command that can output JSON now has an explicit output format specification.
+* (<https://github.com/latk/ganzua/issues/6>) Add `--name=FILTER` to all commands that operate on lockfiles or constraints.
+  This can be used to restrict which packages are included in the output,
+  or which constraints are modified.
+  Supports comma-separated package names, glob expressions, and gitignore-style exclusions, e.g. `--name 'foo*, !foo-bar'`.
+* (<https://github.com/latk/ganzua/issues/5>) Support packages with “split versions”.
+  When a lockfile contains solutions for multiple Python versions or other environment differences, there might not be a single package version that is compatible with all environments.
+  Then, a lockfile might contain multiple versions for the same package.
+  This is now handled properly in all commands that interact with lockfiles.
+  Some operations like `ganzua constraints bump` will issue a warning when a package has an ambiguous version.
+* Schema change for `ganzua constraints inspect`: track information about extras (optional dependencies) with a new `in_extras` field
+* `ganzua constraints inspect`: show information about groups and extras in Markdown output
+* Markdown output: hide certain columns if empty, e.g. “notes”.
 
 Fixes:
 
 * Sets are now shown in JSON output as sorted arrays.
+  This ensures output remains stable across Ganzua runs.
+* `ganzua constraints bump` now treats certain version constraint operators more sensibly.
+  This was discovered while rewriting the tests as a specification document.
+  * `===` arbitrary equality is now always updated, not removed.
+  * Poetry `~` now behaves more like `>=` than like `~=`.
+    This means a `~1` expression can now be handled correctly.
 
 Other:
 

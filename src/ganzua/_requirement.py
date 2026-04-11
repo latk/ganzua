@@ -96,7 +96,12 @@ class Requirement(t.TypedDict):
     """Environment marker expression describing when this requirement should be installed."""
 
     in_groups: t.NotRequired[t.Annotated[frozenset[Name], SerializeSorted]]
-    """Dependency groups that this requirement is part of."""
+    """Dependency groups that this requirement is part of.
+
+    *Changed in Ganzua NEXT:* renamed from `groups`.
+
+    *Added in Ganzua 0.2.0.*
+    """
 
     in_extras: t.NotRequired[t.Annotated[frozenset[Name], SerializeSorted]]
     """Extras that this optional requirement is part of.
@@ -109,6 +114,8 @@ class Requirement(t.TypedDict):
 
     * When using `[tool.poetry.extras]`, one requirement can be part of multiple extras.
     * The `marker` might also reference extras.
+
+    *Added in Ganzua NEXT.*
     """
 
     # TODO instead of directly supporting URLs,
