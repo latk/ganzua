@@ -17,7 +17,7 @@ jobs:
       matrix:
         python-version: ['3.12', '3.13', '3.14']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
         with:
           python-version: ${{ matrix.python-version }}
@@ -30,7 +30,7 @@ jobs:
       - run: just -v docs
       - run: just -v dist
 
-      - uses: actions/upload-pages-artifact@v4.0.0
+      - uses: actions/upload-pages-artifact@v5.0.0
         if: matrix.python-version == '3.12'
         with:
           path: dist/docs/
@@ -48,5 +48,5 @@ jobs:
       id-token: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/deploy-pages@v4.0.5
+      - uses: actions/deploy-pages@v5.0.0
         id: deployment
