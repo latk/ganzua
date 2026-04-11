@@ -14,13 +14,13 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "click>=8.3.1",
-    "packaging>=25.0",
-    "pydantic>=2.12.4",
-    "rich>=14.2.0",
-    "tomlkit>=0.13.3",
+    "click>=8.3.2",
+    "packaging>=26.0",
+    "pydantic>=2.12.5",
+    "rich>=14.3.4",
+    "tomlkit>=0.14.0",
     "typing-extensions>=4.15.0",
-    "yarl>=1.22.0",
+    "yarl>=1.23.0",
 ]
 
 [project.scripts]
@@ -38,11 +38,11 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "dirty-equals>=0.11",
-    "inline-snapshot>=0.31.1",
-    "mypy>=1.18.2",
-    "pytest-cov>=7.0.0",
-    "pytest>=9.0.1",
-    "ruff>=0.14.6",
+    "inline-snapshot>=0.32.6",
+    "mypy>=1.20.0",
+    "pytest-cov>=7.1.0",
+    "pytest>=9.0.3",
+    "ruff>=0.15.10",
 ]
 
 [tool.uv.workspace]

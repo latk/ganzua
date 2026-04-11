@@ -309,7 +309,9 @@ def constraints_bump(
         ctx,
         lockfile,
         project_dir=pyproject.parent,
-        err_msg=lambda project_dir: f"Could not infer `--lockfile` for `{project_dir}`.",
+        err_msg=lambda project_dir: (
+            f"Could not infer `--lockfile` for `{project_dir}`."
+        ),
     )
 
     if backup is not None:
@@ -406,7 +408,9 @@ def constraints_reset(  # noqa: PLR0913  # too-many-arguments
                 ctx,
                 lockfile,
                 project_dir=pyproject.parent,
-                err_msg=lambda project_dir: f"Could not infer `--lockfile` for `{project_dir}`.",
+                err_msg=lambda project_dir: (
+                    f"Could not infer `--lockfile` for `{project_dir}`."
+                ),
                 note="Using `--to=minimum` requires a `--lockfile`.",
             )
             edit = ganzua.SetMinimumRequirement(
