@@ -205,7 +205,7 @@ Ganzua does not offer GitHub Actions, but it's really easy to integrate Ganzua i
 
 <!-- ANCHOR: license -->
 
-Copyright 2025 Lukas Atkinson
+Copyright 2025-2026 Lukas Atkinson
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

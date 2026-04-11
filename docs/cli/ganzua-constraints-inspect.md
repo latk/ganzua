@@ -172,7 +172,7 @@ which is why the `in_groups` and `in_extras` fields may have multiple values.
 * **`in_groups`**?: array(string)\
   Dependency groups that this requirement is part of.
 
-  *Changed in Ganzua 0.4.0:* renamed from `groups`.
+  *Changed in Ganzua 0.4.0:* renamed `groups` to `in_groups`.
 
   *Added in Ganzua 0.2.0.*
 * **`in_extras`**?: array(string)\

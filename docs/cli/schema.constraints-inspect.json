@@ -28,7 +28,7 @@
           "type": "string"
         },
         "in_groups": {
-          "description": "Dependency groups that this requirement is part of.\n\n*Changed in Ganzua 0.4.0:* renamed from `groups`.\n\n*Added in Ganzua 0.2.0.*",
+          "description": "Dependency groups that this requirement is part of.\n\n*Changed in Ganzua 0.4.0:* renamed `groups` to `in_groups`.\n\n*Added in Ganzua 0.2.0.*",
           "items": {
             "type": "string"
           },
