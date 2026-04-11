@@ -120,7 +120,7 @@ Here are some examples of how the Ganzua output looks in these cases:
 We can use filters to restrict the output to certain requirements.
 The `--name` filter lets us limit results by package name.
 For further details on filters, read the [filters manual](../filters.md).
-Filters were added in *Ganzua NEXT*.
+Filters were added in *Ganzua 0.4.0*.
 
 <details><summary><code>$ ganzua constraints inspect corpus/poetry-multiple-groups --format=markdown --name='!annotated*'</code></summary>
 
@@ -172,7 +172,7 @@ which is why the `in_groups` and `in_extras` fields may have multiple values.
 * **`in_groups`**?: array(string)\
   Dependency groups that this requirement is part of.
 
-  *Changed in Ganzua NEXT:* renamed from `groups`.
+  *Changed in Ganzua 0.4.0:* renamed from `groups`.
 
   *Added in Ganzua 0.2.0.*
 * **`in_extras`**?: array(string)\
@@ -187,6 +187,6 @@ which is why the `in_groups` and `in_extras` fields may have multiple values.
   * When using `[tool.poetry.extras]`, one requirement can be part of multiple extras.
   * The `marker` might also reference extras.
 
-  *Added in Ganzua NEXT.*
+  *Added in Ganzua 0.4.0.*
 
 <!-- command output end -->

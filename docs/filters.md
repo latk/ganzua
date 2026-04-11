@@ -5,23 +5,23 @@ Which filters are supported depends on the exact subcommand.
 
 * [`ganzua inspect`](cli/ganzua-inspect.md) (`--name`)\
   Select which packages are shown in the output.\
-  Added in *Ganzua NEXT*.
+  Added in *Ganzua 0.4.0*.
 
 * [`ganzua diff`](cli/ganzua-diff.md) (`--name`)\
   Select which packages are included in the diff.\
-  Added in *Ganzua NEXT*.
+  Added in *Ganzua 0.4.0*.
 
 * [`ganzua constraints inspect`](cli/ganzua-constraints-inspect.md) (`--name`)\
   Select which constraints are shown in the output.\
-  Added in *Ganzua NEXT*.
+  Added in *Ganzua 0.4.0*.
 
 * [`ganzua constraints bump`](cli/ganzua-constraints-bump.md) (`--name`)\
   Select which constraints are edited.\
-  Added in *Ganzua NEXT*.
+  Added in *Ganzua 0.4.0*.
 
 * [`ganzua constraints reset`](cli/ganzua-constraints-reset.md) (`--name`)\
   Select which constraints are edited.\
-  Added in *Ganzua NEXT*.
+  Added in *Ganzua 0.4.0*.
 
 The following sections describe
 the [syntax of filters](#syntax),

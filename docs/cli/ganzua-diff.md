@@ -253,7 +253,7 @@ The following invocations are all equivalent:
 
 Can filter the packages to be diffed by name.
 For more details, see the [filter manual](../filters.md).
-Filtering was added in Ganzua NEXT.
+Filtering was added in Ganzua 0.4.0.
 
 <details><summary><code>$ ganzua diff $CORPUS/old-uv-project $CORPUS/new-uv-project --name='typing*' --format=markdown</code></summary>
 
@@ -305,7 +305,7 @@ Download: [schema.diff.json](schema.diff.json)
 * **`name`**: string\
   Name of the package being diffed.
 
-  *Added in Ganzua NEXT:* previously, the package name was implicit.
+  *Added in Ganzua 0.4.0:* previously, the package name was implicit.
 * **`old`**: [LockedPackage](#type.LockedPackage) | null
 * **`new`**: [LockedPackage](#type.LockedPackage) | null
 * **`is_major_change`**?: bool\
@@ -325,7 +325,7 @@ Download: [schema.diff.json](schema.diff.json)
 * **`name`**: string\
   Name of the package.
 
-  *Added in Ganzua NEXT:* previously, the package name was implicit.
+  *Added in Ganzua 0.4.0:* previously, the package name was implicit.
 * **`version`**: string
 * **`source`**: `pypi` | `default` | `other` | [SourceRegistry](#type.SourceRegistry) | [SourceDirect](#type.SourceDirect)
 

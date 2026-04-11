@@ -28,7 +28,7 @@
           "type": "string"
         },
         "in_groups": {
-          "description": "Dependency groups that this requirement is part of.\n\n*Changed in Ganzua NEXT:* renamed from `groups`.\n\n*Added in Ganzua 0.2.0.*",
+          "description": "Dependency groups that this requirement is part of.\n\n*Changed in Ganzua 0.4.0:* renamed from `groups`.\n\n*Added in Ganzua 0.2.0.*",
           "items": {
             "type": "string"
           },
@@ -37,7 +37,7 @@
           "uniqueItems": true
         },
         "in_extras": {
-          "description": "Extras that this optional requirement is part of.\n\nRequirements can only be part of one extra (with some exceptions).\n\nThe `groups` and `in_extras` fields are effectively mutually exclusive.\n\nSpecial cases for legacy Poetry:\n\n* When using `[tool.poetry.extras]`, one requirement can be part of multiple extras.\n* The `marker` might also reference extras.\n\n*Added in Ganzua NEXT.*",
+          "description": "Extras that this optional requirement is part of.\n\nRequirements can only be part of one extra (with some exceptions).\n\nThe `groups` and `in_extras` fields are effectively mutually exclusive.\n\nSpecial cases for legacy Poetry:\n\n* When using `[tool.poetry.extras]`, one requirement can be part of multiple extras.\n* The `marker` might also reference extras.\n\n*Added in Ganzua 0.4.0.*",
           "items": {
             "type": "string"
           },

@@ -18,7 +18,7 @@ class DiffEntry:
     name: str
     """Name of the package being diffed.
 
-    *Added in Ganzua NEXT:* previously, the package name was implicit.
+    *Added in Ganzua 0.4.0:* previously, the package name was implicit.
     """
 
     old: LockedPackage | None

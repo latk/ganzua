@@ -84,7 +84,7 @@ def _transscribe_changelog_lines(
 
         yield re.sub(
             r"<(https://github\.com/[^/>]++/[^/>]++/compare/[^>]+)\.\.\.HEAD>",
-            r"<\g<1>..." + version + ">",
+            lambda m: f"<{m[1]}...v{version}>",
             line,
         )
 

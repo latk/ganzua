@@ -22,7 +22,7 @@ Full diff: <https://github.com/latk/ganzua/compare/{last_release}...HEAD>
 
 -->
 
-## Unreleased
+## v0.4.0 (2026-04-11) {#v0.4.0}
 
 This release brings fixes and quality-of-life improvements that were found through continued real-world usage.
 This includes a new `--name` filter system, support for split versions, and information about which extras each constraint is part of.
@@ -68,7 +68,7 @@ Other:
 
 * Rewrote test suite to prefer CLI-level end-to-end tests over unit tests.
 
-Full diff: <https://github.com/latk/ganzua/compare/v0.3.0...HEAD>
+Full diff: <https://github.com/latk/ganzua/compare/v0.3.0...v0.4.0>
 
 ## v0.3.0 (2025-11-24) {#v0.3.0}
 

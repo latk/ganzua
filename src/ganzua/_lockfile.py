@@ -25,7 +25,7 @@ class LockedPackage(t.TypedDict):
     name: str
     """Name of the package.
 
-    *Added in Ganzua NEXT:* previously, the package name was implicit.
+    *Added in Ganzua 0.4.0:* previously, the package name was implicit.
     """
 
     version: str
@@ -39,7 +39,7 @@ class Lockfile(t.TypedDict):
 
     In case of split versions, there can be multiple entries with the same package name.
 
-    *Changed in Ganzua NEXT:* `packages` is now a list.
+    *Changed in Ganzua 0.4.0:* `packages` is now a list.
     Previously, it was a `name → LockedPackage` table.
     """
 

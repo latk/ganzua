@@ -98,7 +98,7 @@ class Requirement(t.TypedDict):
     in_groups: t.NotRequired[t.Annotated[frozenset[Name], SerializeSorted]]
     """Dependency groups that this requirement is part of.
 
-    *Changed in Ganzua NEXT:* renamed from `groups`.
+    *Changed in Ganzua 0.4.0:* renamed from `groups`.
 
     *Added in Ganzua 0.2.0.*
     """
@@ -115,7 +115,7 @@ class Requirement(t.TypedDict):
     * When using `[tool.poetry.extras]`, one requirement can be part of multiple extras.
     * The `marker` might also reference extras.
 
-    *Added in Ganzua NEXT.*
+    *Added in Ganzua 0.4.0.*
     """
 
     # TODO instead of directly supporting URLs,

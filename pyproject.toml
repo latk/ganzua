@@ -1,6 +1,6 @@
 [project]
 name = "ganzua"
-version = "0.3.0"  # do not edit manually, use `scripts/bump_version.py`
+version = "0.4.0"  # do not edit manually, use `scripts/bump_version.py`
 description = "extract dependency information from lockfiles"
 readme = "README.md"
 authors = [

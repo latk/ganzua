@@ -100,8 +100,8 @@ When invoking Ganzua in scripts or in a CI job, consider pinning or constraining
 This prevents your scripts from breaking when Ganzua has an incompatible change.
 For example:
 
-* `uvx ganzua==0.3.0` to pin an exact version
-* `uvx 'ganzua>=0.3.0,<0.4.0'` to constraint to a version range (remember quotes to escape special characters like `<`)
+* `uvx ganzua==0.4.0` to pin an exact version
+* `uvx 'ganzua>=0.4.0'` to constraint to a version range (remember quotes to escape special characters like `<`)
 
 To preview a bleeding-edge version without waiting for a PyPI release, you can install directly from the Ganzua repository on GitHub. For example:
 

@@ -3,7 +3,7 @@
     "LockedPackage": {
       "properties": {
         "name": {
-          "description": "Name of the package.\n\n*Added in Ganzua NEXT:* previously, the package name was implicit.",
+          "description": "Name of the package.\n\n*Added in Ganzua 0.4.0:* previously, the package name was implicit.",
           "title": "Name",
           "type": "string"
         },
@@ -85,7 +85,7 @@
   },
   "properties": {
     "packages": {
-      "description": "All packages in the lockfile.\n\nIn case of split versions, there can be multiple entries with the same package name.\n\n*Changed in Ganzua NEXT:* `packages` is now a list.\nPreviously, it was a `name → LockedPackage` table.",
+      "description": "All packages in the lockfile.\n\nIn case of split versions, there can be multiple entries with the same package name.\n\n*Changed in Ganzua 0.4.0:* `packages` is now a list.\nPreviously, it was a `name → LockedPackage` table.",
       "items": {
         "$ref": "#/$defs/LockedPackage"
       },

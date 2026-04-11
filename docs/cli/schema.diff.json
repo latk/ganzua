@@ -3,7 +3,7 @@
     "DiffEntry": {
       "properties": {
         "name": {
-          "description": "Name of the package being diffed.\n\n*Added in Ganzua NEXT:* previously, the package name was implicit.",
+          "description": "Name of the package being diffed.\n\n*Added in Ganzua 0.4.0:* previously, the package name was implicit.",
           "title": "Name",
           "type": "string"
         },
@@ -85,7 +85,7 @@
     "LockedPackage": {
       "properties": {
         "name": {
-          "description": "Name of the package.\n\n*Added in Ganzua NEXT:* previously, the package name was implicit.",
+          "description": "Name of the package.\n\n*Added in Ganzua 0.4.0:* previously, the package name was implicit.",
           "title": "Name",
           "type": "string"
         },

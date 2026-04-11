@@ -253,7 +253,7 @@ When inspecting the lockfile, Ganzua will show all candidates:
 
 </details>
 
-Split version support was added in *Ganzua NEXT*.
+Split version support was added in *Ganzua 0.4.0*.
 For background on this, see the issue [ganzua#5](https://github.com/latk/ganzua/issues/5).
 
 ### Filtering
@@ -307,7 +307,7 @@ Can also use glob patterns to select matching packages:
 
 For further details on filters, see the [filter manual](../filters.md).
 
-Filtering was added in *Ganzua NEXT*.
+Filtering was added in *Ganzua 0.4.0*.
 
 
 ## JSON Schema
@@ -323,7 +323,7 @@ Download: [schema.inspect.json](schema.inspect.json)
 
   In case of split versions, there can be multiple entries with the same package name.
 
-  *Changed in Ganzua NEXT:* `packages` is now a list.
+  *Changed in Ganzua 0.4.0:* `packages` is now a list.
   Previously, it was a `name → LockedPackage` table.
 
 ### type `LockedPackage` {#type.LockedPackage}
@@ -333,7 +333,7 @@ Download: [schema.inspect.json](schema.inspect.json)
 * **`name`**: string\
   Name of the package.
 
-  *Added in Ganzua NEXT:* previously, the package name was implicit.
+  *Added in Ganzua 0.4.0:* previously, the package name was implicit.
 * **`version`**: string
 * **`source`**: `pypi` | `default` | `other` | [SourceRegistry](#type.SourceRegistry) | [SourceDirect](#type.SourceDirect)
 
