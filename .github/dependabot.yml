@@ -1,0 +1,15 @@
+# Ganzua doesn't ship pre-built binaries, and only providers lower bounds for dependencies.
+# Thus, Python level updates are less important, users can upgrade independently.
+# The `just upgrade-deps` script should be used for managing development dependencies + lower bounds.
+#
+# Dependabot is only used for keeping GH Actions up to date.
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      actions:
+        patterns: ["*"]
