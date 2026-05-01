@@ -8,6 +8,7 @@ import click
 import rich
 from rich.text import Text
 
+from . import _clack as clack
 from . import _cli_markup as markup
 
 if t.TYPE_CHECKING:  # pragma: no cover
@@ -33,48 +34,30 @@ _HELP_OPTION = click.Option(
 )
 
 
-@click.command(add_help_option=False)
-@click.option(
-    "--all",
-    "recursive",
-    type=bool,
-    is_flag=True,
-    flag_value=True,
-    help="Also show help for all subcommands.",
-)
-@click.option(
-    "--markdown",
-    type=bool,
-    is_flag=True,
-    flag_value=True,
-    help="Output help in Markdown format.",
-)
-@click.option("--markdown-links", type=str, default=None, hidden=True)
-@click.option("--markdown-headings", type=str, default="### {text}", hidden=True)
-@click.option(
-    "--subcommand-style",
-    type=click.Choice(["top", "flat", "tree"]),
-    default="top",
-    hidden=True,
-)
-@click.option(
-    "--subcommand-path", type=bool, is_flag=True, flag_value=True, hidden=True
-)
-@click.option("--subcommand-help/--no-subcommand-help", default=True, hidden=True)
-@click.argument("subcommand", nargs=-1)
-@click.pass_context
+@clack.command(add_help_option=False)
 def help_command(  # noqa: PLR0913  # too-many-arguments
-    help_ctx: click.Context,
-    recursive: bool,
-    markdown: bool,
-    markdown_links: str | None,
-    markdown_headings: str,
-    subcommand_style: t.Literal["top", "flat", "tree"],
-    subcommand_path: bool,
-    subcommand_help: bool,
-    subcommand: tuple[str, ...],
+    *,
+    recursive: t.Annotated[
+        bool, clack.Option("--all", help="Also show help for all subcommands.")
+    ] = False,
+    markdown: t.Annotated[
+        bool, clack.Option(help="Output help in Markdown format.")
+    ] = False,
+    markdown_links: t.Annotated[str | None, clack.Option(help=None)] = None,
+    markdown_headings: t.Annotated[str, clack.Option(help=None)] = "### {text}",
+    subcommand_style: t.Annotated[
+        t.Literal["top", "flat", "tree"], clack.Option(help=None)
+    ] = "top",
+    subcommand_path: t.Annotated[bool, clack.Option(help=None)] = False,
+    subcommand_help: t.Annotated[
+        bool,
+        clack.Option("--subcommand-help/--no-subcommand-help", help=None),
+    ] = True,
+    subcommand: t.Annotated[tuple[str, ...], click.Argument(["subcommand"], nargs=-1)],
 ) -> None:
     """Show help for the application or a specific subcommand."""
+    help_ctx = click.get_current_context()
+
     fmt = _HelpFormatter(
         command_list_style=subcommand_style,
         command_list_name="path" if subcommand_path else "subcommand",
@@ -114,6 +97,17 @@ class _FixedGroup(_FixedCommand, click.Group):
             _print_rich_command_help(ctx)
             ctx.exit(2)
         return super().parse_args(ctx, args)
+
+    def command(  # type: ignore[override, reportIncompatibleMethodOverride]
+        self, name: str | None = None
+    ) -> t.Callable[[t.Callable], click.Command]:
+
+        def decorator(f: t.Callable) -> click.Command:
+            cmd = clack.command(name, cls=_FixedCommand)(f)
+            self.add_command(cmd)
+            return cmd
+
+        return decorator
 
 
 _FixedGroup.command_class = _FixedCommand

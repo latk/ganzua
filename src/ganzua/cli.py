@@ -2,12 +2,10 @@
 
 import contextlib
 import enum
-import functools
 import pathlib
 import shlex
 import shutil
 import typing as t
-from dataclasses import dataclass
 
 import click
 import pydantic
@@ -16,6 +14,7 @@ from packaging.version import Version
 
 import ganzua
 
+from . import _clack as clack
 from . import _toml as toml
 from ._cli_help import App
 from ._edit_requirement import FilteredEdit
@@ -48,47 +47,39 @@ class OutputFormat(enum.Enum):
     JSON = enum.auto()
     MARKDOWN = enum.auto()
 
+    def print[T](
+        self,
+        data: T,
+        *,
+        adapter: pydantic.TypeAdapter[T] | t.Callable[[T], pydantic.JsonValue],
+        markdown: t.Callable[[T], str],
+    ) -> None:
+        """Print the given data with this output format."""
+        match self:
+            case OutputFormat.JSON:
+                if isinstance(adapter, pydantic.TypeAdapter):
+                    json_data = adapter.dump_python(data, mode="json")
+                else:
+                    json_data = adapter(data)
+                rich.print_json(data=json_data)
+            case OutputFormat.MARKDOWN:
+                click.echo(markdown(data))
+            case other:  # pragma: no cover
+                t.assert_never(other)
 
-@dataclass
-class _with_print_json[R]:  # noqa: N801  # invalid-name
-    """Decorator for pretty-printing returned data from a Click command."""
 
-    adapter: pydantic.TypeAdapter[R] | t.Callable[[R], pydantic.JsonValue]
-    markdown: t.Callable[[R], str]
-
-    def __call__[**P](
-        self, command: t.Callable[P, R]
-    ) -> t.Callable[t.Concatenate[OutputFormat, P], None]:
-        @functools.wraps(command)
-        @click.option(
-            "--format",
-            type=click.Choice(OutputFormat, case_sensitive=False),
-            default=OutputFormat.JSON,
-            show_default=True,
-            help="Choose the output format, e.g. Markdown. [default: json]",
-        )
-        def command_with_json_output(
-            format: OutputFormat, *args: P.args, **kwargs: P.kwargs
-        ) -> None:
-            data = command(*args, **kwargs)
-            match format:
-                case OutputFormat.JSON:
-                    if isinstance(self.adapter, pydantic.TypeAdapter):
-                        json_data = self.adapter.dump_python(data, mode="json")
-                    else:
-                        json_data = self.adapter(data)
-                    rich.print_json(data=json_data)
-                case OutputFormat.MARKDOWN:
-                    click.echo(self.markdown(data))
-                case other:  # pragma: no cover
-                    t.assert_never(other)
-
-        return command_with_json_output
-
+_OutputFormatOption: t.TypeAlias = t.Annotated[
+    OutputFormat,
+    clack.Option(help="Choose the output format, e.g. Markdown. [default: json]"),
+]
 
 _ExistingPath = click.Path(
     exists=True, path_type=pathlib.Path, file_okay=True, dir_okay=True
 )
+_ExistingPathArgument = t.Annotated[pathlib.Path, clack.Argument(type=_ExistingPath)]
+_OptionalExistingPathArgument = t.Annotated[
+    pathlib.Path | None, clack.Argument(type=_ExistingPath)
+]
 
 
 DIFF_SCHEMA = pydantic.TypeAdapter(ganzua.Diff)
@@ -97,19 +88,16 @@ REQUIREMENTS_SCHEMA = pydantic.TypeAdapter(ganzua.Requirements)
 
 
 @app.command()
-@click.argument("lockfile", type=_ExistingPath, required=False)
-@click.option(
-    "--name",
-    metavar="FILTER",
-    type=Filter.PARAM_TYPE,
-    default=Filter.default(),
-    help="Include/exclude packages to inspect by name. [default: show all]",
-)
-@_with_print_json(LOCKFILE_SCHEMA, md_from_lockfile)
-@click.pass_context
 def inspect(
-    ctx: click.Context, lockfile: pathlib.Path | None, name: Filter
-) -> ganzua.Lockfile:
+    lockfile: _OptionalExistingPathArgument = None,
+    name: t.Annotated[
+        Filter,
+        clack.Option(
+            help="Include/exclude packages to inspect by name. [default: show all]"
+        ),
+    ] = Filter.DEFAULT,
+    format: _OutputFormatOption = OutputFormat.JSON,
+) -> None:
     """Inspect a lockfile.
 
     The `LOCKFILE` should point to an `uv.lock` or `poetry.lock` file,
@@ -117,6 +105,7 @@ def inspect(
     If this argument is not specified,
     the one in the current working directory will be used.
     """
+    ctx = click.get_current_context()
     lockfile = _find_lockfile(
         ctx,
         lockfile,
@@ -125,24 +114,22 @@ def inspect(
     )
 
     lockfile_data = ganzua.lockfile_from(lockfile)
-    return filter_lockfile(lockfile_data, name_filter=name)
+    lockfile_data = filter_lockfile(lockfile_data, name_filter=name)
+    format.print(lockfile_data, adapter=LOCKFILE_SCHEMA, markdown=md_from_lockfile)
 
 
 @app.command()
-@click.argument("old", type=_ExistingPath)
-@click.argument("new", type=_ExistingPath)
-@click.option(
-    "--name",
-    metavar="FILTER",
-    type=Filter.PARAM_TYPE,
-    default=Filter.default(),
-    help="Include/exclude packages to diff by name. [default: diff all]",
-)
-@_with_print_json(DIFF_SCHEMA, md_from_diff)
-@click.pass_context
 def diff(
-    ctx: click.Context, old: pathlib.Path, new: pathlib.Path, name: Filter
-) -> ganzua.Diff:
+    old: _ExistingPathArgument,
+    new: _ExistingPathArgument,
+    name: t.Annotated[
+        Filter,
+        clack.Option(
+            help="Include/exclude packages to diff by name. [default: diff all]"
+        ),
+    ] = Filter.DEFAULT,
+    format: _OutputFormatOption = OutputFormat.JSON,
+) -> None:
     """Compare two lockfiles.
 
     The `OLD` and `NEW` arguments must each point to an `uv.lock` or `poetry.lock` file,
@@ -158,6 +145,7 @@ def diff(
 
     [git-show]: https://git-scm.com/docs/git-show
     """
+    ctx = click.get_current_context()
     old = _find_lockfile(
         ctx,
         old,
@@ -170,10 +158,11 @@ def diff(
         project_dir=pathlib.Path(),  # unused
         err_msg=lambda project_dir: f"Could not infer `NEW` for `{project_dir}`.",
     )
-    return ganzua.diff(
+    diff = ganzua.diff(
         lockfile_by_name(filter_lockfile(ganzua.lockfile_from(old), name_filter=name)),
         lockfile_by_name(filter_lockfile(ganzua.lockfile_from(new), name_filter=name)),
     )
+    format.print(diff, adapter=DIFF_SCHEMA, markdown=md_from_diff)
 
 
 @app.group()
@@ -229,19 +218,16 @@ def _find_lockfile(
 
 
 @constraints.command("inspect")
-@click.argument("pyproject", type=_ExistingPath, required=False)
-@click.option(
-    "--name",
-    metavar="FILTER",
-    type=Filter.PARAM_TYPE,
-    default=Filter.default(),
-    help="Include/exclude constraints to show by package name. [default: show all]",
-)
-@_with_print_json(REQUIREMENTS_SCHEMA, md_from_requirements)
-@click.pass_context
 def constraints_inspect(
-    ctx: click.Context, pyproject: pathlib.Path | None, name: Filter
-) -> ganzua.Requirements:
+    pyproject: _OptionalExistingPathArgument = None,
+    name: t.Annotated[
+        Filter,
+        clack.Option(
+            help="Include/exclude constraints to show by package name. [default: show all]"
+        ),
+    ] = Filter.DEFAULT,
+    format: _OutputFormatOption = OutputFormat.JSON,
+) -> None:
     """List all constraints in the `pyproject.toml` file.
 
     The `PYPROJECT` argument should point to a `pyproject.toml` file,
@@ -249,43 +235,41 @@ def constraints_inspect(
     If this argument is not specified,
     the one in the current working directory will be used.
     """
+    ctx = click.get_current_context()
     pyproject = _find_pyproject_toml(ctx, pyproject)
 
     with error_context(f"while parsing {pyproject}"):
         doc = toml.RefRoot.parse(pyproject.read_text())
     collector = ganzua.CollectRequirement([])
     ganzua.edit_pyproject(doc, FilteredEdit(collector, name=name))
-    return ganzua.Requirements(requirements=collector.reqs)
+    reqs = ganzua.Requirements(requirements=collector.reqs)
+    format.print(reqs, adapter=REQUIREMENTS_SCHEMA, markdown=md_from_requirements)
 
 
 @constraints.command("bump")
-@click.argument("pyproject", type=_ExistingPath, required=False)
-@click.option(
-    "--lockfile",
-    type=_ExistingPath,
-    required=False,
-    help="""\
+def constraints_bump(
+    pyproject: _OptionalExistingPathArgument = None,
+    lockfile: t.Annotated[
+        pathlib.Path | None,
+        clack.Option(
+            type=_ExistingPath,
+            help="""\
 Where to load versions from. Inferred if possible.
 * file: use the path as the lockfile
 * directory: use the lockfile in that directory
 * default: use the lockfile in the `PYPROJECT` directory
 """,
-)
-@click.option("--backup", type=click.Path(), help="Store a backup in this file.")
-@click.option(
-    "--name",
-    metavar="FILTER",
-    type=Filter.PARAM_TYPE,
-    default=Filter.default(),
-    help="Include/exclude constraints to edit by package name. [default: edit all]",
-)
-@click.pass_context
-def constraints_bump(
-    ctx: click.Context,
-    pyproject: pathlib.Path | None,
-    lockfile: pathlib.Path | None,
-    backup: pathlib.Path | None,
-    name: Filter,
+        ),
+    ] = None,
+    backup: t.Annotated[
+        pathlib.Path | None, clack.Option(help="Store a backup in this file.")
+    ] = None,
+    name: t.Annotated[
+        Filter,
+        clack.Option(
+            help="Include/exclude constraints to edit by package name. [default: edit all]"
+        ),
+    ] = Filter.DEFAULT,
 ) -> None:
     """Update `pyproject.toml` dependency constraints to match the lockfile.
 
@@ -303,6 +287,7 @@ def constraints_bump(
     If this argument is not specified,
     the one in the current working directory will be used.
     """
+    ctx = click.get_current_context()
     warnings = _PlainWarnings()
     pyproject = _find_pyproject_toml(ctx, pyproject)
     lockfile = _find_lockfile(
@@ -338,45 +323,40 @@ class ConstraintResetGoal(enum.Enum):
 
 
 @constraints.command("reset")
-@click.argument("pyproject", type=_ExistingPath, required=False)
-@click.option("--backup", type=click.Path(), help="Store a backup in this file.")
-@click.option(
-    "--to",
-    type=click.Choice(ConstraintResetGoal, case_sensitive=False),
-    default=ConstraintResetGoal.NONE,
-    help="""\
+def constraints_reset(  # too-many-arguments
+    pyproject: _OptionalExistingPathArgument = None,
+    *,
+    backup: t.Annotated[
+        pathlib.Path | None, clack.Option(help="Store a backup in this file.")
+    ] = None,
+    to: t.Annotated[
+        ConstraintResetGoal,
+        clack.Option(
+            help="""\
 How to reset constraints.
 * `none` (default): remove all constraints
 * `minimum`: set constraints to the currently locked minimum, removing upper bounds
 """,
-)
-@click.option(
-    "--lockfile",
-    type=_ExistingPath,
-    required=False,
-    help="""\
+        ),
+    ] = ConstraintResetGoal.NONE,
+    lockfile: t.Annotated[
+        pathlib.Path | None,
+        clack.Option(
+            type=_ExistingPath,
+            help="""\
 Where to load current versions from (for `--to=minimum`). Inferred if possible.
 * file: use the path as the lockfile
 * directory: use the lockfile in that directory
 * default: use the lockfile in the `PYPROJECT` directory
 """,
-)
-@click.option(
-    "--name",
-    metavar="FILTER",
-    type=Filter.PARAM_TYPE,
-    default=Filter.default(),
-    help="Include/exclude constraints to edit by package name. [default: edit all]",
-)
-@click.pass_context
-def constraints_reset(  # noqa: PLR0913  # too-many-arguments
-    ctx: click.Context,
-    pyproject: pathlib.Path | None,
-    *,
-    backup: pathlib.Path | None,
-    lockfile: pathlib.Path | None,
-    to: ConstraintResetGoal,
-    name: Filter,
+        ),
+    ] = None,
+    name: t.Annotated[
+        Filter,
+        clack.Option(
+            help="Include/exclude constraints to edit by package name. [default: edit all]"
+        ),
+    ] = Filter.DEFAULT,
 ) -> None:
     """Remove or relax any dependency version constraints from the `pyproject.toml`.
 
@@ -396,6 +376,7 @@ def constraints_reset(  # noqa: PLR0913  # too-many-arguments
     If this argument is not specified,
     the one in the current working directory will be used.
     """
+    ctx = click.get_current_context()
     warnings = _PlainWarnings()
     pyproject = _find_pyproject_toml(ctx, pyproject)
 
@@ -447,9 +428,10 @@ SchemaName = t.Literal["inspect", "diff", "constraints-inspect"]
 
 
 @app.command()
-@click.argument("command", type=click.Choice(t.get_args(SchemaName)))
-@_with_print_json(adapter=lambda schema: schema, markdown=md_from_schema)
-def schema(command: SchemaName) -> pydantic.JsonValue:
+def schema(
+    command: t.Annotated[SchemaName, clack.Argument()],
+    format: _OutputFormatOption = OutputFormat.JSON,
+) -> None:
     """Show the JSON schema for the output of the given command."""
     adapter: pydantic.TypeAdapter[t.Any]
     match command:
@@ -461,7 +443,8 @@ def schema(command: SchemaName) -> pydantic.JsonValue:
             adapter = REQUIREMENTS_SCHEMA
         case other:  # pragma: no cover
             t.assert_never(other)
-    return adapter.json_schema(mode="serialization")
+    schema = adapter.json_schema(mode="serialization")
+    format.print(schema, adapter=lambda s: s, markdown=md_from_schema)
 
 
 class _PlainWarnings:

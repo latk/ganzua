@@ -38,10 +38,7 @@ class Filter:
     has_positive_pattern: bool
 
     PARAM_TYPE: t.ClassVar = _FilterParamType()
-
-    @classmethod
-    def default(cls) -> t.Self:
-        return cls((), has_positive_pattern=False)
+    DEFAULT: t.ClassVar  # initialized later
 
     @classmethod
     def compile(cls, value: str) -> t.Self:
@@ -60,6 +57,9 @@ class Filter:
                 matches = not pat.negated
 
         return matches
+
+
+Filter.DEFAULT = Filter((), has_positive_pattern=False)
 
 
 def filter_lockfile(lockfile: Lockfile, *, name_filter: Filter) -> Lockfile:
