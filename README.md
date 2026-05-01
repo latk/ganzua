@@ -156,6 +156,19 @@ Nevertheless, the Ganzua project may occasionally offer help.
 * If you have questions about using Ganzua, you may search existing posts at <https://github.com/latk/ganzua/discussions> and start a new discussion if necessary.
 * If you have discovered a bug in Ganzua, please report it at <https://github.com/latk/ganzua/issues>.
 
+Ganzua is Open Source but not open contribution.
+Please do not submit code changes.
+If you want to help with feature work or bugfixes, instead report an issue, and provide an analysis of the problem.
+
+Humans are welcome, bots are not.
+LLM-generated submissions will be deleted without discussion.
+
+<!-- ANCHOR_END: support -->
+
+## Stability policy
+
+<!-- ANCHOR: stability-policy -->
+
 Ganzua intends to maintain a backwards-compatible command line interface, and intends to use SemVer version numbers.
 
 Only those parts of the CLI that are relevant for scripting are covered by this stability policy:
@@ -165,15 +178,17 @@ Only those parts of the CLI that are relevant for scripting are covered by this 
 
 For example, Ganzua might increment the "minor" version number if a new field is added to JSON output or if new command line options are added, and increment the "major" version if output fields are removed or new required command line arguments are added.
 
-Out of scope are:
+Many other features are out of scope of this stability policy.
+Arbitrary changes here are expected, will happen without notice, and without major version bumps.
+Examples:
 
-* interacting with the `ganzua` Python module
-* Python versions or dependency versions used by Ganzua
-* formatting of human-readable output (e.g. Markdown)
+* interacting with `ganzua` as a Python module – you must stick to the CLI
+* Python versions or dependency versions used by Ganzua – isolated installations via `pipx` or `uvx`/`uv tool` are highly recommended
+* formatting of human-readable output (e.g. Markdown) – use the JSON output if you're scripting with Ganzua
 * formatting of error messages
 * commands and flags that relate to help messages
 
-<!-- ANCHOR_END: support -->
+<!-- ANCHOR_END: stability-policy -->
 
 ##  What does Ganzua mean?
 
