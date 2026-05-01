@@ -11,7 +11,7 @@ from ._lockfile import LockfileByName
 from ._requirement import Requirement, RequirementWithKind
 
 
-class EditRequirement(t.Protocol):  # pragma: no cover
+class EditRequirement(t.Protocol):
     def apply(self, req: RequirementWithKind) -> None: ...
 
 
@@ -57,7 +57,7 @@ class UpdateRequirement(EditRequirement):
 
                 req["specifier"] = updated_poetry_specifier
 
-            case other:  # pragma: no cover
+            case other:
                 t.assert_never(other)
 
 
@@ -72,7 +72,7 @@ class UnconstrainRequirement(EditRequirement):
                 req["specifier"] = ""
             case "poetry":
                 req["specifier"] = "*"
-            case other:  # pragma: no cover
+            case other:
                 t.assert_never(other)
 
 

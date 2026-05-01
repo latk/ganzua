@@ -120,3 +120,14 @@ format-command = "ruff format --stdin-filename {filename}"
 run.source_dirs = ["src", "tests"]
 run.branch = true
 report.show_missing = true
+report.exclude_also = [
+  # Exclude `typing.assert_never()` lines, or blocks containing such lines.
+  '(:\n[ ]+)?\bt\.assert_never\(other\)',
+  # Exclude `raise NotImplementedError` lines, or blocks containing such lines.
+  # Treat SchemaNotSupportedError as equivalent.
+  '(:\n^[ ]+)?\braise (NotImplementedError|SchemaNotSupportedError)\b',
+  # Exclude type-only definitions.
+  '\bif t\.TYPE_CHECKING:$',
+  # Exclude abstract protocol members.
+  '\bdef \w+\([^\)]+\) -> [^:\n]: \.\.\.$',
+]

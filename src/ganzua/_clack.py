@@ -150,7 +150,7 @@ def _infer_param(param: inspect.Parameter) -> click.Parameter:
                 case _:  # pragma: no cover # ignore any other annotations
                     pass
 
-    raise NotImplementedError(f"{param=}")  # pragma: no cover
+    raise NotImplementedError(f"{param=}")
 
 
 def _infer_param_type(ty: TypeForm) -> click.ParamType:
@@ -162,7 +162,7 @@ def _infer_param_type(ty: TypeForm) -> click.ParamType:
         ]:
             case [single_variant]:
                 ty = single_variant
-            case _:  # pragma: no cover
+            case _:
                 raise NotImplementedError(
                     f"only `X | None` unions are supported, but got: {ty}"
                 )
@@ -182,4 +182,4 @@ def _infer_param_type(ty: TypeForm) -> click.ParamType:
     if t.get_origin(ty) is t.Literal:
         return click.Choice(t.get_args(ty))
 
-    raise NotImplementedError(f"unsupported type form: {ty}")  # pragma: no cover
+    raise NotImplementedError(f"unsupported type form: {ty}")

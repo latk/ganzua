@@ -11,7 +11,7 @@ from rich.text import Text
 from . import _clack as clack
 from . import _cli_markup as markup
 
-if t.TYPE_CHECKING:  # pragma: no cover
+if t.TYPE_CHECKING:
     import click.testing
     import pydantic
 

@@ -64,7 +64,7 @@ class OutputFormat(enum.Enum):
                 rich.print_json(data=json_data)
             case OutputFormat.MARKDOWN:
                 click.echo(markdown(data))
-            case other:  # pragma: no cover
+            case other:
                 t.assert_never(other)
 
 
@@ -398,7 +398,7 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
                 lockfile_by_name(ganzua.lockfile_from(lockfile)),
                 warnings.warn_multiple_candidate_versions,
             )
-        case other:  # pragma: no cover
+        case other:
             t.assert_never(other)
 
     edit = FilteredEdit(edit, name=name)
@@ -441,7 +441,7 @@ def schema(
             adapter = DIFF_SCHEMA
         case "constraints-inspect":
             adapter = REQUIREMENTS_SCHEMA
-        case other:  # pragma: no cover
+        case other:
             t.assert_never(other)
     schema = adapter.json_schema(mode="serialization")
     format.print(schema, adapter=lambda s: s, markdown=md_from_schema)

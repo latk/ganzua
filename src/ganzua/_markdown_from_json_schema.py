@@ -37,11 +37,11 @@ class _Renderer:
     """
 
     def _resolve_ptr(self, ptr: str) -> pydantic.JsonValue:
-        if not ptr.startswith("#/"):  # pragma: no cover
+        if not ptr.startswith("#/"):
             raise SchemaNotSupportedError
         value = self.root
         for key in ptr.removeprefix("#/").split("/"):
-            if not isinstance(value, t.Mapping):  # pragma: no cover
+            if not isinstance(value, t.Mapping):
                 raise SchemaNotSupportedError
             value = value[key]
         return value
@@ -68,7 +68,7 @@ class _Renderer:
                 properties and (isinstance(properties, t.Mapping))
             ):
                 pass
-            case _:  # pragma: no cover
+            case _:
                 raise SchemaNotSupportedError(spec)
 
         if heading:
@@ -83,9 +83,9 @@ class _Renderer:
 
         match spec:
             case {"required": [*required]}:
-                if not _all_are_strings(required):  # pragma: no cover
+                if not _all_are_strings(required):
                     raise SchemaNotSupportedError(spec)
-            case _:  # pragma: no cover
+            case _:
                 raise SchemaNotSupportedError(spec)
 
         yield "**Properties:**"
@@ -126,17 +126,17 @@ class _Renderer:
                 return "int"
             case {"type": "null"}:
                 return "null"
-            case {"type": "object", "properties": _}:  # pragma: no cover
+            case {"type": "object", "properties": _}:
                 raise SchemaNotSupportedError(spec)
             case {"type": "array", "items": item_type}:
                 return f"array({self.md_from_type_reference(item_type)})"
             case {"$ref": str(ptr)}:
                 self.referenced_types.setdefault(ptr, False)
                 name = self._resolve_ptr(f"{ptr}/title")
-                if not isinstance(name, str):  # pragma: no  cover
+                if not isinstance(name, str):
                     raise SchemaNotSupportedError(spec)
                 return f"[{name}](#{self.anchor_prefix}{name})"
-            case _:  # pragma: no cover
+            case _:
                 raise SchemaNotSupportedError(spec)
 
 

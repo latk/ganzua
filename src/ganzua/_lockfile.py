@@ -72,7 +72,7 @@ def lockfile_from(path: PathLike) -> Lockfile:
                     )
                     for p in poetry_packages
                 ]
-            case other:  # pragma: no cover
+            case other:
                 t.assert_never(other)
 
     return Lockfile(packages=sorted(packages, key=lambda p: (p["name"], p["version"])))
