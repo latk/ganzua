@@ -424,12 +424,11 @@ def _toml_edit_scope(path: pathlib.Path) -> t.Iterator[toml.Ref]:
         path.write_text(new_contents)
 
 
-SchemaName = t.Literal["inspect", "diff", "constraints-inspect"]
-
-
 @app.command()
 def schema(
-    command: t.Annotated[SchemaName, clack.Argument()],
+    command: t.Annotated[
+        t.Literal["inspect", "diff", "constraints-inspect"], clack.Argument()
+    ],
     format: _OutputFormatOption = OutputFormat.JSON,
 ) -> None:
     """Show the JSON schema for the output of the given command."""

@@ -24,6 +24,7 @@
 # Feature Reference
 
 * [Filters](filters.md)
+* [File formats](file-formats.md)
 
 ---
 

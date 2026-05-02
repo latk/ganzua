@@ -633,6 +633,42 @@ content-hash = "0000000000000000000000000000000000000000000000000000000000000000
 </details>
 
 
+### JSON Schema
+
+Replace the content between two marker comments with a rendering of the JSON schema for a given type.
+The marker comment must look like one of the following:
+
+> ```md
+> <!-- doctest: json schema to validate MODULE:ATTRIBUTE -->
+> <!-- doctest: json schema to serialize MODULE:ATTRIBUTE -->
+> ```
+
+Here, `MODULE` must be an importable Python module name,
+and `ATTRIBUTE` a (dotted) attribute path for selecting a particular object inside the module.
+
+<div class=doctest-example>
+
+```md,doctest-example
+<!-- doctest: json schema to serialize ganzua._doctest:JsonSchemaDirective.ExampleType -->
+<!-- doctest: json schema end -->
+```
+```md,doctest-output
+<!-- doctest: json schema to serialize ganzua._doctest:JsonSchemaDirective.ExampleType -->
+
+Some docstring explaining what this type does.
+
+**Properties:**
+
+* **`foo`**: int\
+  Fields are rendered with name, type, and docstring.
+* **`bar`**?: string\
+  Example of a non-required field.
+
+<!-- doctest: json schema end -->
+```
+
+</div>
+
 ## Supported shell commands
 
 For security reasons, supported shell commands are tightly allowlisted.

@@ -1,7 +1,9 @@
 """Custom doctest-style functionality."""
 
 import contextlib
+import dataclasses
 import html
+import importlib
 import pathlib
 import re
 import shlex
@@ -12,11 +14,11 @@ from dataclasses import dataclass
 
 import pydantic
 
-from ganzua._edit_requirement import UpdateRequirement
-from ganzua._lockfile import LockfileByName, lockfile_by_name
-from ganzua._pyproject import apply_one_pep508_edit
-
 from . import _markdown as md
+from ._edit_requirement import UpdateRequirement
+from ._lockfile import LockfileByName, lockfile_by_name
+from ._markdown_from_json_schema import md_from_schema
+from ._pyproject import apply_one_pep508_edit
 from ._requirement import RequirementWithKind, normalized_name
 from .cli import app
 
@@ -82,6 +84,7 @@ class Runner:
         self.directives: t.Sequence[DoctestSyntax] = [
             DoctestExample(),  # register first so that contents aren't processed
             CommandOutputDirective(),
+            JsonSchemaDirective(),
             ExpectedDoctestCommandsDirective(),
             ConsoleCodeBlock(),
             CollapsibleOutputBlock(),
@@ -522,6 +525,66 @@ class CommandOutputDirective(DoctestSyntax):
         yield runner.command_output(command, line=line)
         yield ""
         yield self.END
+
+
+class JsonSchemaDirective(DoctestSyntax):
+    START: t.ClassVar = re.compile(
+        r"<!-- doctest: json schema to (validate|serialize) ([\w.]+):([\w.]+) -->"
+    )
+    END: t.ClassVar = "<!-- doctest: json schema end -->"
+
+    @t.override
+    def process(
+        self, runner: Runner, line: _ParsedLine[re.Match[str]]
+    ) -> t.Iterator[str]:
+        (mode, module, attr_path) = line.data.groups()
+
+        value: object = importlib.import_module(module)
+        for attr in attr_path.split("."):
+            value = getattr(value, attr)
+
+        # Check whether we can provide a custom config.
+        # <https://pydantic.dev/docs/validation/latest/api/pydantic/type_adapter/#pydantic.type_adapter.TypeAdapter.__init__(config)>
+        # > You cannot provide a configuration when instantiating a TypeAdapter
+        # > if the type you’re using has its own config that cannot be overridden
+        # > (ex: BaseModel, TypedDict, and dataclass).
+        if isinstance(value, type) and (
+            issubclass(value, dict)  # approximate TypedDict checks
+            or dataclasses.is_dataclass(value)
+            or issubclass(value, pydantic.BaseModel)
+        ):
+            adapter = pydantic.TypeAdapter[object](value)
+        else:
+            adapter = pydantic.TypeAdapter[object](
+                value, config=pydantic.ConfigDict(use_attribute_docstrings=True)
+            )
+
+        match mode:
+            case "validate":
+                schema = adapter.json_schema(mode="validation")
+            case "serialize":
+                schema = adapter.json_schema(mode="serialization")
+            case other:
+                raise NotImplementedError(other)
+
+        for _ in runner.input.consume_until_closing(self.END, loc=line):
+            pass
+
+        yield line
+        yield ""
+        yield md_from_schema(schema)
+        yield ""
+        yield self.END
+
+    @pydantic.with_config(use_attribute_docstrings=True)
+    @dataclass
+    class ExampleType:  # used in `testing.md`
+        """Some docstring explaining what this type does."""
+
+        foo: int
+        """Fields are rendered with name, type, and docstring."""
+        bar: str = "default"
+        """Example of a non-required field."""
 
 
 class ExpectedDoctestCommandsDirective(DoctestSyntax):

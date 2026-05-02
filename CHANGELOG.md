@@ -32,6 +32,8 @@ Fixes:
 
 Other:
 
+* docs: added “file formats” section
+
 Full diff: <https://github.com/latk/ganzua/compare/v0.4.0...HEAD>
 
 

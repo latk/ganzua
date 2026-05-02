@@ -79,12 +79,13 @@ def lockfile_from(path: PathLike) -> Lockfile:
 
 
 class UvLockfileV1Source(t.TypedDict, total=False):
-    # Only ONE field may be set (or url+subdirectory)
+    """Package source information as locked by uv.
 
-    # The lockfile sources do not match the [tool.uv.sources] syntax
-    # https://docs.astral.sh/uv/concepts/projects/dependencies/#dependency-sources
-    # Instead, the possible sources are defined here:
-    # https://github.com/astral-sh/uv/blob/141369ce73b7b0b4e005b0f45107d13c828a99e0/crates/uv-resolver/src/lock/mod.rs#L3736
+    Only ONE field may be set (or `url` + `subdirectory`).
+
+    The lockfile sources do not match the [`[tool.uv.sources]` syntax](https://docs.astral.sh/uv/concepts/projects/dependencies/#dependency-sources).
+    Instead, the possible sources are defined in the [uv-resolver `SourceWire` enum](https://github.com/astral-sh/uv/blob/141369ce73b7b0b4e005b0f45107d13c828a99e0/crates/uv-resolver/src/lock/mod.rs#L3736).
+    """
 
     registry: str
     """URL or path pointing to an index."""
@@ -103,17 +104,33 @@ class UvLockfileV1Source(t.TypedDict, total=False):
 
 
 class UvLockfileV1Package(t.TypedDict):
+    """Package information as locked by uv.
+
+    Ganzua ignores details such as hashes or wheels.
+    """
+
     name: str
+    """The name of the package."""
     version: t.NotRequired[str]
+    """The locked version of the package.
+    Note that some packages don't have a version."""
     source: UvLockfileV1Source
+    """Where this package was obtained from.
+    Uv provides this information for *every* package."""
 
 
 @dataclass
 class UvLockfileV1:
-    # UV has some lockfile compatibility guarantees:
-    # <https://docs.astral.sh/uv/concepts/resolution/#lockfile-versioning>
-    # Therefore, we pin this model to only match the v1 schema.
-    # Future changes should get their own model.
+    """The uv lockfile format (v1).
+
+    Documentation: <https://docs.astral.sh/uv/concepts/projects/layout/#the-lockfile>
+
+    There is no specification for this schema by uv/Astral.
+    However, uv promises [some compatibility guarantees](https://docs.astral.sh/uv/concepts/resolution/#lockfile-versioning).
+    Therefore, we pin this model to only match the v1.x schema.
+    Future changes will get their own model.
+    """
+
     version: t.Literal[1]
     package: list[UvLockfileV1Package]
 
@@ -131,6 +148,8 @@ class PoetryLockfileV2Source(t.TypedDict, total=False):
 
 
 class PoetryLockfileV2Package(t.TypedDict):
+    """Package information as locked by Poetry."""
+
     name: str
     version: str
     source: t.NotRequired[PoetryLockfileV2Source]
@@ -141,23 +160,58 @@ class PoetryLockfileV2Package(t.TypedDict):
 PoetryLockfileV2Metadata = t.TypedDict(
     "PoetryLockfileV2Metadata",
     {
-        "lock-version": str,
-        "content-hash": str,
+        "lock-version": t.Annotated[
+            str,
+            pydantic.Field(
+                description="""\
+Version of the Poetry lockfile format.
+
+At the time of writing, the lockfile format version is at `2.1`.
+Ganzua doesn't validate this, and accepts any string for now.
+"""
+            ),
+        ],
+        "content-hash": t.Annotated[
+            str,
+            pydantic.Field(
+                description="""\
+Poetry hashes a canonical version of all requirements and stores it in the lockfile.
+
+Ganzua requires the presence of this field, but does not validate the contents in any way.
+"""
+            ),
+        ],
     },
 )
 
 
 @dataclass
 class PoetryLockfileV2:
-    # There is no official documentaton for this lockfile format.
-    # The `Locker` class comes close:
-    # <https://github.com/python-poetry/poetry/blob/1c059eadbb4c2bf29e01a61979b7f50263c9e506/src/poetry/packages/locker.py#L53>
+    """The Poetry lockfile format (v2).
+
+    There is no official documentation for this lockfile format.
+    The [`Locker` class](https://github.com/python-poetry/poetry/blob/1c059eadbb4c2bf29e01a61979b7f50263c9e506/src/poetry/packages/locker.py#L53) comes close.
+    """
+
     metadata: PoetryLockfileV2Metadata
+    """Metadata block for the lockfile.
+    Ganzua doesn't actively use this information, other than to distinguish lockfile formats from each other.
+    """
+
     package: list[PoetryLockfileV2Package]
 
 
 AnyLockfile = t.Annotated[
-    UvLockfileV1 | PoetryLockfileV2, pydantic.Field(union_mode="left_to_right")
+    UvLockfileV1 | PoetryLockfileV2,
+    pydantic.Field(
+        union_mode="left_to_right",
+        description="""\
+Support both uv and Poetry lockfile formats.
+
+The names of the files are ignored.
+Instead, the supported format is sniffed from the contents of each lockfile.
+""",
+    ),
 ]
 
 _ANY_LOCKFILE_SCHEMA = pydantic.TypeAdapter[AnyLockfile](AnyLockfile)
