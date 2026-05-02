@@ -80,6 +80,8 @@ For more examples and further background, see the [announcement blog post](https
 
 <!-- ANCHOR_END: motivating-example -->
 
+Also see the up to date documentation at <https://ganzua.latk.de>.
+
 ## Installation
 
 <!-- ANCHOR: installation -->
@@ -124,7 +126,7 @@ for detailed docs on each subcommand:
 <!-- command output: ganzua help --markdown --subcommand-style=flat --subcommand-path --markdown-links='https://ganzua.latk.de/cli/{slug}.html' -->
 
 * [`ganzua`](https://ganzua.latk.de/cli/ganzua.html)
-  Inspect Python dependency lockfiles (uv and Poetry).
+  Inspect Python dependency lockfiles (uv, Poetry, pylock.toml).
 * [`ganzua help`](https://ganzua.latk.de/cli/ganzua-help.html)
   Show help for the application or a specific subcommand.
 * [`ganzua inspect`](https://ganzua.latk.de/cli/ganzua-inspect.html)
@@ -202,7 +204,8 @@ is unrelated to the [2004 cryptoanalysis tool of the same name](https://ganzua.s
 <!-- ANCHOR: usp -->
 
 **Ganzua is not a general-purpose tool.**
-It's focused solely on working with two modern Python project managers, uv and Poetry, and their native lockfile formats. In particular, there's no support for `requirements.txt`.
+It's focused solely on working with modern Python project managers and their native lockfile formats: uv, Poetry, and the PEP-751 `pylock.toml` format.
+In particular, there's no support for `requirements.txt`.
 
 **Ganzua strives to be complete, compliant, and correct.**
 Ganzua is 0% AI and 100% human expertise, informed by reading the relevant PEPs, docs, and the source code of relevant tools.

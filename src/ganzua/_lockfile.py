@@ -72,6 +72,15 @@ def lockfile_from(path: PathLike) -> Lockfile:
                     )
                     for p in poetry_packages
                 ]
+            case PylockV1(packages=pylock_packages):
+                packages = [
+                    LockedPackage(
+                        name=p["name"],
+                        version=p.get("version", UNDEFINED_VERSION),
+                        source=_map_pylock_source(p),
+                    )
+                    for p in pylock_packages
+                ]
             case other:
                 t.assert_never(other)
 
@@ -201,12 +210,91 @@ class PoetryLockfileV2:
     package: list[PoetryLockfileV2Package]
 
 
+class PylockV1Vcs(t.TypedDict, total=False):
+    """Package source for `pylock.toml` files indicating a version control system.
+
+    Either `url` or `path` must be present.
+    """
+
+    type: t.Required[t.Literal["git"] | str]
+    """A Registered VCS name. In practice, `git` is the only meaningful value.
+
+    Spec: <https://packaging.python.org/en/latest/specifications/direct-url-data-structure/#direct-url-data-structure-registered-vcs>
+    """
+    url: str
+    path: str
+    requested_revision: str
+    commit_id: t.Required[str]
+    subdirectory: str
+
+
+class PylockV1Directory(t.TypedDict, total=False):
+    """Package source for `pylock.toml` files indicating a local directory."""
+
+    path: t.Required[str]
+    editable: bool
+    """Treat as `False` if absent."""
+    subdirectory: str
+
+
+class PylockV1Archive(t.TypedDict, total=False):
+    """Package source for `pylock.toml` files indicating an archive file.
+
+    Either `url` or `path` must be present.
+
+    The `size`, `upload-time`, and `hashes` fields are intentionally omitted.
+    """
+
+    url: str
+    path: str
+    subdirectory: str
+
+
+class PylockV1Package(t.TypedDict, total=False):
+    """Information about a single package in a `pylock.toml` file.
+
+    We only extract the subset of relevant fields.
+    Some fields are intentionally omitted:
+    `marker`, `requires-python`, `dependencies`, `sdist`, `wheels`, `attestation-identities`.
+
+    The `vcs`, `directory` and `archive` fields are mutually exclusive.
+    """
+
+    name: t.Required[str]
+    """Name of the package, guaranteed to already be normalized."""
+
+    version: str
+    """Optional locked version."""
+
+    vcs: PylockV1Vcs
+    directory: PylockV1Directory
+    archive: PylockV1Archive
+    index: str
+    """URL of the package index where wheels/sdists were locked from."""
+
+
+@pydantic.with_config(
+    alias_generator=lambda name: name.replace("_", "-"), use_attribute_docstrings=True
+)
+@dataclass
+class PylockV1:
+    """Relevant parts of the `pylock.toml` file format.
+
+    Specification: <https://packaging.python.org/en/latest/specifications/pylock-toml/#file-format>
+    """
+
+    lock_version: t.Literal["1.0"] | str
+    """Ganzua only supports version `1.0` (the currently specification)."""
+
+    packages: list[PylockV1Package]
+
+
 AnyLockfile = t.Annotated[
-    UvLockfileV1 | PoetryLockfileV2,
+    UvLockfileV1 | PoetryLockfileV2 | PylockV1,
     pydantic.Field(
         union_mode="left_to_right",
         description="""\
-Support both uv and Poetry lockfile formats.
+Ganzua supports the `uv.lock`, `poetry.lock`, and `pylock.toml` lockfile formats.
 
 The names of the files are ignored.
 Instead, the supported format is sniffed from the contents of each lockfile.
@@ -256,6 +344,33 @@ def _map_poetry_source(source: PoetryLockfileV2Source | None) -> Source:
             return SourceDirect(url, subdirectory=subdirectory)
         case {"type": "directory" | "file" | "url", "url": url}:
             return SourceDirect(url)
+        case _:
+            # TODO emit warning
+            return "other"
+
+
+def _map_pylock_source(p: PylockV1Package) -> Source:
+    match p:
+        case {"vcs": {"type": "git", "url": url}}:
+            return SourceDirect(
+                _make_vcs_url(
+                    "git",
+                    url,
+                    hash=p["vcs"]["commit_id"],
+                    subdirectory=p["vcs"].get("subdirectory"),
+                )
+            )
+        case {"directory": {"path": direct}}:
+            return SourceDirect(direct, subdirectory=p["directory"].get("subdirectory"))
+        case {"archive": {"url": direct} | {"path": direct}}:
+            return SourceDirect(direct, subdirectory=p["archive"].get("subdirectory"))
+        case {"vcs": _} | {"directory": _} | {"archive": _}:
+            # TODO emit warning
+            return "other"
+        case {"index": url} if _is_pypi_url(url):
+            return "pypi"
+        case {"index": url}:
+            return SourceRegistry(url)
         case _:
             # TODO emit warning
             return "other"

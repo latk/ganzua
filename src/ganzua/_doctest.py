@@ -967,3 +967,27 @@ lock-version = "2.1"
 python-versions = ">=3.12"
 content-hash = "0000000000000000000000000000000000000000000000000000000000000000"
 """
+
+
+def example_pylock_lockfile(*packages: ExamplePackage) -> str:
+    lockfile = ""
+
+    for package in packages:
+        lockfile += f"""\
+[[packages]]
+name = "{package.get("name", "example")}"
+version = "{package.get("version", "0.1.0")}"
+"""
+        if source_toml := package.get("source_toml"):
+            lockfile += f"""\
+{source_toml}
+"""
+
+    if not lockfile:
+        lockfile = "packages = []"
+
+    return f"""\
+lock-version = "1.0"
+
+{lockfile.strip()}
+"""

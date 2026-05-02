@@ -93,7 +93,7 @@ def test_help_can_use_markdown() -> None:
         """\
 Usage: `ganzua [OPTIONS] COMMAND [ARGS]...`
 
-Inspect Python dependency lockfiles (uv and Poetry).
+Inspect Python dependency lockfiles (uv, Poetry, pylock.toml).
 
 **Options:**
 

@@ -6,7 +6,11 @@ import pydantic
 import pytest
 from inline_snapshot import snapshot
 
-from ganzua._doctest import example_poetry_lockfile, example_uv_lockfile
+from ganzua._doctest import (
+    example_poetry_lockfile,
+    example_pylock_lockfile,
+    example_uv_lockfile,
+)
 from ganzua.cli import app
 
 from . import resources
@@ -30,11 +34,17 @@ def test_can_load_empty_poetry(tmp_path: pathlib.Path) -> None:
     assert inspect.json(lockfile) == snapshot({"packages": []})
 
 
+def test_can_load_empty_pylock(tmp_path: pathlib.Path) -> None:
+    lockfile = write_file(tmp_path / "pylock.toml", data=example_pylock_lockfile())
+    assert inspect.json(lockfile) == snapshot({"packages": []})
+
+
 @parametrized(
     "orig",
     {
         "poetry": resources.NEW_POETRY_LOCKFILE,
         "uv": resources.NEW_UV_LOCKFILE,
+        "pylock": resources.NEW_UV_LOCKFILE.parent / "pylock.exported.toml",
     },
 )
 def test_does_not_care_about_filename(

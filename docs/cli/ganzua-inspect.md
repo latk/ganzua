@@ -114,6 +114,27 @@ We can load various example lockfiles:
 
 </details>
 
+<details><summary><code>$ ganzua inspect corpus/new-uv-project/pylock.exported.toml</code></summary>
+
+```json
+{
+  "packages": [
+    {
+      "name": "annotated-types",
+      "version": "0.7.0",
+      "source": "pypi"
+    },
+    {
+      "name": "typing-extensions",
+      "version": "4.14.1",
+      "source": "pypi"
+    }
+  ]
+}
+```
+
+</details>
+
 Instead of producing JSON output, we can summarize lockfiles as Markdown:
 
 ```console

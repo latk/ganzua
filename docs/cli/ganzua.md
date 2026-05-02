@@ -4,7 +4,7 @@
 
 Usage: `ganzua [OPTIONS] COMMAND [ARGS]...`
 
-Inspect Python dependency lockfiles (uv and Poetry).
+Inspect Python dependency lockfiles (uv, Poetry, pylock.toml).
 
 **Options:**
 

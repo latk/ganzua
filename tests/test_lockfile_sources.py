@@ -3,7 +3,11 @@ import pathlib
 from inline_snapshot import snapshot
 
 import ganzua
-from ganzua._doctest import example_poetry_lockfile, example_uv_lockfile
+from ganzua._doctest import (
+    example_poetry_lockfile,
+    example_pylock_lockfile,
+    example_uv_lockfile,
+)
 from ganzua._markdown import md_from_source
 from ganzua._package_source import Source, SourceDirect, SourceRegistry
 
@@ -154,6 +158,56 @@ def test_can_load_sources_uv() -> None:
     )
 
 
+def test_can_load_sources_pylock() -> None:
+    parsed = ganzua.lockfile_from(
+        resources.SOURCES_UV_LOCKFILE.parent / "pylock.exported.toml"
+    )
+    assert parsed == snapshot(
+        {
+            "packages": [
+                {"name": "click", "version": "8.3.0", "source": "pypi"},
+                {
+                    "name": "click-example-repo",
+                    "version": "1.0.0",
+                    "source": SourceDirect(
+                        direct="git+https://github.com/pallets/click.git@f67abc6fe7dd3d878879a4f004866bf5acefa9b4#subdirectory=examples/repo"
+                    ),
+                },
+                {"name": "colorama", "version": "0.4.6", "source": "pypi"},
+                {
+                    "name": "coverage",
+                    "version": "7.10.7",
+                    "source": SourceRegistry(registry="https://test.pypi.org/simple"),
+                },
+                {"name": "idna", "version": "3.11", "source": "pypi"},
+                {
+                    "name": "multidict",
+                    "version": "6.7.0",
+                    "source": SourceDirect(
+                        direct="https://files.pythonhosted.org/packages/b7/da/7d22601b625e241d4f23ef1ebff8acfc60da633c9e7e7922e24d10f592b3/multidict-6.7.0-py3-none-any.whl"
+                    ),
+                },
+                {"name": "propcache", "version": "0.4.1", "source": "pypi"},
+                {"name": "yarl", "version": "1.22.0", "source": "pypi"},
+            ]
+        }
+    )
+    assert {
+        data["name"]: md_from_source(data["source"]) for data in parsed["packages"]
+    } == snapshot(
+        {
+            "click": "pypi",
+            "click-example-repo": "<git+https://github.com/pallets/click.git@f67abc6fe7dd3d878879a4f004866bf5acefa9b4#subdirectory=examples/repo>",
+            "colorama": "pypi",
+            "coverage": "registry <https://test.pypi.org/simple>",
+            "idna": "pypi",
+            "multidict": "<https://files.pythonhosted.org/packages/b7/da/7d22601b625e241d4f23ef1ebff8acfc60da633c9e7e7922e24d10f592b3/multidict-6.7.0-py3-none-any.whl>",
+            "propcache": "pypi",
+            "yarl": "pypi",
+        }
+    )
+
+
 def test_can_load_sources_uv_direct_subdirectory(tmp_path: pathlib.Path) -> None:
     _assert_parse_uv_source(
         tmp_path,
@@ -173,6 +227,54 @@ def test_can_load_sources_uv_unknown(tmp_path: pathlib.Path) -> None:
     _assert_parse_uv_source(
         tmp_path,
         package_source_toml="""{ some-unknown-source-type = true }""",
+        expected_source=snapshot("other"),
+        expected_markdown=snapshot("other"),
+    )
+
+
+def test_can_load_sources_pylock_archive_subdirectory(tmp_path: pathlib.Path) -> None:
+    _assert_parse_pylock_source(
+        tmp_path,
+        package_source_toml="""archive = { url = "http://example.com/foo.tar.gz", subdirectory = "some/path" }""",
+        expected_source=snapshot(
+            SourceDirect(
+                direct="http://example.com/foo.tar.gz", subdirectory="some/path"
+            )
+        ),
+        expected_markdown=snapshot(
+            "<http://example.com/foo.tar.gz> (subdirectory: `some/path`)"
+        ),
+    )
+
+
+def test_can_load_sources_pylock_directory_subdirectory(tmp_path: pathlib.Path) -> None:
+    _assert_parse_pylock_source(
+        tmp_path,
+        package_source_toml="""directory = { path = "http://example.com/foo.tar.gz", subdirectory = "some/path" }""",
+        expected_source=snapshot(
+            SourceDirect(
+                direct="http://example.com/foo.tar.gz", subdirectory="some/path"
+            )
+        ),
+        expected_markdown=snapshot(
+            "<http://example.com/foo.tar.gz> (subdirectory: `some/path`)"
+        ),
+    )
+
+
+def test_can_load_sources_pylock_vcs_mercurial(tmp_path: pathlib.Path) -> None:
+    _assert_parse_pylock_source(
+        tmp_path,
+        package_source_toml="""vcs = { type = "hg", url = "https://example.com/", commit-id = "abc123" }""",
+        expected_source=snapshot("other"),
+        expected_markdown=snapshot("other"),
+    )
+
+
+def test_can_load_sources_pylock_no_source(tmp_path: pathlib.Path) -> None:
+    _assert_parse_pylock_source(
+        tmp_path,
+        package_source_toml="",
         expected_source=snapshot("other"),
         expected_markdown=snapshot("other"),
     )
@@ -213,6 +315,31 @@ def _assert_parse_uv_source(
     lockfile = write_file(
         tmp_path / "uv.lock",
         data=example_uv_lockfile({"source_toml": package_source_toml}),
+    )
+
+    parsed = ganzua.lockfile_from(lockfile)
+    assert parsed == {
+        "packages": [
+            {
+                "name": "example",
+                "version": "0.1.0",
+                "source": expected_source,
+            }
+        ]
+    }
+    assert md_from_source(parsed["packages"][0]["source"]) == expected_markdown
+
+
+def _assert_parse_pylock_source(
+    tmp_path: pathlib.Path,
+    package_source_toml: str,
+    expected_source: Source,
+    expected_markdown: str,
+) -> None:
+    __tracebackhide__ = True
+    lockfile = write_file(
+        tmp_path / "pylock.lock",
+        data=example_pylock_lockfile({"source_toml": package_source_toml}),
     )
 
     parsed = ganzua.lockfile_from(lockfile)

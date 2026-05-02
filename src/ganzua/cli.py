@@ -27,7 +27,7 @@ from ._utils import error_context
 app = App(
     name="ganzua",
     help="""\
-Inspect Python dependency lockfiles (uv and Poetry).
+Inspect Python dependency lockfiles (uv, Poetry, pylock.toml).
 
 <!-- options -->
 
@@ -204,6 +204,7 @@ def _find_lockfile(
     candidates = [
         project_dir / "uv.lock",
         project_dir / "poetry.lock",
+        project_dir / "pylock.toml",
     ]
     match [f for f in candidates if f.exists()]:
         case [exactly_one]:

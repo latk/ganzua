@@ -413,8 +413,10 @@ If there are multiple candidate lockfiles in the directory, then Ganzua will rep
 
 ```console
 $ touch $EXAMPLE/poetry.lock
+$ touch $EXAMPLE/pylock.toml
 $ ls $EXAMPLE
 poetry.lock
+pylock.toml
 pyproject.toml
 uv.lock
 $ ganzua constraints bump $EXAMPLE
@@ -424,6 +426,7 @@ Try 'ganzua constraints bump --help' for help.
 Error: Could not infer `--lockfile` for `${EXAMPLE}`.
 Note: Candidate lockfile: ${EXAMPLE}/uv.lock
 Note: Candidate lockfile: ${EXAMPLE}/poetry.lock
+Note: Candidate lockfile: ${EXAMPLE}/pylock.toml
 [command exited with status 2]
 $ ganzua constraints bump $EXAMPLE --lockfile=$EXAMPLE/uv.lock
 ```

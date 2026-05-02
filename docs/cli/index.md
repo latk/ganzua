@@ -5,7 +5,7 @@ This section documents all Ganzua subcommands.
 <!-- command output: ganzua help --markdown --subcommand-style=tree --markdown-links='{slug}.md' --subcommand-path -->
 
 * [`ganzua`](ganzua.md)
-  Inspect Python dependency lockfiles (uv and Poetry).
+  Inspect Python dependency lockfiles (uv, Poetry, pylock.toml).
   * [`ganzua help`](ganzua-help.md)
     Show help for the application or a specific subcommand.
   * [`ganzua inspect`](ganzua-inspect.md)
