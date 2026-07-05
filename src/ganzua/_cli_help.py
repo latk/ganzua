@@ -98,7 +98,7 @@ class _FixedGroup(_FixedCommand, click.Group):
             ctx.exit(2)
         return super().parse_args(ctx, args)
 
-    def command(  # type: ignore[override, reportIncompatibleMethodOverride]
+    def command(  # type: ignore[override]  # pyright: ignore [reportIncompatibleMethodOverride]
         self, name: str | None = None
     ) -> t.Callable[[t.Callable], click.Command]:
 
@@ -203,7 +203,8 @@ class AppTestRunner:
         import json  # noqa: PLC0415  # import-outside-toplevel
 
         __tracebackhide__ = True
-        return json.loads(self(*args, **opts).stdout)
+        value: pydantic.JsonValue = json.loads(self(*args, **opts).stdout)
+        return value
 
 
 def _print_rich_command_help(ctx: click.Context) -> None:

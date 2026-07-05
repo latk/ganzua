@@ -105,6 +105,15 @@ pylint.max-returns = 10
 [tool.ruff.format]
 docstring-code-format = true
 
+[tool.mypy]
+disallow_untyped_defs = true
+implicit_reexport = false
+strict_equality = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
 [tool.pytest.ini_options]
 addopts = [
   "--import-mode=importlib",

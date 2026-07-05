@@ -8,7 +8,9 @@ import pathlib
 import re
 import shlex
 import shutil
+import sys
 import tempfile
+import traceback
 import typing as t
 from dataclasses import dataclass
 
@@ -215,15 +217,19 @@ class Runner:
         self, args: t.Sequence[str], *, line: _Line, raise_for_error: bool
     ) -> _OutputWithType:
         result = self.ganzua(*args, print=False, raise_for_exit=False)
-        if result.exit_code and raise_for_error:  # pragma: no cover
-            raise line.make_err(f"command exited with status={result.exit_code}")
         output = result.output.strip()
+        if result.exit_code and raise_for_error:  # pragma: no cover
+            err = line.make_err(f"command exited with status={result.exit_code}")
+            err.add_note(f'output: """\n{output}\n"""' if output else "output: (empty)")
+            raise err from result.exception
         type: _OutputType = None
         if output.startswith(("{", "[")):
             type = "json"
         output = self._unexpand_variables(output)
         if result.exit_code and not raise_for_error:
             output += f"\n[command exited with status {result.exit_code}]"
+        if result.exception is not None:
+            traceback.print_exception(result.exception, file=sys.stderr)
         return _OutputWithType(output.strip(), type=type)
 
 
@@ -431,7 +437,7 @@ class _Input(_PeekableIter[_Line]):
         yield delimiter.with_data(None)
         cols = header.data
 
-        adapter = pydantic.TypeAdapter(model)  # type: ignore[valid-type]
+        adapter = pydantic.TypeAdapter(model)
 
         while line := self._next_table_row():
             if len(line.data) != len(cols):
