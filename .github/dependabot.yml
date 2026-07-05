@@ -15,3 +15,13 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  - package-ecosystem: "pip"
+    # We NEVER want pip updates, since we use the manual `just upgrade-deps` workflow.
+    # Therefore, we forbid PRs, and also exclude the Corpus from the dependency graph.
+    # Docs: https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/configure-version-updates#disabling-dependabot-version-updates
+    # Docs: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#exclude-paths-
+    exclude-paths:
+      - "corpus/**"
+      - "tests/**"
+    open-pull-requests-limit: 0
