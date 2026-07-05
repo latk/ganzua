@@ -21,6 +21,9 @@ updates:
     # Therefore, we forbid PRs, and also exclude the Corpus from the dependency graph.
     # Docs: https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/configure-version-updates#disabling-dependabot-version-updates
     # Docs: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#exclude-paths-
+    directory: "/"
+    schedule:
+      interval: "monthly"
     exclude-paths:
       - "corpus/**"
       - "tests/**"
