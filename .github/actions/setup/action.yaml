@@ -7,7 +7,7 @@ runs:
   using: composite
   steps:
     - uses: taiki-e/install-action@just
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: ${{ inputs.python-version }}
     - uses: astral-sh/setup-uv@v7
