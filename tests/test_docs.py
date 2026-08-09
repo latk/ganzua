@@ -29,7 +29,7 @@ def test_readme() -> None:
 # ANCHOR: test_docs
 @pytest.mark.parametrize(
     "path",
-    resources.DOCS.glob("**/*.md"),
+    sorted(resources.DOCS.glob("**/*.md")),
     ids=lambda p: str(p.relative_to(resources.DOCS)),
 )
 def test_docs(path: pathlib.Path) -> None:

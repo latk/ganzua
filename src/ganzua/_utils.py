@@ -3,7 +3,7 @@ import typing as t
 
 
 @contextlib.contextmanager
-def error_context(ctx: str) -> t.Iterator[None]:
+def error_context(ctx: str) -> t.Generator[None, None, None]:
     """Attach a note with that context to any errors raised within this scope.
 
     Example: adds a note

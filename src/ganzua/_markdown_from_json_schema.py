@@ -155,7 +155,7 @@ class _Renderer:
     @contextlib.contextmanager
     def _capture_new_referenced_types(
         self, stack: list[_SchemaObject]
-    ) -> t.Iterator[None]:
+    ) -> t.Generator[None, None, None]:
         try:
             yield
         finally:

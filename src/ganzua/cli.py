@@ -412,7 +412,7 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
 
 
 @contextlib.contextmanager
-def _toml_edit_scope(path: pathlib.Path) -> t.Iterator[toml.Ref]:
+def _toml_edit_scope(path: pathlib.Path) -> t.Generator[toml.Ref, None, None]:
     """Load the TOML file and write it back afterwards."""
     with error_context(f"while parsing {path}"):
         old_contents = path.read_text()
