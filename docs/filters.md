@@ -3,25 +3,25 @@
 Filters can be used to restrict Ganzua to operate only on certain dependencies.
 Which filters are supported depends on the exact subcommand.
 
-* [`ganzua inspect`](cli/ganzua-inspect.md) (`--name`)\
+* [`ganzua inspect`](cli/ganzua-inspect.md) (`--filter`)\
   Select which packages are shown in the output.\
-  Added in *Ganzua 0.4.0*.
+  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua NEXT*.
 
-* [`ganzua diff`](cli/ganzua-diff.md) (`--name`)\
+* [`ganzua diff`](cli/ganzua-diff.md) (`--filter`)\
   Select which packages are included in the diff.\
-  Added in *Ganzua 0.4.0*.
+  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua NEXT*.
 
-* [`ganzua constraints inspect`](cli/ganzua-constraints-inspect.md) (`--name`)\
+* [`ganzua constraints inspect`](cli/ganzua-constraints-inspect.md) (`--filter`)\
   Select which constraints are shown in the output.\
-  Added in *Ganzua 0.4.0*.
+  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua NEXT*.
 
-* [`ganzua constraints bump`](cli/ganzua-constraints-bump.md) (`--name`)\
+* [`ganzua constraints bump`](cli/ganzua-constraints-bump.md) (`--filter`)\
   Select which constraints are edited.\
-  Added in *Ganzua 0.4.0*.
+  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua NEXT*.
 
-* [`ganzua constraints reset`](cli/ganzua-constraints-reset.md) (`--name`)\
+* [`ganzua constraints reset`](cli/ganzua-constraints-reset.md) (`--filter`)\
   Select which constraints are edited.\
-  Added in *Ganzua 0.4.0*.
+  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua NEXT*.
 
 The following sections describe
 the [syntax of filters](#syntax),
@@ -143,7 +143,7 @@ Let's consider a project with the following lockfile:
 
 We can use a name filter to select one or more specific packages from the lockfile:
 
-<details><summary><code>$ ganzua inspect $EXAMPLE --name=pydantic --format=markdown</code></summary>
+<details><summary><code>$ ganzua inspect $EXAMPLE --filter=pydantic --format=markdown</code></summary>
 
 ```
 | package  | version |
@@ -153,7 +153,7 @@ We can use a name filter to select one or more specific packages from the lockfi
 
 </details>
 
-<details><summary><code>$ ganzua inspect $EXAMPLE --name=pydantic,mypy,pytest-cov --format=markdown</code></summary>
+<details><summary><code>$ ganzua inspect $EXAMPLE --filter=pydantic,mypy,pytest-cov --format=markdown</code></summary>
 
 ```
 | package    | version |
@@ -167,7 +167,7 @@ We can use a name filter to select one or more specific packages from the lockfi
 
 We can use glob patterns to select all packages that start with `py`:
 
-<details><summary><code>$ ganzua inspect $EXAMPLE --name='py*' --format=markdown</code></summary>
+<details><summary><code>$ ganzua inspect $EXAMPLE --filter='py*' --format=markdown</code></summary>
 
 ```
 | package       | version |
@@ -183,7 +183,7 @@ We can use glob patterns to select all packages that start with `py`:
 
 Or all packages that contain `py` but do not start with `py`:
 
-<details><summary><code>$ ganzua inspect $EXAMPLE --name='*py*, !py*' --format=markdown</code></summary>
+<details><summary><code>$ ganzua inspect $EXAMPLE --filter='*py*, !py*' --format=markdown</code></summary>
 
 ```
 | package         | version |
@@ -196,7 +196,7 @@ Or all packages that contain `py` but do not start with `py`:
 
 Using the question mark operator, we can select all packages that have a 4-letter name:
 
-<details><summary><code>$ ganzua inspect $EXAMPLE --name='????' --format=markdown</code></summary>
+<details><summary><code>$ ganzua inspect $EXAMPLE --filter='????' --format=markdown</code></summary>
 
 ```
 | package | version |
@@ -211,7 +211,7 @@ Using the question mark operator, we can select all packages that have a 4-lette
 When only using negated patterns, results are included by default.
 Here, we exclude all patterns that contain a hyphen, or start with the letters `p` or `c`:
 
-<details><summary><code>$ ganzua inspect $EXAMPLE --name='!*-*, !p*, !c*' --format=markdown</code></summary>
+<details><summary><code>$ ganzua inspect $EXAMPLE --filter='!*-*, !p*, !c*' --format=markdown</code></summary>
 
 ```
 | package   | version |
@@ -232,9 +232,9 @@ Thus, all of these filters produce the same results:
 
 <!-- doctest: compare output -->
 
-* `$ ganzua inspect $EXAMPLE --name='*ex*,!*-*' --format=markdown`
-* `$ ganzua inspect $EXAMPLE --name='*EX*,!*...*' --format=markdown`
-* `$ ganzua inspect $EXAMPLE --name='*eX*,!*_*' --format=markdown`
+* `$ ganzua inspect $EXAMPLE --filter='*ex*,!*-*' --format=markdown`
+* `$ ganzua inspect $EXAMPLE --filter='*EX*,!*...*' --format=markdown`
+* `$ ganzua inspect $EXAMPLE --filter='*eX*,!*_*' --format=markdown`
 
 <details><summary>output for the above commands</summary>
 
@@ -251,7 +251,7 @@ Some further filter syntax details that describe edge cases:
 <details><summary>filters may be surrounded by spaces</summary>
 
 ```console
-$ ganzua inspect $EXAMPLE --name='  foo , bar, pytest  ' --format=markdown
+$ ganzua inspect $EXAMPLE --filter='  foo , bar, pytest  ' --format=markdown
 | package | version |
 |---------|---------|
 | pytest  | 9.0.1   |
@@ -262,11 +262,11 @@ $ ganzua inspect $EXAMPLE --name='  foo , bar, pytest  ' --format=markdown
 <details><summary>filters must not be empty</summary>
 
 ```console
-$ ganzua inspect $EXAMPLE --name='' --format=markdown
+$ ganzua inspect $EXAMPLE --filter='' --format=markdown
 Usage: ganzua inspect [OPTIONS] [LOCKFILE]
 Try 'ganzua inspect --help' for help.
 
-Error: Invalid value for '--name': expected filter pattern
+Error: Invalid value for '--filter': expected filter pattern
 at offset 0 (EOF):
   |
   |^
@@ -274,11 +274,11 @@ at offset 0 (EOF):
 ```
 
 ```console
-$ ganzua inspect $EXAMPLE --name='foo,' --format=markdown
+$ ganzua inspect $EXAMPLE --filter='foo,' --format=markdown
 Usage: ganzua inspect [OPTIONS] [LOCKFILE]
 Try 'ganzua inspect --help' for help.
 
-Error: Invalid value for '--name': expected filter pattern
+Error: Invalid value for '--filter': expected filter pattern
 at offset 4 (EOF):
   |foo,
   |    ^
@@ -290,11 +290,11 @@ at offset 4 (EOF):
 <details><summary>syntax errors</summary>
 
 ```console
-$ ganzua inspect $EXAMPLE --name='must not contain spaces' --format=markdown
+$ ganzua inspect $EXAMPLE --filter='must not contain spaces' --format=markdown
 Usage: ganzua inspect [OPTIONS] [LOCKFILE]
 Try 'ganzua inspect --help' for help.
 
-Error: Invalid value for '--name': unexpected content after filter pattern
+Error: Invalid value for '--filter': unexpected content after filter pattern
 at offset 5 (char 'n' U+006E LATIN SMALL LETTER N):
   |must not contain spaces
   |     ^
@@ -302,11 +302,11 @@ at offset 5 (char 'n' U+006E LATIN SMALL LETTER N):
 ```
 
 ```console
-$ ganzua inspect $EXAMPLE --name='/slashes/not/supported/' --format=markdown
+$ ganzua inspect $EXAMPLE --filter='/slashes/not/supported/' --format=markdown
 Usage: ganzua inspect [OPTIONS] [LOCKFILE]
 Try 'ganzua inspect --help' for help.
 
-Error: Invalid value for '--name': expected filter pattern
+Error: Invalid value for '--filter': expected filter pattern
 at offset 0 (char '/' U+002F SOLIDUS):
   |/slashes/not/supported/
   |^
@@ -314,11 +314,11 @@ at offset 0 (char '/' U+002F SOLIDUS):
 ```
 
 ```console
-$ ganzua inspect $EXAMPLE --name='Ÿñiçøðœ' --format=markdown
+$ ganzua inspect $EXAMPLE --filter='Ÿñiçøðœ' --format=markdown
 Usage: ganzua inspect [OPTIONS] [LOCKFILE]
 Try 'ganzua inspect --help' for help.
 
-Error: Invalid value for '--name': expected filter pattern
+Error: Invalid value for '--filter': expected filter pattern
 at offset 0 (char 'Ÿ' U+0178 LATIN CAPITAL LETTER Y WITH DIAERESIS):
   |Ÿñiçøðœ
   |^
@@ -333,11 +333,11 @@ Conventional fnmatch syntax allows character classes like `[a-z]` or `[!a-z]`.
 This doesn't seem overly helpful for matching package names, so hasn't been implemented yet.
 
 ```console
-$ ganzua inspect $EXAMPLE --name='ex[a-z]mple' --format=markdown
+$ ganzua inspect $EXAMPLE --filter='ex[a-z]mple' --format=markdown
 Usage: ganzua inspect [OPTIONS] [LOCKFILE]
 Try 'ganzua inspect --help' for help.
 
-Error: Invalid value for '--name': bracket expressions not supported
+Error: Invalid value for '--filter': bracket expressions not supported
 at offset 2 (char '[' U+005B LEFT SQUARE BRACKET):
   |ex[a-z]mple
   |  ^
@@ -348,15 +348,28 @@ Similarly, brace expansion is not supported.
 Instead, it's usually possible to write multiple separate filters.
 
 ```console
-$ ganzua inspect $EXAMPLE --name='foo{,-bar}' --format=markdown
+$ ganzua inspect $EXAMPLE --filter='foo{,-bar}' --format=markdown
 Usage: ganzua inspect [OPTIONS] [LOCKFILE]
 Try 'ganzua inspect --help' for help.
 
-Error: Invalid value for '--name': brace expansion not supported
+Error: Invalid value for '--filter': brace expansion not supported
 at offset 3 (char '{' U+007B LEFT CURLY BRACKET):
   |foo{,-bar}
   |   ^
 [command exited with status 2]
+```
+
+</details>
+
+The `--name` option is a deprecated alias for `--filter`:
+
+<details><summary><code>$ ganzua inspect $EXAMPLE --name pydantic --format=markdown</code></summary>
+
+```
+DeprecationWarning: The option 'name' is deprecated. Use `--filter` instead of `--name`.
+| package  | version |
+|----------|---------|
+| pydantic | 2.12.4  |
 ```
 
 </details>

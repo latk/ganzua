@@ -29,10 +29,12 @@ the one in the current working directory will be used.
   * default: use the lockfile in the `PYPROJECT` directory
 * `--backup PATH`
   Store a backup in this file.
-* `--name FILTER`
-  Include/exclude constraints to edit by package name. [default: edit all]
+* `--filter FILTER`
+  Include/exclude constraints to edit. [default: edit all]
 * `--help`
   Show this help message and exit.
+
+*Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
 
 <!-- command output end -->
 
@@ -457,7 +459,7 @@ $ cp $CORPUS/constraints-uv-pyproject.toml $EXAMPLE/pyproject.toml
 We can now decide that we only want to bump the `typing-extensions` constraints, not the `annotated-types` constraints:
 
 ```console
-$ ganzua constraints bump $EXAMPLE --name=typing-extensions --backup=$EXAMPLE/old.toml
+$ ganzua constraints bump $EXAMPLE --filter=typing-extensions --backup=$EXAMPLE/old.toml
 ```
 
 Old constraints:

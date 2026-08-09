@@ -13,12 +13,14 @@ the one in the current working directory will be used.
 
 **Options:**
 
-* `--name FILTER`
-  Include/exclude packages to inspect by name. [default: show all]
+* `--filter FILTER`
+  Include/exclude packages to inspect. [default: show all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]
 * `--help`
   Show this help message and exit.
+
+*Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
 
 <!-- command output end -->
 
@@ -301,9 +303,9 @@ Normally, inspecting a lockfile will show all results:
 
 </details>
 
-However, we can filter by `--name` to only look at a specific package:
+However, we can use a `--filter` to only look at a specific package:
 
-<details open><summary><code>$ ganzua inspect $EXAMPLE --name=annotated-types --format=markdown</code></summary>
+<details open><summary><code>$ ganzua inspect $EXAMPLE --filter=annotated-types --format=markdown</code></summary>
 
 ```
 | package         | version |
@@ -315,7 +317,7 @@ However, we can filter by `--name` to only look at a specific package:
 
 Can also use glob patterns to select matching packages:
 
-<details><summary><code>$ ganzua inspect $EXAMPLE --name='*ex*' --format=markdown</code></summary>
+<details><summary><code>$ ganzua inspect $EXAMPLE --filter='*ex*' --format=markdown</code></summary>
 
 ```
 | package           | version |

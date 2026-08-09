@@ -26,6 +26,8 @@ Full diff: <https://github.com/latk/ganzua/compare/{last_release}...HEAD>
 
 Breaking changes:
 
+* (<https://github.com/latk/ganzua/issues/6>) Deprecate `--name` in favor of `--filter`.
+
 New features:
 
 * (<https://github.com/latk/ganzua/issues/8>) Support `pylock.toml` files as an input format in addition to `uv.lock` and `poetry.lock`.

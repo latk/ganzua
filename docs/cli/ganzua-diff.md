@@ -21,12 +21,14 @@ ganzua diff <(git show HEAD:uv.lock) uv.lock
 
 **Options:**
 
-* `--name FILTER`
-  Include/exclude packages to diff by name. [default: diff all]
+* `--filter FILTER`
+  Include/exclude packages to diff. [default: diff all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]
 * `--help`
   Show this help message and exit.
+
+*Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
 
 <!-- command output end -->
 
@@ -255,7 +257,7 @@ Can filter the packages to be diffed by name.
 For more details, see the [filter manual](../filters.md).
 Filtering was added in Ganzua 0.4.0.
 
-<details><summary><code>$ ganzua diff $CORPUS/old-uv-project $CORPUS/new-uv-project --name='typing*' --format=markdown</code></summary>
+<details><summary><code>$ ganzua diff $CORPUS/old-uv-project $CORPUS/new-uv-project --filter='typing*' --format=markdown</code></summary>
 
 ```
 1 changed packages (1 updated)
@@ -269,7 +271,7 @@ Filtering was added in Ganzua 0.4.0.
 
 </details>
 
-<details><summary><code>$ ganzua diff $CORPUS/old-uv-project $CORPUS/new-uv-project --name='nonexistent' --format=markdown</code></summary>
+<details><summary><code>$ ganzua diff $CORPUS/old-uv-project $CORPUS/new-uv-project --filter='nonexistent' --format=markdown</code></summary>
 
 ```
 0 changed packages

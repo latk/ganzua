@@ -35,10 +35,12 @@ the one in the current working directory will be used.
   * file: use the path as the lockfile
   * directory: use the lockfile in that directory
   * default: use the lockfile in the `PYPROJECT` directory
-* `--name FILTER`
-  Include/exclude constraints to edit by package name. [default: edit all]
+* `--filter FILTER`
+  Include/exclude constraints to edit. [default: edit all]
 * `--help`
   Show this help message and exit.
+
+*Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
 
 <!-- command output end -->
 
@@ -628,10 +630,10 @@ We can look at the current constraints:
 
 </details>
 
-We can use the `--name` filter to only reset the Typing-Extensions versions:
+We can use a `--filter` to only reset the Typing-Extensions versions:
 
 ```console
-$ ganzua constraints reset $EXAMPLE --name typing-extensions
+$ ganzua constraints reset $EXAMPLE --filter typing-extensions
 ```
 
 In the updated constraints, we see that the version numbers have been removed, but not for other dependencies:

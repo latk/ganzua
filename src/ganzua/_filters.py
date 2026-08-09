@@ -16,7 +16,7 @@ class _FilterParamType(click.ParamType):
     def convert(
         self, value: object, param: click.Parameter | None, ctx: click.Context | None
     ) -> "Filter":
-        if isinstance(value, Filter):
+        if isinstance(value, Filter):  # pragma: no cover
             return value
         if not isinstance(value, str):  # pragma: no cover
             self.fail(f"filter must be a string: {value!r}", param, ctx)
@@ -45,7 +45,7 @@ class Filter:
         patterns = _parse_all_patterns(value)
         return cls(patterns, has_positive_pattern=any(not p.negated for p in patterns))
 
-    def matches(self, value: str) -> bool:
+    def matches(self, *, name: str) -> bool:
         # If there's a positive pattern, the default is FALSE,
         # and at least one positive pattern must match.
         # Otherwise, the default is TRUE,
@@ -53,19 +53,20 @@ class Filter:
         matches = not self.has_positive_pattern
 
         for pat in self.patterns:
-            if pat.regex.fullmatch(value):
+            if pat.regex.fullmatch(name):
                 matches = not pat.negated
 
         return matches
 
+    def filtered_lockfile(self, lockfile: Lockfile) -> Lockfile:
+        return {
+            "packages": [
+                p for p in lockfile["packages"] if self.matches(name=p["name"])
+            ]
+        }
+
 
 Filter.DEFAULT = Filter((), has_positive_pattern=False)
-
-
-def filter_lockfile(lockfile: Lockfile, *, name_filter: Filter) -> Lockfile:
-    return {
-        "packages": [p for p in lockfile["packages"] if name_filter.matches(p["name"])]
-    }
 
 
 _PATTERN_LITERAL_FRAGMENT = re.compile(r"[a-zA-Z0-9._-]++")

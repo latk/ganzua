@@ -18,11 +18,11 @@ from . import _clack as clack
 from . import _toml as toml
 from ._cli_help import App
 from ._edit_requirement import FilteredEdit
-from ._filters import Filter, filter_lockfile
+from ._filters import Filter
 from ._lockfile import lockfile_by_name
 from ._markdown import md_from_diff, md_from_lockfile, md_from_requirements
 from ._markdown_from_json_schema import md_from_schema
-from ._utils import error_context
+from ._utils import coalesce, error_context
 
 app = App(
     name="ganzua",
@@ -80,6 +80,10 @@ _ExistingPathArgument = t.Annotated[pathlib.Path, clack.Argument(type=_ExistingP
 _OptionalExistingPathArgument = t.Annotated[
     pathlib.Path | None, clack.Argument(type=_ExistingPath)
 ]
+_DeprecatedNameFilter = t.Annotated[
+    Filter | None,
+    clack.Option(help=None, deprecated="Use `--filter` instead of `--name`."),
+]
 
 
 DIFF_SCHEMA = pydantic.TypeAdapter(ganzua.Diff)
@@ -90,12 +94,11 @@ REQUIREMENTS_SCHEMA = pydantic.TypeAdapter(ganzua.Requirements)
 @app.command()
 def inspect(
     lockfile: _OptionalExistingPathArgument = None,
-    name: t.Annotated[
-        Filter,
-        clack.Option(
-            help="Include/exclude packages to inspect by name. [default: show all]"
-        ),
-    ] = Filter.DEFAULT,
+    filter: t.Annotated[
+        Filter | None,
+        clack.Option(help="Include/exclude packages to inspect. [default: show all]"),
+    ] = None,
+    name: _DeprecatedNameFilter = None,
     format: _OutputFormatOption = OutputFormat.JSON,
 ) -> None:
     """Inspect a lockfile.
@@ -104,8 +107,13 @@ def inspect(
     or to a directory containing such a file.
     If this argument is not specified,
     the one in the current working directory will be used.
+
+    <!-- options -->
+
+    *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
     ctx = click.get_current_context()
+    filter = coalesce(filter, name, default=Filter.DEFAULT)
     lockfile = _find_lockfile(
         ctx,
         lockfile,
@@ -114,7 +122,7 @@ def inspect(
     )
 
     lockfile_data = ganzua.lockfile_from(lockfile)
-    lockfile_data = filter_lockfile(lockfile_data, name_filter=name)
+    lockfile_data = filter.filtered_lockfile(lockfile_data)
     format.print(lockfile_data, adapter=LOCKFILE_SCHEMA, markdown=md_from_lockfile)
 
 
@@ -122,12 +130,11 @@ def inspect(
 def diff(
     old: _ExistingPathArgument,
     new: _ExistingPathArgument,
-    name: t.Annotated[
-        Filter,
-        clack.Option(
-            help="Include/exclude packages to diff by name. [default: diff all]"
-        ),
-    ] = Filter.DEFAULT,
+    filter: t.Annotated[
+        Filter | None,
+        clack.Option(help="Include/exclude packages to diff. [default: diff all]"),
+    ] = None,
+    name: _DeprecatedNameFilter = None,
     format: _OutputFormatOption = OutputFormat.JSON,
 ) -> None:
     """Compare two lockfiles.
@@ -144,8 +151,13 @@ def diff(
     ```
 
     [git-show]: https://git-scm.com/docs/git-show
+
+    <!-- options -->
+
+    *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
     ctx = click.get_current_context()
+    filter = coalesce(filter, name, default=Filter.DEFAULT)
     old = _find_lockfile(
         ctx,
         old,
@@ -159,8 +171,8 @@ def diff(
         err_msg=lambda project_dir: f"Could not infer `NEW` for `{project_dir}`.",
     )
     diff = ganzua.diff(
-        lockfile_by_name(filter_lockfile(ganzua.lockfile_from(old), name_filter=name)),
-        lockfile_by_name(filter_lockfile(ganzua.lockfile_from(new), name_filter=name)),
+        lockfile_by_name(filter.filtered_lockfile(ganzua.lockfile_from(old))),
+        lockfile_by_name(filter.filtered_lockfile(ganzua.lockfile_from(new))),
     )
     format.print(diff, adapter=DIFF_SCHEMA, markdown=md_from_diff)
 
@@ -221,12 +233,11 @@ def _find_lockfile(
 @constraints.command("inspect")
 def constraints_inspect(
     pyproject: _OptionalExistingPathArgument = None,
-    name: t.Annotated[
-        Filter,
-        clack.Option(
-            help="Include/exclude constraints to show by package name. [default: show all]"
-        ),
-    ] = Filter.DEFAULT,
+    filter: t.Annotated[
+        Filter | None,
+        clack.Option(help="Include/exclude constraints to show. [default: show all]"),
+    ] = None,
+    name: _DeprecatedNameFilter = None,
     format: _OutputFormatOption = OutputFormat.JSON,
 ) -> None:
     """List all constraints in the `pyproject.toml` file.
@@ -235,14 +246,19 @@ def constraints_inspect(
     or to a directory containing such a file.
     If this argument is not specified,
     the one in the current working directory will be used.
+
+    <!-- options -->
+
+    *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
     ctx = click.get_current_context()
+    filter = coalesce(filter, name, default=Filter.DEFAULT)
     pyproject = _find_pyproject_toml(ctx, pyproject)
 
     with error_context(f"while parsing {pyproject}"):
         doc = toml.RefRoot.parse(pyproject.read_text())
     collector = ganzua.CollectRequirement([])
-    ganzua.edit_pyproject(doc, FilteredEdit(collector, name=name))
+    ganzua.edit_pyproject(doc, FilteredEdit(collector, name=filter))
     reqs = ganzua.Requirements(requirements=collector.reqs)
     format.print(reqs, adapter=REQUIREMENTS_SCHEMA, markdown=md_from_requirements)
 
@@ -265,12 +281,11 @@ Where to load versions from. Inferred if possible.
     backup: t.Annotated[
         pathlib.Path | None, clack.Option(help="Store a backup in this file.")
     ] = None,
-    name: t.Annotated[
-        Filter,
-        clack.Option(
-            help="Include/exclude constraints to edit by package name. [default: edit all]"
-        ),
-    ] = Filter.DEFAULT,
+    filter: t.Annotated[
+        Filter | None,
+        clack.Option(help="Include/exclude constraints to edit. [default: edit all]"),
+    ] = None,
+    name: _DeprecatedNameFilter = None,
 ) -> None:
     """Update `pyproject.toml` dependency constraints to match the lockfile.
 
@@ -287,8 +302,13 @@ Where to load versions from. Inferred if possible.
     or to a directory containing such a file.
     If this argument is not specified,
     the one in the current working directory will be used.
+
+    <!-- options -->
+
+    *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
     ctx = click.get_current_context()
+    filter = coalesce(filter, name, default=Filter.DEFAULT)
     warnings = _PlainWarnings()
     pyproject = _find_pyproject_toml(ctx, pyproject)
     lockfile = _find_lockfile(
@@ -308,7 +328,7 @@ Where to load versions from. Inferred if possible.
         lockfile=lockfile_by_name(locked),
         warn_multiple_versions=warnings.warn_multiple_candidate_versions,
     )
-    edit = FilteredEdit(edit, name=name)
+    edit = FilteredEdit(edit, name=filter)
     with _toml_edit_scope(pyproject) as doc:
         ganzua.edit_pyproject(doc, edit)
 
@@ -324,7 +344,7 @@ class ConstraintResetGoal(enum.Enum):
 
 
 @constraints.command("reset")
-def constraints_reset(  # too-many-arguments
+def constraints_reset(  # noqa: PLR0913 # too-many-arguments
     pyproject: _OptionalExistingPathArgument = None,
     *,
     backup: t.Annotated[
@@ -352,12 +372,11 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
 """,
         ),
     ] = None,
-    name: t.Annotated[
-        Filter,
-        clack.Option(
-            help="Include/exclude constraints to edit by package name. [default: edit all]"
-        ),
-    ] = Filter.DEFAULT,
+    filter: t.Annotated[
+        Filter | None,
+        clack.Option(help="Include/exclude constraints to edit. [default: edit all]"),
+    ] = None,
+    name: _DeprecatedNameFilter = None,
 ) -> None:
     """Remove or relax any dependency version constraints from the `pyproject.toml`.
 
@@ -376,8 +395,13 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
     or to a directory containing such a file.
     If this argument is not specified,
     the one in the current working directory will be used.
+
+    <!-- options -->
+
+    *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
     ctx = click.get_current_context()
+    filter = coalesce(filter, name, default=Filter.DEFAULT)
     warnings = _PlainWarnings()
     pyproject = _find_pyproject_toml(ctx, pyproject)
 
@@ -402,7 +426,7 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
         case other:
             t.assert_never(other)
 
-    edit = FilteredEdit(edit, name=name)
+    edit = FilteredEdit(edit, name=filter)
 
     if backup is not None:
         shutil.copy(pyproject, backup)

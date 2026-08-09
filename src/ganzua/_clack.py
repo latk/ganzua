@@ -72,6 +72,7 @@ class Option:
     _: dataclasses.KW_ONLY
     help: str | None
     type: click.ParamType | None = None
+    deprecated: str | None = None
 
     def to_click(self, field_name: str, ty: TypeForm, default: object) -> click.Option:
         name = [
@@ -94,6 +95,7 @@ class Option:
             required=False,
             hidden=hidden,
             is_flag=(param_type is click.BOOL),
+            deprecated=self.deprecated or False,
             **args,
         )
 
@@ -128,7 +130,16 @@ def _infer_command(
     if name is None:
         name = _infer_command_name(f.__name__)
 
-    cmd = cls(name=name, callback=f, help=f.__doc__, params=params, **extra)
+    doc = inspect.getdoc(f) or ""
+    prolog, _, epilog = doc.partition("\n<!-- options -->\n")
+    cmd = cls(
+        name=name,
+        callback=f,
+        help=prolog.strip() or None,
+        params=params,
+        epilog=epilog.strip() or None,
+        **extra,
+    )
     cmd.__doc__ = f.__doc__
     return cmd
 

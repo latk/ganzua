@@ -13,12 +13,14 @@ the one in the current working directory will be used.
 
 **Options:**
 
-* `--name FILTER`
-  Include/exclude constraints to show by package name. [default: show all]
+* `--filter FILTER`
+  Include/exclude constraints to show. [default: show all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]
 * `--help`
   Show this help message and exit.
+
+*Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
 
 <!-- command output end -->
 
@@ -117,12 +119,12 @@ Here are some examples of how the Ganzua output looks in these cases:
 
 </details>
 
-We can use filters to restrict the output to certain requirements.
-The `--name` filter lets us limit results by package name.
+We can use a `--filter` to restrict the output to certain requirements,
+e.g. by package name.
 For further details on filters, read the [filters manual](../filters.md).
 Filters were added in *Ganzua 0.4.0*.
 
-<details><summary><code>$ ganzua constraints inspect corpus/poetry-multiple-groups --format=markdown --name='!annotated*'</code></summary>
+<details><summary><code>$ ganzua constraints inspect corpus/poetry-multiple-groups --format=markdown --filter='!annotated*'</code></summary>
 
 ```
 | package           | version         | group/extra                |

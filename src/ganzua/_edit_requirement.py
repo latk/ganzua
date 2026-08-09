@@ -124,7 +124,7 @@ class FilteredEdit(EditRequirement):
 
     @t.override
     def apply(self, req: RequirementWithKind) -> None:
-        if not self.name.matches(req["name"]):
+        if not self.name.matches(name=req["name"]):
             return
         self.inner.apply(req)
 
