@@ -4,11 +4,11 @@ Filters can be used to restrict Ganzua to operate only on certain dependencies.
 Which filters are supported depends on the exact subcommand.
 
 * [`ganzua inspect`](cli/ganzua-inspect.md) (`--filter`)\
-  Select which packages are shown in the output.\
+  Select which locked packages are shown in the output.\
   Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua NEXT*.
 
 * [`ganzua diff`](cli/ganzua-diff.md) (`--filter`)\
-  Select which packages are included in the diff.\
+  Select which locked packages are included in the diff.\
   Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua NEXT*.
 
 * [`ganzua constraints inspect`](cli/ganzua-constraints-inspect.md) (`--filter`)\

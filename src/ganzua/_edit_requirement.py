@@ -6,7 +6,7 @@ from packaging.specifiers import Specifier, SpecifierSet
 from packaging.utils import canonicalize_version
 from packaging.version import Version
 
-from ._filters import Filter
+from ._filters import ConstraintFilter
 from ._lockfile import LockfileByName
 from ._requirement import Requirement, RequirementWithKind
 
@@ -120,7 +120,7 @@ class FilteredEdit(EditRequirement):
 
     inner: EditRequirement
     _: dataclasses.KW_ONLY
-    name: Filter
+    name: ConstraintFilter
 
     @t.override
     def apply(self, req: RequirementWithKind) -> None:

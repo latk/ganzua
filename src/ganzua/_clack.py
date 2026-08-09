@@ -33,9 +33,9 @@ from dataclasses import dataclass
 
 import click
 
-from ._filters import Filter
+from ._filters import ConstraintFilter, LockfileFilter
 
-type TypeForm = type[object]
+type TypeForm = type[object] | t.TypeAliasType | None
 
 
 class ExtraCommandArgs(t.TypedDict, total=False):
@@ -87,8 +87,6 @@ class Option:
         if default is UNSET:  # pragma: no cover
             raise TypeError("required options not implemented")
         args["default"] = default
-        if param_type is Filter.PARAM_TYPE:
-            args["metavar"] = "FILTER"
 
         return click.Option(
             name,
@@ -150,40 +148,43 @@ def _infer_command_name(name: str) -> str:
 
 
 def _infer_param(param: inspect.Parameter) -> click.Parameter:
-    if t.get_origin(param.annotation) is t.Annotated:
-        ty, *annotations = t.get_args(param.annotation)
-        for ann in annotations:
-            match ann:
-                case click.Parameter():
-                    return ann
-                case Argument() | Option():
-                    return ann.to_click(param.name, ty, param.default)
-                case _:  # pragma: no cover # ignore any other annotations
-                    pass
+    ty, annotations = _expand_annotations(param.annotation)
+    for ann in annotations:
+        match ann:
+            case click.Parameter():
+                return ann
+            case Argument() | Option():
+                return ann.to_click(param.name, ty, param.default)
+            case _:  # pragma: no cover # ignore any other annotations
+                pass
 
     raise NotImplementedError(f"{param=}")
 
 
 def _infer_param_type(ty: TypeForm) -> click.ParamType:
-    if t.get_origin(ty) is types.UnionType:
-        match [
-            variant
-            for variant in t.get_args(ty)
-            if variant is not None and variant is not types.NoneType
-        ]:
-            case [single_variant]:
-                ty = single_variant
-            case _:
-                raise NotImplementedError(
-                    f"only `X | None` unions are supported, but got: {ty}"
-                )
+    """Convert a Python type to a Click param.
+
+    >>> _infer_param_type(t.Optional[str])
+    STRING
+    """
+    match [
+        variant
+        for variant in _expand_union_type(ty)
+        if variant is not None and variant is not types.NoneType
+    ]:
+        case [single_variant]:
+            ty = single_variant
+        case _:
+            raise NotImplementedError(
+                f"only `X | None` unions are supported, but got: {ty}"
+            )
 
     if ty is str:
         return click.STRING
     if ty is bool:
         return click.BOOL
-    if ty is Filter:
-        return Filter.PARAM_TYPE
+    if ty in (ConstraintFilter, LockfileFilter):
+        return ty.PARAM_TYPE
     if ty is pathlib.Path:
         return click.Path(path_type=pathlib.Path)
 
@@ -193,4 +194,22 @@ def _infer_param_type(ty: TypeForm) -> click.ParamType:
     if t.get_origin(ty) is t.Literal:
         return click.Choice(t.get_args(ty))
 
-    raise NotImplementedError(f"unsupported type form: {ty}")
+    raise NotImplementedError(f"unsupported type form: {ty!r}")
+
+
+def _expand_annotations(ty: TypeForm) -> tuple[TypeForm, list[object]]:
+    annotations: list[object] = []
+    while t.get_origin(ty) is t.Annotated:
+        ty, *more_annotations = t.get_args(ty)
+        annotations[:0] = more_annotations
+    return ty, annotations
+
+
+def _expand_union_type(ty: TypeForm) -> t.Iterable[TypeForm]:
+    if t.get_origin(ty) in (types.UnionType, t.Union):
+        for variant in t.get_args(ty):
+            yield from _expand_union_type(variant)
+        return
+
+    yield ty
+    return

@@ -13,7 +13,7 @@ the one in the current working directory will be used.
 
 **Options:**
 
-* `--filter FILTER`
+* `--filter CONSTRAINT-FILTER`
   Include/exclude constraints to show. [default: show all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]

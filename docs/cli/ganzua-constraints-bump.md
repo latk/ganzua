@@ -29,7 +29,7 @@ the one in the current working directory will be used.
   * default: use the lockfile in the `PYPROJECT` directory
 * `--backup PATH`
   Store a backup in this file.
-* `--filter FILTER`
+* `--filter CONSTRAINT-FILTER`
   Include/exclude constraints to edit. [default: edit all]
 * `--help`
   Show this help message and exit.

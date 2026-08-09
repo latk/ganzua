@@ -9,19 +9,21 @@ import click
 from ._lockfile import Lockfile
 
 
-class _FilterParamType(click.ParamType):
-    name = "filter"
+@dataclass
+class _FilterParamType[F: "_Filter"](click.ParamType):
+    name: str
+    cls: type[F]
 
     @t.override
     def convert(
         self, value: object, param: click.Parameter | None, ctx: click.Context | None
-    ) -> "Filter":
-        if isinstance(value, Filter):  # pragma: no cover
+    ) -> F:
+        if isinstance(value, self.cls):  # pragma: no cover
             return value
         if not isinstance(value, str):  # pragma: no cover
             self.fail(f"filter must be a string: {value!r}", param, ctx)
         try:
-            return Filter.compile(value)
+            return self.cls.compile(value)
         except _FilterSyntaxError as ex:
             self.fail(f"{ex}", param, ctx)
 
@@ -33,12 +35,12 @@ class _Pattern:
 
 
 @dataclass
-class Filter:
+class _Filter:
     patterns: t.Sequence[_Pattern]
     has_positive_pattern: bool
 
-    PARAM_TYPE: t.ClassVar = _FilterParamType()
-    DEFAULT: t.ClassVar  # initialized later
+    PARAM_TYPE: t.ClassVar[_FilterParamType[t.Self]]  # initialized later
+    DEFAULT: t.ClassVar[t.Self]  # initialized later
 
     @classmethod
     def compile(cls, value: str) -> t.Self:
@@ -58,6 +60,12 @@ class Filter:
 
         return matches
 
+
+class ConstraintFilter(_Filter):
+    pass
+
+
+class LockfileFilter(_Filter):
     def filtered_lockfile(self, lockfile: Lockfile) -> Lockfile:
         return {
             "packages": [
@@ -66,7 +74,11 @@ class Filter:
         }
 
 
-Filter.DEFAULT = Filter((), has_positive_pattern=False)
+ConstraintFilter.PARAM_TYPE = _FilterParamType("constraint-filter", ConstraintFilter)
+ConstraintFilter.DEFAULT = ConstraintFilter((), has_positive_pattern=False)
+
+LockfileFilter.PARAM_TYPE = _FilterParamType("lockfile-filter", LockfileFilter)
+LockfileFilter.DEFAULT = LockfileFilter((), has_positive_pattern=False)
 
 
 _PATTERN_LITERAL_FRAGMENT = re.compile(r"[a-zA-Z0-9._-]++")

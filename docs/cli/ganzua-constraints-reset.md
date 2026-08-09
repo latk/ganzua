@@ -35,7 +35,7 @@ the one in the current working directory will be used.
   * file: use the path as the lockfile
   * directory: use the lockfile in that directory
   * default: use the lockfile in the `PYPROJECT` directory
-* `--filter FILTER`
+* `--filter CONSTRAINT-FILTER`
   Include/exclude constraints to edit. [default: edit all]
 * `--help`
   Show this help message and exit.
