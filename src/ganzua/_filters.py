@@ -28,15 +28,15 @@ class _FilterParamType[F: "_Filter"](click.ParamType):
             self.fail(f"{ex}", param, ctx)
 
 
-@dataclass
-class _Pattern:
-    regex: re.Pattern[str]
+@dataclass(kw_only=True)
+class _Rule:
     negated: bool
+    name: re.Pattern[str]
 
 
 @dataclass
 class _Filter:
-    patterns: t.Sequence[_Pattern]
+    rules: t.Sequence[_Rule]
     has_positive_pattern: bool
 
     PARAM_TYPE: t.ClassVar[_FilterParamType[t.Self]]  # initialized later
@@ -44,8 +44,8 @@ class _Filter:
 
     @classmethod
     def compile(cls, value: str) -> t.Self:
-        patterns = _parse_all_patterns(value)
-        return cls(patterns, has_positive_pattern=any(not p.negated for p in patterns))
+        rules = _parse_all_rules(value)
+        return cls(rules, has_positive_pattern=any(not p.negated for p in rules))
 
     def matches(self, *, name: str) -> bool:
         # If there's a positive pattern, the default is FALSE,
@@ -54,9 +54,9 @@ class _Filter:
         # and negative patterns may exclude the value.
         matches = not self.has_positive_pattern
 
-        for pat in self.patterns:
-            if pat.regex.fullmatch(name):
-                matches = not pat.negated
+        for rule in self.rules:
+            if rule.name.fullmatch(name):
+                matches = not rule.negated
 
         return matches
 
@@ -84,14 +84,14 @@ LockfileFilter.DEFAULT = LockfileFilter((), has_positive_pattern=False)
 _PATTERN_LITERAL_FRAGMENT = re.compile(r"[a-zA-Z0-9._-]++")
 
 
-def _parse_all_patterns(data: str) -> list[_Pattern]:
+def _parse_all_rules(data: str) -> list[_Rule]:
     i = 0
     n = len(data)
-    patterns: list[_Pattern] = []
+    rules: list[_Rule] = []
     while True:
         i = _skip_ws(data, i)
-        pat, i = _parse_pattern(data, i)
-        patterns.append(pat)
+        rule, i = _parse_rule(data, i)
+        rules.append(rule)
         i = _skip_ws(data, i)
         if i >= n:
             break
@@ -99,21 +99,27 @@ def _parse_all_patterns(data: str) -> list[_Pattern]:
             i += 1
             continue
         # left over content is a syntax error
-        raise _FilterSyntaxError(
-            "unexpected content after filter pattern", data=data, i=i
-        )
+        raise _FilterSyntaxError("unexpected content after filter rule", data=data, i=i)
 
-    return patterns
+    return rules
 
 
-def _parse_pattern(data: str, i: int) -> tuple[_Pattern, int]:
-    n = len(data)
-
+def _parse_rule(data: str, i: int) -> tuple[_Rule, int]:
     negated = False
-    if i < n and data[i] == "!":
+    if i < len(data) and data[i] == "!":
         negated = True
         i += 1
 
+    pattern, i = _parse_pattern(data, i)
+    if pattern is None:
+        raise _FilterSyntaxError("expected filter pattern", data=data, i=i)
+
+    rule = _Rule(negated=negated, name=pattern)
+    return rule, i
+
+
+def _parse_pattern(data: str, i: int) -> tuple[re.Pattern[str] | None, int]:
+    n = len(data)
     buf: list[str] = []
     while i < n:
         # scan literal package name parts and normalize as per spec at
@@ -144,10 +150,9 @@ def _parse_pattern(data: str, i: int) -> tuple[_Pattern, int]:
         break
 
     if not buf:
-        raise _FilterSyntaxError("expected filter pattern", data=data, i=i)
+        return None, i
 
-    pattern = _Pattern(re.compile("".join(buf)), negated=negated)
-    return pattern, i
+    return re.compile("".join(buf)), i
 
 
 def _skip_ws(data: str, i: int) -> int:

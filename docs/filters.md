@@ -32,24 +32,27 @@ and provide [examples](#examples).
 
 A PEG-style grammar for the filter syntax would look as follows:
 
-> filter → ws<sup>?</sup> pattern ws<sup>?</sup> ( `,` ws<sup>?</sup> filter ws<sup>?</sup> )<sup>\*</sup>
+> filter → ws<sup>?</sup> rule ws<sup>?</sup> ( `,` ws<sup>?</sup> rule ws<sup>?</sup> )<sup>\*</sup>
 >
-> pattern → `!`<sup>?</sup> ( literal | `*` | `?` )<sup>+</sup>
+> rule → `!`<sup>?</sup> pattern
+>
+> pattern → ( literal | `*` | `?` )<sup>+</sup>
 >
 > literal → `/[a-zA-Z0-9._-]+/`
 >
 > ws → `/\s+/`
 
-A **filter** consists of one or more glob patterns, separated by comma.
+A **filter** consists of one or more rules, separated by comma.
 Trailing commas are not allowed.
-Each pattern may be surrounded by whitespace.
+Each rule may be surrounded by whitespace.
+
+Each **rule** consists of a name pattern.
+A **negated rule** has a leading `!` exclamation mark.
+There may not be any space between the exclamation mark and the rest of the rule.
 
 Each **pattern** is a Unix glob expression, similar to what is supported in `.gitignore` files.
 A pattern can contain literal content, `*` asterisk metacharacters, and `?` question mark metacharacters.
 The pattern must not be empty.
-
-A **negated pattern** has a leading `!` exclamation mark.
-There may not be any space between the exclamation mark and the rest of the pattern.
 
 The **`*` asterisk metacharacter** matches zero or more arbitrary characters.
 
@@ -63,7 +66,7 @@ so the patterns `a_b`, `a.b`, and `a--b` are all equivalent.
 
 Differences to `.gitignore`:
 
-* filter patterns are separated by commas, not by newlines
+* filter rules are separated by commas, not by newlines
 * comments are not supported
 * escapes are not needed – metacharacters can never occur in a name
 * no special rules for directory separators – slashes can never occur in a name
@@ -89,18 +92,18 @@ References:
 
 ## Evaluation
 
-When matching a name against a filter, all patterns are evaluated in order.
-When a normal pattern matches, the name is explicitly included.
-When a negated pattern matches, the name is explicitly excluded.
+When matching an item against a filter, all rules are evaluated in order.
+When a normal rule matches, the name is explicitly included.
+When a negated rule matches, the name is explicitly excluded.
 A name can flip between included and excluded state arbitrarily often, and only the final state matters.
 Filter matching does not short-circuit.
 
-If a filter contains at least one normal (non-negated) pattern, each name is excluded by default, and at least one of the normal patterns must match.
+If a filter contains at least one normal (non-negated) rule, each item is excluded by default, and at least one of the normal rules must match.
 This is as-if such a filter started with a `!*` pattern.
-If a filter only contains negated patterns, names are included by default, and the negated patterns can exclude names.
-This is as-if the filter started with a `*` pattern.
+If a filter only contains negated rales, names are included by default, and the negated patterns can exclude names.
+This is as-if the filter started with a `*` rule.
 
-These semantics are exactly how glob patterns work in ripgrep: <https://github.com/BurntSushi/ripgrep/blob/4519153e5e461527f4bca45b042fff45c4ec6fb9/GUIDE.md#manual-filtering-globs>.
+These semantics are exactly [how glob patterns work in ripgrep](https://github.com/BurntSushi/ripgrep/blob/4519153e5e461527f4bca45b042fff45c4ec6fb9/GUIDE.md#manual-filtering-globs).
 
 ## Examples
 
@@ -248,7 +251,7 @@ Thus, all of these filters produce the same results:
 
 Some further filter syntax details that describe edge cases:
 
-<details><summary>filters may be surrounded by spaces</summary>
+<details><summary>rules may be surrounded by spaces</summary>
 
 ```console
 $ ganzua inspect $EXAMPLE --filter='  foo , bar, pytest  ' --format=markdown
@@ -294,7 +297,7 @@ $ ganzua inspect $EXAMPLE --filter='must not contain spaces' --format=markdown
 Usage: ganzua inspect [OPTIONS] [LOCKFILE]
 Try 'ganzua inspect --help' for help.
 
-Error: Invalid value for '--filter': unexpected content after filter pattern
+Error: Invalid value for '--filter': unexpected content after filter rule
 at offset 5 (char 'n' U+006E LATIN SMALL LETTER N):
   |must not contain spaces
   |     ^
