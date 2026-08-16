@@ -34,7 +34,11 @@ A PEG-style grammar for the filter syntax would look as follows:
 
 > filter → ws<sup>?</sup> rule ws<sup>?</sup> ( `,` ws<sup>?</sup> rule ws<sup>?</sup> )<sup>\*</sup>
 >
-> rule → `!`<sup>?</sup> pattern
+> rule<sub>Lockfile</sub> → `!`<sup>?</sup> pattern
+>
+> rule<sub>Constraint</sub> → `!`<sup>?</sup> ( pattern ( ws qualifier )<sup>?</sup> | qualifier )
+>
+> qualifier → ( `extra:` pattern | `group:` pattern )
 >
 > pattern → ( literal | `*` | `?` )<sup>+</sup>
 >
@@ -46,9 +50,15 @@ A **filter** consists of one or more rules, separated by comma.
 Trailing commas are not allowed.
 Each rule may be surrounded by whitespace.
 
-Each **rule** consists of a name pattern.
+Each **rule** consists of a name pattern and/or further qualifiers.
 A **negated rule** has a leading `!` exclamation mark.
 There may not be any space between the exclamation mark and the rest of the rule.
+
+Rules come in two flavors:
+A **lockfile rule** always consists of just a name pattern.
+A **constraint rule** may consist of just a name pattern, a name pattern followed by a qualifier, or just a qualifier (which implies `*` as the name pattern).
+
+A **qualifier** is a labeled pattern that either matches on an `extra` or `group` rather than on a constraint name.
 
 Each **pattern** is a Unix glob expression, similar to what is supported in `.gitignore` files.
 A pattern can contain literal content, `*` asterisk metacharacters, and `?` question mark metacharacters.
@@ -93,9 +103,9 @@ References:
 ## Evaluation
 
 When matching an item against a filter, all rules are evaluated in order.
-When a normal rule matches, the name is explicitly included.
-When a negated rule matches, the name is explicitly excluded.
-A name can flip between included and excluded state arbitrarily often, and only the final state matters.
+When a normal rule matches, the item is explicitly included.
+When a negated rule matches, the item is explicitly excluded.
+An item can flip between included and excluded state arbitrarily often, and only the final state matters.
 Filter matching does not short-circuit.
 
 If a filter contains at least one normal (non-negated) rule, each item is excluded by default, and at least one of the normal rules must match.
@@ -104,6 +114,16 @@ If a filter only contains negated rales, names are included by default, and the 
 This is as-if the filter started with a `*` rule.
 
 These semantics are exactly [how glob patterns work in ripgrep](https://github.com/BurntSushi/ripgrep/blob/4519153e5e461527f4bca45b042fff45c4ec6fb9/GUIDE.md#manual-filtering-globs).
+
+A constraint rule can consist of a plain pattern which matches the dependency name,
+and/or qualifiers which are patterns for matching group or extra names.
+If a qualifier is not specified, it will match everything – qualifiers only narrow a rule, never broaden it.
+For example, the rule `*` is a name-pattern which matches all constraints.
+The rules `* group:*` or just `group:*` match any constraints within any dependency group,
+but not constraints outside of a dependency group.
+If the same constraint is part of multiple dependency groups,
+a `group:…` qualifier will match if any group name matches.
+This matters especially for negated rules in the presence of the `include-group` operator.
 
 ## Examples
 
@@ -373,6 +393,286 @@ DeprecationWarning: The option 'name' is deprecated. Use `--filter` instead of `
 | package  | version |
 |----------|---------|
 | pydantic | 2.12.4  |
+```
+
+</details>
+
+## Constraint rule examples
+
+<!-- doctest: clean example -->
+
+Let's consider a project with the following `pyproject.toml` file:
+
+<!--
+
+```console
+$ cp $CORPUS/constraint-rule-pyproject.toml $EXAMPLE/pyproject.toml
+```
+
+-->
+
+<details open><summary><code>$ cat $EXAMPLE/pyproject.toml</code></summary>
+
+```toml
+[project]
+name = "example"
+description = "demo for filters with constraint rules"
+version = "0.0.0"
+requires-python = ">=3.14"
+dependencies = [
+  "pydantic>=2.13.4",
+]
+
+[project.optional-dependencies]
+db = ["sqlalchemy>=2.0.52"]
+server = ["fastapi>=0.141.1"]
+
+[dependency-groups]
+dev = [{include-group = "test"}, {include-group = "types"}]
+test = ["pytest>=9.1.1", "inline-snapshot>=0.35.4"]
+types = ["mypy>=2.3.1"]
+chores = ["towncrier>=25.8.0"]
+```
+
+</details>
+
+By default, we'll see all dependencies:
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE --format=markdown</code></summary>
+
+```
+| package         | version   | group/extra                |
+|-----------------|-----------|----------------------------|
+| fastapi         | >=0.141.1 | extra `server`             |
+| inline-snapshot | >=0.35.4  | group `dev`, group `test`  |
+| mypy            | >=2.3.1   | group `dev`, group `types` |
+| pydantic        | >=2.13.4  |                            |
+| pytest          | >=9.1.1   | group `dev`, group `test`  |
+| sqlalchemy      | >=2.0.52  | extra `db`                 |
+| towncrier       | >=25.8.0  | group `chores`             |
+```
+
+</details>
+
+Name filters work across extras and dependencies:
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE --filter='py*' --format=markdown</code></summary>
+
+```
+| package  | version  | group/extra               |
+|----------|----------|---------------------------|
+| pydantic | >=2.13.4 |                           |
+| pytest   | >=9.1.1  | group `dev`, group `test` |
+```
+
+</details>
+
+Can use qualifier rules to select just a certain extra or group:
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE --filter='extra:db' --format=markdown</code></summary>
+
+```
+| package    | version  | group/extra |
+|------------|----------|-------------|
+| sqlalchemy | >=2.0.52 | extra `db`  |
+```
+
+</details>
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE --filter='group:dev' --format=markdown</code></summary>
+
+```
+| package         | version  | group/extra                |
+|-----------------|----------|----------------------------|
+| inline-snapshot | >=0.35.4 | group `dev`, group `test`  |
+| mypy            | >=2.3.1  | group `dev`, group `types` |
+| pytest          | >=9.1.1  | group `dev`, group `test`  |
+```
+
+</details>
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE --filter='group:test' --format=markdown</code></summary>
+
+```
+| package         | version  | group/extra               |
+|-----------------|----------|---------------------------|
+| inline-snapshot | >=0.35.4 | group `dev`, group `test` |
+| pytest          | >=9.1.1  | group `dev`, group `test` |
+```
+
+</details>
+
+Qualifiers themselves can take patterns:
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE --filter='group:t*' --format=markdown</code></summary>
+
+```
+| package         | version  | group/extra                |
+|-----------------|----------|----------------------------|
+| inline-snapshot | >=0.35.4 | group `dev`, group `test`  |
+| mypy            | >=2.3.1  | group `dev`, group `types` |
+| pytest          | >=9.1.1  | group `dev`, group `test`  |
+```
+
+</details>
+
+Wildcard qualifiers can be used to select "any extra" or "any group":
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE --filter='group:*' --format=markdown</code></summary>
+
+```
+| package         | version  | group/extra                |
+|-----------------|----------|----------------------------|
+| inline-snapshot | >=0.35.4 | group `dev`, group `test`  |
+| mypy            | >=2.3.1  | group `dev`, group `types` |
+| pytest          | >=9.1.1  | group `dev`, group `test`  |
+| towncrier       | >=25.8.0 | group `chores`             |
+```
+
+</details>
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE --filter='extra:*' --format=markdown</code></summary>
+
+```
+| package    | version   | group/extra    |
+|------------|-----------|----------------|
+| fastapi    | >=0.141.1 | extra `server` |
+| sqlalchemy | >=2.0.52  | extra `db`     |
+```
+
+</details>
+
+Can select main dependencies by excluding any extras or groups:
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE --filter='!extra:*, !group:*' --format=markdown</code></summary>
+
+```
+| package  | version  |
+|----------|----------|
+| pydantic | >=2.13.4 |
+```
+
+</details>
+
+Can combine name patterns with qualifiers.
+For example, can select all `py*` dependencies form the dev-group:
+
+<details><summary><code>$ ganzua constraints inspect $EXAMPLE --filter='py* group:dev' --format=markdown</code></summary>
+
+```
+| package | version | group/extra               |
+|---------|---------|---------------------------|
+| pytest  | >=9.1.1 | group `dev`, group `test` |
+```
+
+</details>
+
+Qualifier-related syntax errors:
+
+<details><summary>Qualifier cannot come before name</summary>
+
+```console
+$ ganzua constraints inspect $EXAMPLE --filter='group:dev py*'
+Usage: ganzua constraints inspect [OPTIONS] [PYPROJECT]
+Try 'ganzua constraints inspect --help' for help.
+
+Error: Invalid value for '--filter': unexpected content after filter rule
+at offset 10 (char 'p' U+0070 LATIN SMALL LETTER P):
+  |group:dev py*
+  |          ^
+[command exited with status 2]
+```
+
+</details>
+
+<details><summary>Unknown qualifiers are rejected</summary>
+
+```console
+$ ganzua constraints inspect $EXAMPLE --filter='foo:bar'
+Usage: ganzua constraints inspect [OPTIONS] [PYPROJECT]
+Try 'ganzua constraints inspect --help' for help.
+
+Error: Invalid value for '--filter': unexpected content after filter rule
+at offset 3 (char ':' U+003A COLON):
+  |foo:bar
+  |   ^
+[command exited with status 2]
+```
+
+```console
+$ ganzua constraints inspect $EXAMPLE --filter='* foo:bar'
+Usage: ganzua constraints inspect [OPTIONS] [PYPROJECT]
+Try 'ganzua constraints inspect --help' for help.
+
+Error: Invalid value for '--filter': unexpected content after filter rule
+at offset 2 (char 'f' U+0066 LATIN SMALL LETTER F):
+  |* foo:bar
+  |  ^
+[command exited with status 2]
+```
+
+</details>
+
+<details><summary>Qualifiers cannot be repeated</summary>
+
+```console
+$ ganzua constraints inspect $EXAMPLE --filter='group:dev group:test'
+Usage: ganzua constraints inspect [OPTIONS] [PYPROJECT]
+Try 'ganzua constraints inspect --help' for help.
+
+Error: Invalid value for '--filter': unexpected content after filter rule
+at offset 10 (char 'g' U+0067 LATIN SMALL LETTER G):
+  |group:dev group:test
+  |          ^
+[command exited with status 2]
+```
+
+</details>
+
+<details><summary>Invalid characters</summary>
+
+```console
+$ ganzua constraints inspect $EXAMPLE --filter='/foo/bar'
+Usage: ganzua constraints inspect [OPTIONS] [PYPROJECT]
+Try 'ganzua constraints inspect --help' for help.
+
+Error: Invalid value for '--filter': expected filter pattern or qualifier
+at offset 0 (char '/' U+002F SOLIDUS):
+  |/foo/bar
+  |^
+[command exited with status 2]
+```
+
+</details>
+
+<details><summary>Qualifier pattern must not be empty</summary>
+
+```console
+$ ganzua constraints inspect $EXAMPLE --filter='group: ,*'
+Usage: ganzua constraints inspect [OPTIONS] [PYPROJECT]
+Try 'ganzua constraints inspect --help' for help.
+
+Error: Invalid value for '--filter': expected pattern
+at offset 6 (char ' ' U+0020 SPACE):
+  |group: ,*
+  |      ^
+[command exited with status 2]
+```
+
+</details>
+
+<details><summary>Lockfile filters cannot have qualifiers</summary>
+
+```console
+$ ganzua inspect $EXAMPLE --filter='group:dev'
+Usage: ganzua inspect [OPTIONS] [LOCKFILE]
+Try 'ganzua inspect --help' for help.
+
+Error: Invalid value for '--filter': unexpected content after filter rule
+at offset 5 (char ':' U+003A COLON):
+  |group:dev
+  |     ^
+[command exited with status 2]
 ```
 
 </details>

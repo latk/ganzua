@@ -605,7 +605,8 @@ and omit this argument entirely if we want to act on the project in the current 
 Can use filters to only reset certain constraints.
 Read the [filter manual](../filters.md) for further details on how filters work.
 
-*Added in Ganzua 0.4.0:* `--name` filters.
+*Added in Ganzua 0.4.0:* `--name` filters.\
+*Changed in Ganzua NEXT*: renamed to `--filter`, added support for filter qualifiers.
 
 Let's set up a fresh example project.
 

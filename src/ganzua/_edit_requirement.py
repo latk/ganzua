@@ -120,13 +120,12 @@ class FilteredEdit(EditRequirement):
 
     inner: EditRequirement
     _: dataclasses.KW_ONLY
-    name: ConstraintFilter
+    filter: ConstraintFilter
 
     @t.override
     def apply(self, req: RequirementWithKind) -> None:
-        if not self.name.matches(name=req["name"]):
-            return
-        self.inner.apply(req)
+        if self.filter.matches(req):
+            self.inner.apply(req)
 
 
 def _update_poetry_specifier(spec: str, target: Version) -> str:

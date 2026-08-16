@@ -7,10 +7,11 @@ from dataclasses import dataclass
 import click
 
 from ._lockfile import Lockfile
+from ._requirement import Requirement
 
 
 @dataclass
-class _FilterParamType[F: "_Filter"](click.ParamType):
+class _FilterParamType[F: ("ConstraintFilter", "LockfileFilter")](click.ParamType):
     name: str
     cls: type[F]
 
@@ -28,23 +29,72 @@ class _FilterParamType[F: "_Filter"](click.ParamType):
             self.fail(f"{ex}", param, ctx)
 
 
-@dataclass(kw_only=True)
-class _Rule:
-    negated: bool
-    name: re.Pattern[str]
-
-
 @dataclass
-class _Filter:
-    rules: t.Sequence[_Rule]
+class ConstraintFilter:
+    rules: t.Sequence["Rule"]
     has_positive_pattern: bool
 
-    PARAM_TYPE: t.ClassVar[_FilterParamType[t.Self]]  # initialized later
+    PARAM_TYPE: t.ClassVar[_FilterParamType[t.Any]]  # initialized later
     DEFAULT: t.ClassVar[t.Self]  # initialized later
+
+    @dataclass(kw_only=True)
+    class Rule:
+        negated: bool
+        name: re.Pattern[str] | None
+        extra: re.Pattern[str] | None
+        group: re.Pattern[str] | None
+
+        def matches(self, req: Requirement) -> bool:
+            if self.name:
+                if not self.name.fullmatch(req["name"]):
+                    return False
+            if self.extra:
+                if not any(
+                    self.extra.fullmatch(extra) for extra in req.get("in_extras", ())
+                ):
+                    return False
+            if self.group:
+                if not any(
+                    self.group.fullmatch(group) for group in req.get("in_groups", ())
+                ):
+                    return False
+            return True
 
     @classmethod
     def compile(cls, value: str) -> t.Self:
-        rules = _parse_all_rules(value)
+        rules = _parse_all_rules(value, rule_type=cls.Rule)
+        return cls(rules, has_positive_pattern=any(not p.negated for p in rules))
+
+    def matches(self, req: Requirement) -> bool:
+        # If there's a positive pattern, the default is FALSE,
+        # and at least one positive pattern must match.
+        # Otherwise, the default is TRUE,
+        # and negative patterns may exclude the value.
+        matches = not self.has_positive_pattern
+
+        for rule in self.rules:
+            if rule.matches(req):
+                matches = not rule.negated
+
+        return matches
+
+
+@dataclass
+class LockfileFilter:
+    rules: t.Sequence["Rule"]
+    has_positive_pattern: bool
+
+    PARAM_TYPE: t.ClassVar[_FilterParamType[t.Any]]  # initialized later
+    DEFAULT: t.ClassVar[t.Self]  # initialized later
+
+    @dataclass(kw_only=True)
+    class Rule:
+        negated: bool
+        name: re.Pattern[str]
+
+    @classmethod
+    def compile(cls, value: str) -> t.Self:
+        rules = _parse_all_rules(value, rule_type=cls.Rule)
         return cls(rules, has_positive_pattern=any(not p.negated for p in rules))
 
     def matches(self, *, name: str) -> bool:
@@ -60,12 +110,6 @@ class _Filter:
 
         return matches
 
-
-class ConstraintFilter(_Filter):
-    pass
-
-
-class LockfileFilter(_Filter):
     def filtered_lockfile(self, lockfile: Lockfile) -> Lockfile:
         return {
             "packages": [
@@ -84,82 +128,134 @@ LockfileFilter.DEFAULT = LockfileFilter((), has_positive_pattern=False)
 _PATTERN_LITERAL_FRAGMENT = re.compile(r"[a-zA-Z0-9._-]++")
 
 
-def _parse_all_rules(data: str) -> list[_Rule]:
-    i = 0
-    n = len(data)
-    rules: list[_Rule] = []
-    while True:
-        i = _skip_ws(data, i)
-        rule, i = _parse_rule(data, i)
-        rules.append(rule)
-        i = _skip_ws(data, i)
-        if i >= n:
-            break
-        if data[i] == ",":
+@dataclass
+class _Ptr:
+    data: str
+    i: int = 0
+
+    def eof(self) -> bool:
+        return self.i >= len(self.data)
+
+    def consume(self, prefix: t.LiteralString) -> bool:
+        if self.data[self.i : self.i + len(prefix)] == prefix:
+            self.i += len(prefix)
+            return True
+        return False
+
+    def peek1(self) -> str:
+        return self.data[self.i]
+
+    def skip_ws(self) -> None:
+        data, i = self.data, self.i
+        n = len(data)
+        while i < n and data[i].isspace():
             i += 1
+        self.i = i
+
+    def match(self, pattern: re.Pattern[str]) -> re.Match[str] | None:
+        if m := pattern.match(self.data, self.i):
+            self.i = m.end()
+            return m
+        return None
+
+    def syntax_error(self, msg: str) -> "_FilterSyntaxError":
+        return _FilterSyntaxError(msg, data=self.data, i=self.i)
+
+
+def _parse_all_rules[R: (LockfileFilter.Rule, ConstraintFilter.Rule)](
+    data: str, *, rule_type: type[R]
+) -> list[R]:
+    p = _Ptr(data)
+    rules: list[R] = []
+    while True:
+        p.skip_ws()
+        rules.append(_parse_rule(p, rule_type=rule_type))
+        p.skip_ws()
+        if p.eof():
+            break
+        if p.consume(","):
             continue
         # left over content is a syntax error
-        raise _FilterSyntaxError("unexpected content after filter rule", data=data, i=i)
+        raise p.syntax_error("unexpected content after filter rule")
 
     return rules
 
 
-def _parse_rule(data: str, i: int) -> tuple[_Rule, int]:
-    negated = False
-    if i < len(data) and data[i] == "!":
-        negated = True
-        i += 1
+def _parse_rule[R: (LockfileFilter.Rule, ConstraintFilter.Rule)](
+    p: _Ptr, rule_type: type[R]
+) -> R:
+    negated: bool = p.consume("!")
 
-    pattern, i = _parse_pattern(data, i)
+    if issubclass(rule_type, LockfileFilter.Rule):
+        pattern = _parse_pattern(p)
+        if pattern is None:
+            raise p.syntax_error("expected filter pattern")
+
+        return rule_type(negated=negated, name=pattern)
+
+    t.assert_type(rule_type, type[ConstraintFilter.Rule])
+
+    p.skip_ws()
+    rule = rule_type(negated=negated, name=None, extra=None, group=None)
+    if _parse_qualifier_into_rule(p, rule):
+        pass
+    elif name := _parse_pattern(p):
+        rule.name = name
+        p.skip_ws()
+        _parse_qualifier_into_rule(p, rule)
+    else:
+        raise p.syntax_error("expected filter pattern or qualifier")
+    return rule
+
+
+def _parse_qualifier_into_rule(p: _Ptr, rule: ConstraintFilter.Rule) -> bool:
+    if extra := _parse_qualifier(p, "extra"):
+        rule.extra = extra
+        return True
+    if group := _parse_qualifier(p, "group"):
+        rule.group = group
+        return True
+    return False
+
+
+def _parse_qualifier(p: _Ptr, name: t.LiteralString) -> re.Pattern[str] | None:
+    if not p.consume(f"{name}:"):
+        return None
+    pattern = _parse_pattern(p)
     if pattern is None:
-        raise _FilterSyntaxError("expected filter pattern", data=data, i=i)
-
-    rule = _Rule(negated=negated, name=pattern)
-    return rule, i
+        raise p.syntax_error("expected pattern")
+    return pattern
 
 
-def _parse_pattern(data: str, i: int) -> tuple[re.Pattern[str] | None, int]:
-    n = len(data)
+def _parse_pattern(p: _Ptr) -> re.Pattern[str] | None:
     buf: list[str] = []
-    while i < n:
+    while not p.eof():
         # scan literal package name parts and normalize as per spec at
         # <https://packaging.python.org/en/latest/specifications/name-normalization/>
-        if m := _PATTERN_LITERAL_FRAGMENT.match(data, i):
-            i = m.end()
+        if m := p.match(_PATTERN_LITERAL_FRAGMENT):
             buf.append(re.sub(r"[-_.]+", "-", m[0]).lower())
             continue
 
         # wildcards
-        if data[i] == "*":
-            i += 1
+        if p.consume("*"):
             buf.append(".*")
             continue
-        if data[i] == "?":
-            i += 1
+        if p.consume("?"):
             buf.append(".")
             continue
 
         # explicitly warn about unsupported syntax
-        if data[i] in "[]":
-            raise _FilterSyntaxError(
-                "bracket expressions not supported", data=data, i=i
-            )
-        if data[i] in "{}":
-            raise _FilterSyntaxError("brace expansion not supported", data=data, i=i)
+        if p.peek1() in "[]":
+            raise p.syntax_error("bracket expressions not supported")
+        if p.peek1() in "{}":
+            raise p.syntax_error("brace expansion not supported")
 
         break
 
     if not buf:
-        return None, i
+        return None
 
-    return re.compile("".join(buf)), i
-
-
-def _skip_ws(data: str, i: int) -> int:
-    n = len(data)
-    while i < n and data[i].isspace():
-        i += 1
-    return i
+    return re.compile("".join(buf))
 
 
 class _FilterSyntaxError(Exception):

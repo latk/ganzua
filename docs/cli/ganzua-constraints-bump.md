@@ -438,7 +438,8 @@ $ ganzua constraints bump $EXAMPLE --lockfile=$EXAMPLE/uv.lock
 Can use filters to only bump certain constraints.
 Read the [filter manual](../filters.md) for further details on how filters work.
 
-*Added in Ganzua 0.4.0*: `--name` filters.
+*Added in Ganzua 0.4.0*: `--name` filters.\
+*Changed in Ganzua NEXT*: renamed to `--filter`, added support for filter qualifiers.
 
 <!-- doctest: clean example -->
 

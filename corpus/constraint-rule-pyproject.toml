@@ -1,0 +1,18 @@
+[project]
+name = "example"
+description = "demo for filters with constraint rules"
+version = "0.0.0"
+requires-python = ">=3.14"
+dependencies = [
+  "pydantic>=2.13.4",
+]
+
+[project.optional-dependencies]
+db = ["sqlalchemy>=2.0.52"]
+server = ["fastapi>=0.141.1"]
+
+[dependency-groups]
+dev = [{include-group = "test"}, {include-group = "types"}]
+test = ["pytest>=9.1.1", "inline-snapshot>=0.35.4"]
+types = ["mypy>=2.3.1"]
+chores = ["towncrier>=25.8.0"]

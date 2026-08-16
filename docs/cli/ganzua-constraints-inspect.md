@@ -122,7 +122,9 @@ Here are some examples of how the Ganzua output looks in these cases:
 We can use a `--filter` to restrict the output to certain requirements,
 e.g. by package name.
 For further details on filters, read the [filters manual](../filters.md).
-Filters were added in *Ganzua 0.4.0*.
+
+*Added in Ganzua 0.4.0*: `--name` filters.\
+*Changed in Ganzua NEXT*: renamed to `--filter`, added support for filter qualifiers.
 
 <details><summary><code>$ ganzua constraints inspect corpus/poetry-multiple-groups --format=markdown --filter='!annotated*'</code></summary>
 

@@ -262,7 +262,7 @@ def constraints_inspect(
     with error_context(f"while parsing {pyproject}"):
         doc = toml.RefRoot.parse(pyproject.read_text())
     collector = ganzua.CollectRequirement([])
-    ganzua.edit_pyproject(doc, FilteredEdit(collector, name=filter))
+    ganzua.edit_pyproject(doc, FilteredEdit(collector, filter=filter))
     reqs = ganzua.Requirements(requirements=collector.reqs)
     format.print(reqs, adapter=REQUIREMENTS_SCHEMA, markdown=md_from_requirements)
 
@@ -332,7 +332,7 @@ Where to load versions from. Inferred if possible.
         lockfile=lockfile_by_name(locked),
         warn_multiple_versions=warnings.warn_multiple_candidate_versions,
     )
-    edit = FilteredEdit(edit, name=filter)
+    edit = FilteredEdit(edit, filter=filter)
     with _toml_edit_scope(pyproject) as doc:
         ganzua.edit_pyproject(doc, edit)
 
@@ -430,7 +430,7 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
         case other:
             t.assert_never(other)
 
-    edit = FilteredEdit(edit, name=filter)
+    edit = FilteredEdit(edit, filter=filter)
 
     if backup is not None:
         shutil.copy(pyproject, backup)

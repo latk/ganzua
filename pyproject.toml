@@ -86,6 +86,7 @@ ignore = [
   "E501",  # line-too-long, should be handled by `ruff format`
   "RET503",  # implicit-return, better handled by Mypy
   "SIM102",  # collapsible-if, separate statements are actually good for measuring coverage
+  "SIM114",  # if-with-same-arms, useful for measuring coverage
 ]
 pydocstyle.convention = "google"
 pylint.max-returns = 10
