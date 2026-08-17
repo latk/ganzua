@@ -332,6 +332,19 @@ For further details on filters, see the [filter manual](../filters.md).
 
 Filtering was added in *Ganzua 0.4.0*.
 
+<details><summary>Unstable: there's a hidden <code>--md-links</code> option.</summary>
+
+```console
+$ ganzua inspect $EXAMPLE --format=markdown --md-links
+| package                                                   | version |
+|-----------------------------------------------------------|---------|
+| [annotated-types](https://pypi.org/p/annotated-types)     | 0.7.0   |
+| example                                                   | 0.1.0   |
+| [typing-extensions](https://pypi.org/p/typing-extensions) | 4.14.1  |
+```
+
+</details>
+
 
 ## JSON Schema
 

@@ -279,6 +279,22 @@ Filtering was added in Ganzua 0.4.0.
 
 </details>
 
+<details><summary>Unstable: there's a hidden <code>--md-links</code> option.</summary>
+
+```console
+$ ganzua diff $CORPUS/old-uv-project $CORPUS/new-uv-project --format=markdown --md-links
+2 changed packages (1 added, 1 updated)
+
+| package                                                   | old      | new    | notes |
+|-----------------------------------------------------------|----------|--------|-------|
+| [annotated-types](https://pypi.org/p/annotated-types)     | -        | 0.7.0  |       |
+| [typing-extensions](https://pypi.org/p/typing-extensions) | 3.10.0.2 | 4.14.1 | (M)   |
+
+* (M) major change
+```
+
+</details>
+
 
 ## JSON Schema
 

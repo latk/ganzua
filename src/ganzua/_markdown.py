@@ -8,12 +8,78 @@ from ._package_source import Source, SourceDirect, SourceRegistry
 from ._requirement import Requirement, Requirements
 
 
-def md_from_lockfile(lockfile: Lockfile) -> str:
-    """Summarize the Lockfile as a Markdown table."""
-    return table(
-        ("package", "version"),
-        sorted((p["name"], p["version"]) for p in lockfile["packages"]),
-    )
+@dataclass(kw_only=True)
+class MarkdownRenderer:
+    show_links: bool
+
+    def md_from_lockfile(self, lockfile: Lockfile) -> str:
+        """Summarize the Lockfile as a Markdown table."""
+        packages = sorted(lockfile["packages"], key=lambda p: (p["name"], p["version"]))
+        return table(
+            ("package", "version"),
+            [(self._name_for_locked_package(p), p["version"]) for p in packages],
+        )
+
+    def md_from_diff(self, diff: Diff) -> str:
+        """Summarize the Diff as a Markdown table."""
+        summary = f"{diff.stat.total} changed packages"
+        if summary_details := ", ".join(_diff_summary_details(diff)):
+            summary += f" ({summary_details})"
+
+        if diff.stat.total <= 0:
+            return summary
+
+        table = _DiffTable(rows=[], footnotes=_NotesRegistry({}))
+        for data in diff.packages:
+            self._add_to_diff_table(table, data)
+
+        sections: list[str] = [summary]
+        sections.extend(table.render())
+
+        return "\n\n".join(sections)
+
+    def _add_to_diff_table(self, table: "_DiffTable", data: DiffEntry) -> None:
+        def pick_version(p: LockedPackage | None) -> str:
+            if p is None:
+                return "-"
+            return p["version"]
+
+        def pick_footnotes(data: DiffEntry) -> t.Iterable[_NoteRef]:
+            if data.is_major_change:
+                yield table.footnotes.register("M", "major change")
+            if data.is_downgrade:
+                yield table.footnotes.register("D", "downgrade")
+            if data.is_source_change:
+                if data.old is None or data.new is None:  # pragma: no cover
+                    raise AssertionError(f"unexpected source change: {data}")
+
+                old_source = md_from_source(data.old["source"])
+                new_source = md_from_source(data.new["source"])
+                yield table.footnotes.register(
+                    "S", f"source changed from {old_source} to {new_source}"
+                )
+
+        if data.new is not None:
+            name = self._name_for_locked_package(data.new)
+        else:
+            name = data.name
+
+        table.rows.append(
+            _MdDiffRow(
+                name,
+                pick_version(data.old),
+                pick_version(data.new),
+                list(pick_footnotes(data)),
+            )
+        )
+
+    def _name_for_locked_package(self, p: LockedPackage) -> str:
+        name = p["name"]
+        if not self.show_links:
+            return name
+        if p["source"] not in ("pypi", "default"):
+            return name
+        return f"[{name}](https://pypi.org/p/{name})"
 
 
 class _MdDiffRow(t.NamedTuple):
@@ -65,36 +131,6 @@ class _DiffTable:
     rows: list[_MdDiffRow]
     footnotes: _NotesRegistry
 
-    def add(self, data: DiffEntry) -> None:
-        def pick_version(p: LockedPackage | None) -> str:
-            if p is None:
-                return "-"
-            return p["version"]
-
-        def pick_footnotes(data: DiffEntry) -> t.Iterable[_NoteRef]:
-            if data.is_major_change:
-                yield self.footnotes.register("M", "major change")
-            if data.is_downgrade:
-                yield self.footnotes.register("D", "downgrade")
-            if data.is_source_change:
-                if data.old is None or data.new is None:  # pragma: no cover
-                    raise AssertionError(f"unexpected source change: {data}")
-
-                old_source = md_from_source(data.old["source"])
-                new_source = md_from_source(data.new["source"])
-                yield self.footnotes.register(
-                    "S", f"source changed from {old_source} to {new_source}"
-                )
-
-        self.rows.append(
-            _MdDiffRow(
-                data.name,
-                pick_version(data.old),
-                pick_version(data.new),
-                list(pick_footnotes(data)),
-            )
-        )
-
     def render(self) -> t.Iterable[str]:
         yield table(
             ("package", "old", "new", "notes"),
@@ -109,26 +145,6 @@ class _DiffTable:
             for ref, message in self.footnotes.items()
         ):
             yield footnotes
-
-
-def md_from_diff(diff: Diff) -> str:
-    """Summarize the Diff as a Markdown table."""
-    summary = f"{diff.stat.total} changed packages"
-    if summary_details := ", ".join(_diff_summary_details(diff)):
-        summary += f" ({summary_details})"
-
-    if diff.stat.total <= 0:
-        return summary
-
-    table = _DiffTable(rows=[], footnotes=_NotesRegistry({}))
-
-    for data in diff.packages:
-        table.add(data)
-
-    sections: list[str] = [summary]
-    sections.extend(table.render())
-
-    return "\n\n".join(sections)
 
 
 def md_from_source(source: Source) -> str:

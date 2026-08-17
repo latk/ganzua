@@ -20,7 +20,7 @@ from ._cli_help import App
 from ._edit_requirement import FilteredEdit
 from ._filters import ConstraintFilter, LockfileFilter
 from ._lockfile import lockfile_by_name
-from ._markdown import md_from_diff, md_from_lockfile, md_from_requirements
+from ._markdown import MarkdownRenderer, md_from_requirements
 from ._markdown_from_json_schema import md_from_schema
 from ._utils import coalesce, error_context
 
@@ -104,6 +104,7 @@ def inspect(
     ] = None,
     name: _DeprecatedNameLockfileFilter = None,
     format: _OutputFormatOption = OutputFormat.JSON,
+    md_links: t.Annotated[bool, clack.Option(help=None)] = False,
 ) -> None:
     """Inspect a lockfile.
 
@@ -127,11 +128,16 @@ def inspect(
 
     lockfile_data = ganzua.lockfile_from(lockfile)
     lockfile_data = filter.filtered_lockfile(lockfile_data)
-    format.print(lockfile_data, adapter=LOCKFILE_SCHEMA, markdown=md_from_lockfile)
+    renderer = MarkdownRenderer(show_links=md_links)
+    format.print(
+        lockfile_data,
+        adapter=LOCKFILE_SCHEMA,
+        markdown=renderer.md_from_lockfile,
+    )
 
 
 @app.command()
-def diff(
+def diff(  # noqa: PLR0913  # too-many-arguments
     old: _ExistingPathArgument,
     new: _ExistingPathArgument,
     filter: t.Annotated[
@@ -140,6 +146,7 @@ def diff(
     ] = None,
     name: _DeprecatedNameLockfileFilter = None,
     format: _OutputFormatOption = OutputFormat.JSON,
+    md_links: t.Annotated[bool, clack.Option(help=None)] = False,
 ) -> None:
     """Compare two lockfiles.
 
@@ -178,7 +185,12 @@ def diff(
         lockfile_by_name(filter.filtered_lockfile(ganzua.lockfile_from(old))),
         lockfile_by_name(filter.filtered_lockfile(ganzua.lockfile_from(new))),
     )
-    format.print(diff, adapter=DIFF_SCHEMA, markdown=md_from_diff)
+    renderer = MarkdownRenderer(show_links=md_links)
+    format.print(
+        diff,
+        adapter=DIFF_SCHEMA,
+        markdown=renderer.md_from_diff,
+    )
 
 
 @app.group()
