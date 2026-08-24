@@ -244,10 +244,28 @@ class Runner:
         cwd: str,
     ) -> _OutputWithType:
         match command:
-            case ["git", "init", "."] | ["git", "add", _] | ["git", "commit", "-m", _]:
+            case ["git", "init", "."]:
+                command = [*command, "--initial-branch=main"]
+            case ["git", "add", _]:
+                pass
+            case ["git", "commit", "-m", _]:
                 pass
             case _:  # pragma: no cover
                 raise line.make_err(f"unsupported command: {shlex.join(command)}")
+        env_predictable_commit = {
+            "GIT_AUTHOR_NAME": "example",
+            "GIT_AUTHOR_EMAIL": "example@example.com",
+            "GIT_AUTHOR_DATE": "2026-01-01 00:00:00Z",
+            "GIT_COMMITTER_NAME": "example",
+            "GIT_COMMITTER_EMAIL": "example@example.com",
+            "GIT_COMMITTER_DATE": "2026-01-01 00:00:00Z",
+        }
+        # Suppress the default Git configs by setting them to `/dev/null`.
+        # <https://git-scm.com/docs/git#Documentation/git.txt-GITCONFIGGLOBAL>
+        env_predictable_config = {
+            "GIT_CONFIG_SYSTEM": os.devnull,
+            "GIT_CONFIG_GLOBAL": os.devnull,
+        }
         result = subprocess.run(
             command,
             stdout=subprocess.PIPE,
@@ -255,15 +273,7 @@ class Runner:
             cwd=cwd,
             check=False,
             text=True,
-            env={
-                **os.environ,
-                "GIT_AUTHOR_NAME": "example",
-                "GIT_AUTHOR_EMAIL": "example@example.com",
-                "GIT_AUTHOR_DATE": "2026-01-01 00:00:00Z",
-                "GIT_COMMITTER_NAME": "example",
-                "GIT_COMMITTER_EMAIL": "example@example.com",
-                "GIT_COMMITTER_DATE": "2026-01-01 00:00:00Z",
-            },
+            env={**os.environ, **env_predictable_config, **env_predictable_commit},
         )
         return self._handle_command_output(
             returncode=result.returncode,
