@@ -1,10 +1,13 @@
 """The ganzua command-line interface."""
 
 import contextlib
+import dataclasses
 import enum
 import pathlib
 import shlex
 import shutil
+import subprocess
+import tempfile
 import typing as t
 
 import click
@@ -76,7 +79,6 @@ _OutputFormatOption: t.TypeAlias = t.Annotated[
 _ExistingPath = click.Path(
     exists=True, path_type=pathlib.Path, file_okay=True, dir_okay=True
 )
-_ExistingPathArgument = t.Annotated[pathlib.Path, clack.Argument(type=_ExistingPath)]
 _OptionalExistingPathArgument = t.Annotated[
     pathlib.Path | None, clack.Argument(type=_ExistingPath)
 ]
@@ -88,6 +90,17 @@ _DeprecatedNameConstraintFilter = t.Annotated[
     ConstraintFilter | None,
     clack.Option(help=None, deprecated="Use `--filter` instead of `--name`."),
 ]
+_GitOption = t.Annotated[
+    bool,
+    clack.Option(
+        "--git/--no-git",
+        help="Whether to interpret lockfile paths as gitrevisions. [default: enabled]",
+    ),
+]
+_GitExecutableOption = t.Annotated[
+    str,
+    clack.Option(help="How to invoke Git. [default: git]", metavar="EXECUTABLE"),
+]
 
 
 DIFF_SCHEMA = pydantic.TypeAdapter(ganzua.Diff)
@@ -96,20 +109,26 @@ REQUIREMENTS_SCHEMA = pydantic.TypeAdapter(ganzua.Requirements)
 
 
 @app.command()
-def inspect(
-    lockfile: _OptionalExistingPathArgument = None,
+def inspect(  # noqa: PLR0913  # too-many-arguments
+    lockfile: t.Annotated[str | None, clack.Argument()] = None,
     filter: t.Annotated[
         LockfileFilter | None,
         clack.Option(help="Include/exclude packages to inspect. [default: show all]"),
     ] = None,
     name: _DeprecatedNameLockfileFilter = None,
     format: _OutputFormatOption = OutputFormat.JSON,
+    git: _GitOption = True,
+    git_executable: _GitExecutableOption = "git",
     md_links: t.Annotated[bool, clack.Option(help=None)] = False,
 ) -> None:
     """Inspect a lockfile.
 
-    The `LOCKFILE` should point to an `uv.lock` or `poetry.lock` file,
-    or to a directory containing such a file.
+    The `LOCKFILE` argument can be any of the following:
+
+    * file: use that path as the lockfile (e.g. `uv.lock` or `poetry.lock`)
+    * directory: look for a lockfile in that directory
+    * gitrevision: a `<commit>:<path>` identifying a lockfile in the Git history
+
     If this argument is not specified,
     the one in the current working directory will be used.
 
@@ -119,14 +138,11 @@ def inspect(
     """
     ctx = click.get_current_context()
     filter = coalesce(filter, name, default=LockfileFilter.DEFAULT)
-    lockfile = _find_lockfile(
-        ctx,
-        lockfile,
+    lockfile_data = _LockfileResolver(
+        ctx=ctx,
         project_dir=pathlib.Path(),
-        err_msg=lambda project_dir: f"Could not infer `LOCKFILE` for `{project_dir}`.",
-    )
-
-    lockfile_data = ganzua.lockfile_from(lockfile)
+        git_executable=git_executable if git else None,
+    ).load_lockfile(lockfile, metavar="LOCKFILE")
     lockfile_data = filter.filtered_lockfile(lockfile_data)
     renderer = MarkdownRenderer(show_links=md_links)
     format.print(
@@ -138,30 +154,31 @@ def inspect(
 
 @app.command()
 def diff(  # noqa: PLR0913  # too-many-arguments
-    old: _ExistingPathArgument,
-    new: _ExistingPathArgument,
+    old: t.Annotated[str, clack.Argument()],
+    new: t.Annotated[str, clack.Argument()],
     filter: t.Annotated[
         LockfileFilter | None,
         clack.Option(help="Include/exclude packages to diff. [default: diff all]"),
     ] = None,
     name: _DeprecatedNameLockfileFilter = None,
     format: _OutputFormatOption = OutputFormat.JSON,
+    git: _GitOption = True,
+    git_executable: _GitExecutableOption = "git",
     md_links: t.Annotated[bool, clack.Option(help=None)] = False,
 ) -> None:
     """Compare two lockfiles.
 
-    The `OLD` and `NEW` arguments must each point to an `uv.lock` or `poetry.lock` file,
-    or to a directory containing such a file.
+    The `OLD` and `NEW` arguments can be any of the following:
 
-    There is no direct support for comparing a file across Git commits,
-    but it's possible to retrieve other versions via [`git show`][git-show].
-    Here is an example using a Bash redirect to show non-committed changes in a lockfile:
+    * file: use that path as the lockfile (e.g. `uv.lock` or `poetry.lock`)
+    * directory: look for a lockfile in that directory
+    * gitrevision: a `<commit>:<path>` identifying a lockfile in the Git history
+
+    Here's an example of using the Git feature to show non-committed changes in a lockfile:
 
     ```bash
-    ganzua diff <(git show HEAD:uv.lock) uv.lock
+    ganzua diff HEAD:uv.lock uv.lock
     ```
-
-    [git-show]: https://git-scm.com/docs/git-show
 
     <!-- options -->
 
@@ -169,21 +186,22 @@ def diff(  # noqa: PLR0913  # too-many-arguments
     """
     ctx = click.get_current_context()
     filter = coalesce(filter, name, default=LockfileFilter.DEFAULT)
-    old = _find_lockfile(
-        ctx,
-        old,
+    lockfile_resolver = _LockfileResolver(
+        ctx=ctx,
         project_dir=pathlib.Path(),  # unused
-        err_msg=lambda project_dir: f"Could not infer `OLD` for `{project_dir}`.",
-    )
-    new = _find_lockfile(
-        ctx,
-        new,
-        project_dir=pathlib.Path(),  # unused
-        err_msg=lambda project_dir: f"Could not infer `NEW` for `{project_dir}`.",
+        git_executable=git_executable if git else None,
     )
     diff = ganzua.diff(
-        lockfile_by_name(filter.filtered_lockfile(ganzua.lockfile_from(old))),
-        lockfile_by_name(filter.filtered_lockfile(ganzua.lockfile_from(new))),
+        lockfile_by_name(
+            filter.filtered_lockfile(
+                (lockfile_resolver.load_lockfile(old, metavar="OLD"))
+            )
+        ),
+        lockfile_by_name(
+            filter.filtered_lockfile(
+                (lockfile_resolver.load_lockfile(new, metavar="NEW"))
+            )
+        ),
     )
     renderer = MarkdownRenderer(show_links=md_links)
     format.print(
@@ -214,36 +232,84 @@ def _find_pyproject_toml(
     return pyproject
 
 
-def _find_lockfile(
-    ctx: click.Context,
-    lockfile: pathlib.Path | None,
-    *,
-    project_dir: pathlib.Path,
-    err_msg: t.Callable[[pathlib.Path], str],
-    note: str | None = None,
-) -> pathlib.Path:
-    if lockfile is None:
-        pass
-    elif lockfile.is_dir():
-        project_dir = lockfile
-    else:
+@dataclasses.dataclass(kw_only=True)
+class _LockfileResolver:
+    ctx: click.Context
+    project_dir: pathlib.Path
+    git_executable: str | None = None
+    note: str | None = None
+
+    def load_lockfile(
+        self, lockfile: pathlib.Path | str | None, *, metavar: str
+    ) -> ganzua.Lockfile:
+        data = self._maybe_load_from_git(lockfile)
+        if data is None:
+            data = ganzua.lockfile_from(
+                self._resolve_lockfile(lockfile, metavar=metavar)
+            )
+        return data
+
+    def _maybe_load_from_git(
+        self, revision: pathlib.Path | str | None
+    ) -> ganzua.Lockfile | None:
+        if not self.git_executable:
+            return None
+        if not isinstance(revision, str):
+            return None
+        if revision.startswith(("/", "./", "../")):
+            return None
+        if ":" not in revision:
+            return None
+        # TODO parse directly, without tempfile
+        temp = self.ctx.with_resource(tempfile.NamedTemporaryFile())  # noqa: SIM115
+        result = subprocess.run(
+            [self.git_executable, "cat-file", "blob", revision],
+            stdout=temp,
+            check=False,
+        )
+        if result.returncode:
+            msg = f"Could not read file from Git history: `{revision}`"
+            msg += f"\nNote: Command `{shlex.join(result.args)}` exited with status {result.returncode}"
+            self.ctx.fail(msg)
+        return ganzua.lockfile_from(pathlib.Path(temp.name), name=revision)
+
+    def _resolve_lockfile(
+        self, lockfile: pathlib.Path | str | None, *, metavar: str
+    ) -> pathlib.Path:
+
+        if lockfile is None:
+            return self._find_lockfile_in_dir(self.project_dir, metavar=metavar)
+
+        lockfile = pathlib.Path(lockfile)
+        if lockfile.is_dir():
+            return self._find_lockfile_in_dir(lockfile, metavar=metavar)
+
+        if not lockfile.exists():
+            msg = f"{metavar}: Path `{lockfile}` does not exist."
+            if self.note:
+                msg += f"\nNote: {self.note}"
+            self.ctx.fail(msg)
+
         return lockfile
 
-    candidates = [
-        project_dir / "uv.lock",
-        project_dir / "poetry.lock",
-        project_dir / "pylock.toml",
-    ]
-    match [f for f in candidates if f.exists()]:
-        case [exactly_one]:
-            return exactly_one
-        case existing_lockfiles:
-            msg = err_msg(project_dir)
-            for f in existing_lockfiles:
-                msg += f"\nNote: Candidate lockfile: {shlex.quote(str(f))}"
-            if note:
-                msg += f"\nNote: {note}"
-            ctx.fail(msg)
+    def _find_lockfile_in_dir(
+        self, project_dir: pathlib.Path, *, metavar: str
+    ) -> pathlib.Path:
+        candidates = [
+            project_dir / "uv.lock",
+            project_dir / "poetry.lock",
+            project_dir / "pylock.toml",
+        ]
+        match [f for f in candidates if f.exists()]:
+            case [exactly_one]:
+                return exactly_one
+            case existing_lockfiles:
+                msg = f"Could not infer `{metavar}` for `{project_dir}`."
+                for f in existing_lockfiles:
+                    msg += f"\nNote: Candidate lockfile: {shlex.quote(str(f))}"
+                if self.note:
+                    msg += f"\nNote: {self.note}"
+                self.ctx.fail(msg)
 
 
 @constraints.command("inspect")
@@ -283,9 +349,9 @@ def constraints_inspect(
 def constraints_bump(
     pyproject: _OptionalExistingPathArgument = None,
     lockfile: t.Annotated[
-        pathlib.Path | None,
+        str | None,
         clack.Option(
-            type=_ExistingPath,
+            metavar="PATH",
             help="""\
 Where to load versions from. Inferred if possible.
 * file: use the path as the lockfile
@@ -327,19 +393,13 @@ Where to load versions from. Inferred if possible.
     filter = coalesce(filter, name, default=ConstraintFilter.DEFAULT)
     warnings = _PlainWarnings()
     pyproject = _find_pyproject_toml(ctx, pyproject)
-    lockfile = _find_lockfile(
-        ctx,
-        lockfile,
-        project_dir=pyproject.parent,
-        err_msg=lambda project_dir: (
-            f"Could not infer `--lockfile` for `{project_dir}`."
-        ),
+    locked = _LockfileResolver(ctx=ctx, project_dir=pyproject.parent).load_lockfile(
+        lockfile, metavar="--lockfile"
     )
 
     if backup is not None:
         shutil.copy(pyproject, backup)
 
-    locked = ganzua.lockfile_from(lockfile)
     edit: ganzua.EditRequirement = ganzua.UpdateRequirement(
         lockfile=lockfile_by_name(locked),
         warn_multiple_versions=warnings.warn_multiple_candidate_versions,
@@ -377,9 +437,9 @@ How to reset constraints.
         ),
     ] = ConstraintResetGoal.NONE,
     lockfile: t.Annotated[
-        pathlib.Path | None,
+        str | None,
         clack.Option(
-            type=_ExistingPath,
+            metavar="PATH",
             help="""\
 Where to load current versions from (for `--to=minimum`). Inferred if possible.
 * file: use the path as the lockfile
@@ -420,23 +480,20 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
     filter = coalesce(filter, name, default=ConstraintFilter.DEFAULT)
     warnings = _PlainWarnings()
     pyproject = _find_pyproject_toml(ctx, pyproject)
+    lockfile_resolver = _LockfileResolver(
+        ctx=ctx,
+        project_dir=pyproject.parent,
+        note="Using `--to=minimum` requires a `--lockfile`.",
+    )
 
     edit: ganzua.EditRequirement
     match to:
         case ConstraintResetGoal.NONE:
             edit = ganzua.UnconstrainRequirement()
         case ConstraintResetGoal.MINIMUM:
-            lockfile = _find_lockfile(
-                ctx,
-                lockfile,
-                project_dir=pyproject.parent,
-                err_msg=lambda project_dir: (
-                    f"Could not infer `--lockfile` for `{project_dir}`."
-                ),
-                note="Using `--to=minimum` requires a `--lockfile`.",
-            )
+            locked = lockfile_resolver.load_lockfile(lockfile, metavar="--lockfile")
             edit = ganzua.SetMinimumRequirement(
-                lockfile_by_name(ganzua.lockfile_from(lockfile)),
+                lockfile_by_name(locked),
                 warnings.warn_multiple_candidate_versions,
             )
         case other:

@@ -4,10 +4,12 @@ import contextlib
 import dataclasses
 import html
 import importlib
+import os
 import pathlib
 import re
 import shlex
 import shutil
+import subprocess
 import sys
 import tempfile
 import traceback
@@ -210,6 +212,13 @@ class Runner:
                     return self._command_output_ganzua(
                         args, line=line, raise_for_error=raise_for_error
                     )
+            case ["git", "-C", dest, *args] if self.path_is_writeable(dest):
+                return self._command_output_git(
+                    ["git", *args],
+                    line=line,
+                    raise_for_error=raise_for_error,
+                    cwd=dest,
+                )
             case _:  # pragma: no cover
                 raise line.make_err(f"unsupported command: {command}")
 
@@ -217,19 +226,77 @@ class Runner:
         self, args: t.Sequence[str], *, line: _Line, raise_for_error: bool
     ) -> _OutputWithType:
         result = self.ganzua(*args, print=False, raise_for_exit=False)
-        output = result.output.strip()
-        if result.exit_code and raise_for_error:  # pragma: no cover
-            err = line.make_err(f"command exited with status={result.exit_code}")
+        return self._handle_command_output(
+            returncode=result.exit_code,
+            output=result.output,
+            exception=result.exception,
+            line=line,
+            raise_for_error=raise_for_error,
+            sniff_type=True,
+        )
+
+    def _command_output_git(
+        self,
+        command: t.Sequence[str],
+        *,
+        line: _Line,
+        raise_for_error: bool,
+        cwd: str,
+    ) -> _OutputWithType:
+        match command:
+            case ["git", "init", "."] | ["git", "add", _] | ["git", "commit", "-m", _]:
+                pass
+            case _:  # pragma: no cover
+                raise line.make_err(f"unsupported command: {shlex.join(command)}")
+        result = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            cwd=cwd,
+            check=False,
+            text=True,
+            env={
+                **os.environ,
+                "GIT_AUTHOR_NAME": "example",
+                "GIT_AUTHOR_EMAIL": "example@example.com",
+                "GIT_AUTHOR_DATE": "2026-01-01 00:00:00Z",
+                "GIT_COMMITTER_NAME": "example",
+                "GIT_COMMITTER_EMAIL": "example@example.com",
+                "GIT_COMMITTER_DATE": "2026-01-01 00:00:00Z",
+            },
+        )
+        return self._handle_command_output(
+            returncode=result.returncode,
+            output=result.stdout,
+            exception=None,
+            line=line,
+            raise_for_error=raise_for_error,
+            sniff_type=False,
+        )
+
+    def _handle_command_output(  # noqa: PLR0913
+        self,
+        *,
+        returncode: int,
+        output: str,
+        exception: BaseException | None,
+        line: _Line,
+        raise_for_error: bool,
+        sniff_type: bool,
+    ) -> _OutputWithType:
+        output = output.strip()
+        if returncode and raise_for_error:  # pragma: no cover
+            err = line.make_err(f"command exited with status={returncode}")
             err.add_note(f'output: """\n{output}\n"""' if output else "output: (empty)")
-            raise err from result.exception
+            raise err from exception
         type: _OutputType = None
-        if output.startswith(("{", "[")):
+        if sniff_type and output.startswith(("{", "[")):
             type = "json"
         output = self._unexpand_variables(output)
-        if result.exit_code and not raise_for_error:
-            output += f"\n[command exited with status {result.exit_code}]"
-        if result.exception is not None:
-            traceback.print_exception(result.exception, file=sys.stderr)
+        if returncode and not raise_for_error:
+            output += f"\n[command exited with status {returncode}]"
+        if exception is not None:
+            traceback.print_exception(exception, file=sys.stderr)
         return _OutputWithType(output.strip(), type=type)
 
 
@@ -769,7 +836,7 @@ class DoctestCompareOutput(DoctestSyntax):
     """Run a list of commands and compare their output."""
 
     START: t.ClassVar = re.compile("<!-- doctest: compare output -->")
-    COMMAND_LIST_ITEM = re.compile("[*-] `[$] (.+)`")
+    COMMAND_LIST_ITEM = re.compile("[*-] `[$] ([^`]+)`.*")
     OUTPUT_START = "<details><summary>output for the above commands</summary>"
     OUTPUT_END = "</details>"
 

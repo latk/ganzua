@@ -6,8 +6,12 @@ Usage: `ganzua inspect [OPTIONS] [LOCKFILE]`
 
 Inspect a lockfile.
 
-The `LOCKFILE` should point to an `uv.lock` or `poetry.lock` file,
-or to a directory containing such a file.
+The `LOCKFILE` argument can be any of the following:
+
+* file: use that path as the lockfile (e.g. `uv.lock` or `poetry.lock`)
+* directory: look for a lockfile in that directory
+* gitrevision: a `<commit>:<path>` identifying a lockfile in the Git history
+
 If this argument is not specified,
 the one in the current working directory will be used.
 
@@ -17,6 +21,10 @@ the one in the current working directory will be used.
   Include/exclude packages to inspect. [default: show all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]
+* `--[no-]git`
+  Whether to interpret lockfile paths as gitrevisions. [default: enabled]
+* `--git-executable EXECUTABLE`
+  How to invoke Git. [default: git]
 * `--help`
   Show this help message and exit.
 

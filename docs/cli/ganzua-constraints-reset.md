@@ -562,6 +562,21 @@ $ cp $CORPUS/new-uv-project/uv.lock $EXAMPLE/uv.lock
 $ ganzua constraints reset --to=minimum $EXAMPLE
 ```
 
+If a nonexistent lockfile is passed explicitly to `--lockfile`, we'll get an error:
+
+<details><summary><code>$ ganzua constraints reset --to=minimum --lockfile=nonexistent $EXAMPLE</code></summary>
+
+```
+Usage: ganzua constraints reset [OPTIONS] [PYPROJECT]
+Try 'ganzua constraints reset --help' for help.
+
+Error: --lockfile: Path `nonexistent` does not exist.
+Note: Using `--to=minimum` requires a `--lockfile`.
+[command exited with status 2]
+```
+
+</details>
+
 ### Inferring `pyproject.toml` location
 
 <!-- doctest: clean example -->

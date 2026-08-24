@@ -73,6 +73,7 @@ class Option:
     help: str | None
     type: click.ParamType | None = None
     deprecated: str | None = None
+    metavar: str | None = None
 
     def to_click(self, field_name: str, ty: TypeForm, default: object) -> click.Option:
         name = [
@@ -94,6 +95,7 @@ class Option:
             hidden=hidden,
             is_flag=(param_type is click.BOOL),
             deprecated=self.deprecated or False,
+            metavar=self.metavar,
             **args,
         )
 

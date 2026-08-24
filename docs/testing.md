@@ -431,12 +431,12 @@ Example when the output is the same for all commands:
 
 ``````md,doctest-example
 <!-- doctest: compare output -->
-* `$ echo foo bar`
+* `$ echo foo bar` may have trailing text
 * `$ echo 'foo bar'`
 ``````
 ``````md,doctest-output
 <!-- doctest: compare output -->
-* `$ echo foo bar`
+* `$ echo foo bar` may have trailing text
 * `$ echo 'foo bar'`
 
 <details><summary>output for the above commands</summary>
@@ -865,3 +865,18 @@ For example, these two commands end up inspecting the same project:
 ```
 
 </details>
+
+
+### git
+
+```
+git -C DEST init .
+git -C DEST add PATH
+git -C DEST commit -m MESSAGE
+```
+
+Run one of the supported Git commands.
+The `DEST` path must be [writable](#writable).
+
+Commits are made with the Git author+committer identity `example <example@example.com>`
+and with a fixed date.

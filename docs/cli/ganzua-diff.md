@@ -6,18 +6,17 @@ Usage: `ganzua diff [OPTIONS] OLD NEW`
 
 Compare two lockfiles.
 
-The `OLD` and `NEW` arguments must each point to an `uv.lock` or `poetry.lock` file,
-or to a directory containing such a file.
+The `OLD` and `NEW` arguments can be any of the following:
 
-There is no direct support for comparing a file across Git commits,
-but it's possible to retrieve other versions via [`git show`][git-show].
-Here is an example using a Bash redirect to show non-committed changes in a lockfile:
+* file: use that path as the lockfile (e.g. `uv.lock` or `poetry.lock`)
+* directory: look for a lockfile in that directory
+* gitrevision: a `<commit>:<path>` identifying a lockfile in the Git history
+
+Here's an example of using the Git feature to show non-committed changes in a lockfile:
 
 ```bash
-ganzua diff <(git show HEAD:uv.lock) uv.lock
+ganzua diff HEAD:uv.lock uv.lock
 ```
-
-[git-show]: https://git-scm.com/docs/git-show
 
 **Options:**
 
@@ -25,6 +24,10 @@ ganzua diff <(git show HEAD:uv.lock) uv.lock
   Include/exclude packages to diff. [default: diff all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]
+* `--[no-]git`
+  Whether to interpret lockfile paths as gitrevisions. [default: enabled]
+* `--git-executable EXECUTABLE`
+  How to invoke Git. [default: git]
 * `--help`
   Show this help message and exit.
 
@@ -278,6 +281,8 @@ Filtering was added in Ganzua 0.4.0.
 ```
 
 </details>
+
+Hidden features:
 
 <details><summary>Unstable: there's a hidden <code>--md-links</code> option.</summary>
 

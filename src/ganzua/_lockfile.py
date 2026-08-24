@@ -47,8 +47,8 @@ class Lockfile(t.TypedDict):
 LockfileByName = t.NewType("LockfileByName", dict[str, list[LockedPackage]])
 
 
-def lockfile_from(path: PathLike) -> Lockfile:
-    with error_context(f"while parsing {path}"):
+def lockfile_from(path: PathLike, *, name: PathLike | str | None = None) -> Lockfile:
+    with error_context(f"while parsing {name or path}"):
         input_lockfile = _ANY_LOCKFILE_SCHEMA.validate_python(
             tomllib.loads(path.read_text())
         )

@@ -25,6 +25,7 @@
 
 * [Filters](filters.md)
 * [File formats](file-formats.md)
+* [Git](git.md)
 
 ---
 
