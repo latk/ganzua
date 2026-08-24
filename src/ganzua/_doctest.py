@@ -265,6 +265,7 @@ class Runner:
         env_predictable_config = {
             "GIT_CONFIG_SYSTEM": os.devnull,
             "GIT_CONFIG_GLOBAL": os.devnull,
+            "LC_ALL": "C.UTF-8",  # avoid localization problems
         }
         result = subprocess.run(
             command,

@@ -66,7 +66,7 @@ and then copy a new version over it:
 
 ```console
 $ git -C $EXAMPLE init .
-Initialised empty Git repository in ${EXAMPLE}/.git/
+Initialized empty Git repository in ${EXAMPLE}/.git/
 $ cp $CORPUS/old-uv-project/uv.lock $EXAMPLE/uv.lock
 $ git -C $EXAMPLE add uv.lock
 $ git -C $EXAMPLE commit -m "old lockfile"
