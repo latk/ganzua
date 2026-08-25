@@ -14,7 +14,7 @@ the one in the current working directory will be used.
 **Options:**
 
 * `--filter CONSTRAINT-FILTER`
-  Include/exclude constraints to show. [default: show all]
+  Include/exclude constraints to operate on. [default: use all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]
 * `--help`

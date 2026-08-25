@@ -4,7 +4,6 @@ import contextlib
 import dataclasses
 import html
 import importlib
-import os
 import pathlib
 import re
 import shlex
@@ -20,6 +19,7 @@ import pydantic
 
 from . import _markdown as md
 from ._edit_requirement import UpdateRequirement
+from ._git import Git
 from ._lockfile import LockfileByName, lockfile_by_name
 from ._markdown_from_json_schema import md_from_schema
 from ._pyproject import apply_one_pep508_edit
@@ -252,29 +252,14 @@ class Runner:
                 pass
             case _:  # pragma: no cover
                 raise line.make_err(f"unsupported command: {shlex.join(command)}")
-        env_predictable_commit = {
-            "GIT_AUTHOR_NAME": "example",
-            "GIT_AUTHOR_EMAIL": "example@example.com",
-            "GIT_AUTHOR_DATE": "2026-01-01 00:00:00Z",
-            "GIT_COMMITTER_NAME": "example",
-            "GIT_COMMITTER_EMAIL": "example@example.com",
-            "GIT_COMMITTER_DATE": "2026-01-01 00:00:00Z",
-        }
-        # Suppress the default Git configs by setting them to `/dev/null`.
-        # <https://git-scm.com/docs/git#Documentation/git.txt-GITCONFIGGLOBAL>
-        env_predictable_config = {
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "LC_ALL": "C.UTF-8",  # avoid localization problems
-        }
-        result = subprocess.run(
-            command,
+        git = Git(predictable_commit=True, predictable_config=True)
+        result = git.run(
+            command[1:],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             cwd=cwd,
             check=False,
             text=True,
-            env={**os.environ, **env_predictable_config, **env_predictable_commit},
         )
         return self._handle_command_output(
             returncode=result.returncode,

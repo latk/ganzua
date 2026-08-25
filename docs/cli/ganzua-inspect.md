@@ -18,7 +18,7 @@ the one in the current working directory will be used.
 **Options:**
 
 * `--filter LOCKFILE-FILTER`
-  Include/exclude packages to inspect. [default: show all]
+  Include/exclude packages. [default: use all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]
 * `--[no-]git`

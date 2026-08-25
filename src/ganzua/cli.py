@@ -6,7 +6,6 @@ import enum
 import pathlib
 import shlex
 import shutil
-import subprocess
 import tempfile
 import typing as t
 
@@ -22,6 +21,7 @@ from . import _toml as toml
 from ._cli_help import App
 from ._edit_requirement import FilteredEdit
 from ._filters import ConstraintFilter, LockfileFilter
+from ._git import Git
 from ._lockfile import lockfile_by_name
 from ._markdown import MarkdownRenderer, md_from_requirements
 from ._markdown_from_json_schema import md_from_schema
@@ -82,25 +82,75 @@ _ExistingPath = click.Path(
 _OptionalExistingPathArgument = t.Annotated[
     pathlib.Path | None, clack.Argument(type=_ExistingPath)
 ]
-_DeprecatedNameLockfileFilter = t.Annotated[
-    LockfileFilter | None,
-    clack.Option(help=None, deprecated="Use `--filter` instead of `--name`."),
-]
-_DeprecatedNameConstraintFilter = t.Annotated[
-    ConstraintFilter | None,
-    clack.Option(help=None, deprecated="Use `--filter` instead of `--name`."),
-]
-_GitOption = t.Annotated[
-    bool,
-    clack.Option(
-        "--git/--no-git",
-        help="Whether to interpret lockfile paths as gitrevisions. [default: enabled]",
-    ),
-]
-_GitExecutableOption = t.Annotated[
-    str,
-    clack.Option(help="How to invoke Git. [default: git]", metavar="EXECUTABLE"),
-]
+
+
+@dataclasses.dataclass
+class _LockfileFilterOptions:
+    filter: t.Annotated[
+        LockfileFilter | None,
+        clack.Option(help="Include/exclude packages. [default: use all]"),
+    ] = None
+    name: t.Annotated[
+        LockfileFilter | None,
+        clack.Option(help=None, deprecated="Use `--filter` instead of `--name`."),
+    ] = None
+
+    def filtered_lockfile(self, lockfile: ganzua.Lockfile) -> ganzua.Lockfile:
+        filter = coalesce(self.filter, self.name, default=LockfileFilter.DEFAULT)
+        return filter.filtered_lockfile(lockfile)
+
+
+@dataclasses.dataclass
+class _ConstraintFilterOptions:
+    filter: t.Annotated[
+        ConstraintFilter | None,
+        clack.Option(
+            help="Include/exclude constraints to operate on. [default: use all]"
+        ),
+    ] = None
+    name: t.Annotated[
+        ConstraintFilter | None,
+        clack.Option(help=None, deprecated="Use `--filter` instead of `--name`."),
+    ] = None
+
+    def get(self) -> ConstraintFilter:
+        return coalesce(self.filter, self.name, default=ConstraintFilter.DEFAULT)
+
+
+@dataclasses.dataclass
+class _GitOptions:
+    git: t.Annotated[
+        bool,
+        clack.Option(
+            "--git/--no-git",
+            help="Whether to interpret lockfile paths as gitrevisions. [default: enabled]",
+        ),
+    ] = True
+    git_executable: t.Annotated[
+        str,
+        clack.Option(help="How to invoke Git. [default: git]", metavar="EXECUTABLE"),
+    ] = "git"
+
+    def get(self) -> Git | None:
+        if not self.git:
+            return None
+        return Git(self.git_executable)
+
+
+@dataclasses.dataclass
+class _LockfileOutputOptions:
+    format: _OutputFormatOption = OutputFormat.JSON
+    md_links: t.Annotated[bool, clack.Option(help=None)] = False
+
+    def print_lockfile(self, lockfile: ganzua.Lockfile) -> None:
+        renderer = MarkdownRenderer(show_links=self.md_links)
+        self.format.print(
+            lockfile, adapter=LOCKFILE_SCHEMA, markdown=renderer.md_from_lockfile
+        )
+
+    def print_diff(self, diff: ganzua.Diff) -> None:
+        renderer = MarkdownRenderer(show_links=self.md_links)
+        self.format.print(diff, adapter=DIFF_SCHEMA, markdown=renderer.md_from_diff)
 
 
 DIFF_SCHEMA = pydantic.TypeAdapter(ganzua.Diff)
@@ -109,17 +159,12 @@ REQUIREMENTS_SCHEMA = pydantic.TypeAdapter(ganzua.Requirements)
 
 
 @app.command()
-def inspect(  # noqa: PLR0913  # too-many-arguments
+def inspect(
+    *,
     lockfile: t.Annotated[str | None, clack.Argument()] = None,
-    filter: t.Annotated[
-        LockfileFilter | None,
-        clack.Option(help="Include/exclude packages to inspect. [default: show all]"),
-    ] = None,
-    name: _DeprecatedNameLockfileFilter = None,
-    format: _OutputFormatOption = OutputFormat.JSON,
-    git: _GitOption = True,
-    git_executable: _GitExecutableOption = "git",
-    md_links: t.Annotated[bool, clack.Option(help=None)] = False,
+    filter: _LockfileFilterOptions,
+    output: _LockfileOutputOptions,
+    git_options: _GitOptions,
 ) -> None:
     """Inspect a lockfile.
 
@@ -137,34 +182,21 @@ def inspect(  # noqa: PLR0913  # too-many-arguments
     *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
     ctx = click.get_current_context()
-    filter = coalesce(filter, name, default=LockfileFilter.DEFAULT)
     lockfile_data = _LockfileResolver(
-        ctx=ctx,
-        project_dir=pathlib.Path(),
-        git_executable=git_executable if git else None,
+        ctx=ctx, project_dir=pathlib.Path(), git=git_options.get()
     ).load_lockfile(lockfile, metavar="LOCKFILE")
     lockfile_data = filter.filtered_lockfile(lockfile_data)
-    renderer = MarkdownRenderer(show_links=md_links)
-    format.print(
-        lockfile_data,
-        adapter=LOCKFILE_SCHEMA,
-        markdown=renderer.md_from_lockfile,
-    )
+    output.print_lockfile(lockfile_data)
 
 
 @app.command()
-def diff(  # noqa: PLR0913  # too-many-arguments
+def diff(
+    *,
     old: t.Annotated[str, clack.Argument()],
     new: t.Annotated[str, clack.Argument()],
-    filter: t.Annotated[
-        LockfileFilter | None,
-        clack.Option(help="Include/exclude packages to diff. [default: diff all]"),
-    ] = None,
-    name: _DeprecatedNameLockfileFilter = None,
-    format: _OutputFormatOption = OutputFormat.JSON,
-    git: _GitOption = True,
-    git_executable: _GitExecutableOption = "git",
-    md_links: t.Annotated[bool, clack.Option(help=None)] = False,
+    filter: _LockfileFilterOptions,
+    output: _LockfileOutputOptions,
+    git_options: _GitOptions,
 ) -> None:
     """Compare two lockfiles.
 
@@ -185,11 +217,10 @@ def diff(  # noqa: PLR0913  # too-many-arguments
     *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
     ctx = click.get_current_context()
-    filter = coalesce(filter, name, default=LockfileFilter.DEFAULT)
     lockfile_resolver = _LockfileResolver(
         ctx=ctx,
         project_dir=pathlib.Path(),  # unused
-        git_executable=git_executable if git else None,
+        git=git_options.get(),
     )
     diff = ganzua.diff(
         lockfile_by_name(
@@ -203,12 +234,7 @@ def diff(  # noqa: PLR0913  # too-many-arguments
             )
         ),
     )
-    renderer = MarkdownRenderer(show_links=md_links)
-    format.print(
-        diff,
-        adapter=DIFF_SCHEMA,
-        markdown=renderer.md_from_diff,
-    )
+    output.print_diff(diff)
 
 
 @app.group()
@@ -236,7 +262,7 @@ def _find_pyproject_toml(
 class _LockfileResolver:
     ctx: click.Context
     project_dir: pathlib.Path
-    git_executable: str | None = None
+    git: Git | None = None
     note: str | None = None
 
     def load_lockfile(
@@ -252,7 +278,7 @@ class _LockfileResolver:
     def _maybe_load_from_git(
         self, revision: pathlib.Path | str | None
     ) -> ganzua.Lockfile | None:
-        if not self.git_executable:
+        if not self.git:
             return None
         if not isinstance(revision, str):
             return None
@@ -262,15 +288,7 @@ class _LockfileResolver:
             return None
         # TODO parse directly, without tempfile
         temp = self.ctx.with_resource(tempfile.NamedTemporaryFile())  # noqa: SIM115
-        result = subprocess.run(
-            [self.git_executable, "cat-file", "blob", revision],
-            stdout=temp,
-            check=False,
-        )
-        if result.returncode:
-            msg = f"Could not read file from Git history: `{revision}`"
-            msg += f"\nNote: Command `{shlex.join(result.args)}` exited with status {result.returncode}"
-            self.ctx.fail(msg)
+        self.git.extract_blob(revision, dest=temp, mkerr=self.ctx.fail)
         return ganzua.lockfile_from(pathlib.Path(temp.name), name=revision)
 
     def _resolve_lockfile(
@@ -314,12 +332,9 @@ class _LockfileResolver:
 
 @constraints.command("inspect")
 def constraints_inspect(
+    *,
     pyproject: _OptionalExistingPathArgument = None,
-    filter: t.Annotated[
-        ConstraintFilter | None,
-        clack.Option(help="Include/exclude constraints to show. [default: show all]"),
-    ] = None,
-    name: _DeprecatedNameConstraintFilter = None,
+    filter: _ConstraintFilterOptions,
     format: _OutputFormatOption = OutputFormat.JSON,
 ) -> None:
     """List all constraints in the `pyproject.toml` file.
@@ -334,19 +349,19 @@ def constraints_inspect(
     *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
     ctx = click.get_current_context()
-    filter = coalesce(filter, name, default=ConstraintFilter.DEFAULT)
     pyproject = _find_pyproject_toml(ctx, pyproject)
 
     with error_context(f"while parsing {pyproject}"):
         doc = toml.RefRoot.parse(pyproject.read_text())
     collector = ganzua.CollectRequirement([])
-    ganzua.edit_pyproject(doc, FilteredEdit(collector, filter=filter))
+    ganzua.edit_pyproject(doc, FilteredEdit(collector, filter=filter.get()))
     reqs = ganzua.Requirements(requirements=collector.reqs)
     format.print(reqs, adapter=REQUIREMENTS_SCHEMA, markdown=md_from_requirements)
 
 
 @constraints.command("bump")
 def constraints_bump(
+    *,
     pyproject: _OptionalExistingPathArgument = None,
     lockfile: t.Annotated[
         str | None,
@@ -363,11 +378,7 @@ Where to load versions from. Inferred if possible.
     backup: t.Annotated[
         pathlib.Path | None, clack.Option(help="Store a backup in this file.")
     ] = None,
-    filter: t.Annotated[
-        ConstraintFilter | None,
-        clack.Option(help="Include/exclude constraints to edit. [default: edit all]"),
-    ] = None,
-    name: _DeprecatedNameConstraintFilter = None,
+    filter: _ConstraintFilterOptions,
 ) -> None:
     """Update `pyproject.toml` dependency constraints to match the lockfile.
 
@@ -390,7 +401,6 @@ Where to load versions from. Inferred if possible.
     *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
     ctx = click.get_current_context()
-    filter = coalesce(filter, name, default=ConstraintFilter.DEFAULT)
     warnings = _PlainWarnings()
     pyproject = _find_pyproject_toml(ctx, pyproject)
     locked = _LockfileResolver(ctx=ctx, project_dir=pyproject.parent).load_lockfile(
@@ -404,7 +414,7 @@ Where to load versions from. Inferred if possible.
         lockfile=lockfile_by_name(locked),
         warn_multiple_versions=warnings.warn_multiple_candidate_versions,
     )
-    edit = FilteredEdit(edit, filter=filter)
+    edit = FilteredEdit(edit, filter=filter.get())
     with _toml_edit_scope(pyproject) as doc:
         ganzua.edit_pyproject(doc, edit)
 
@@ -420,7 +430,7 @@ class ConstraintResetGoal(enum.Enum):
 
 
 @constraints.command("reset")
-def constraints_reset(  # noqa: PLR0913 # too-many-arguments
+def constraints_reset(
     pyproject: _OptionalExistingPathArgument = None,
     *,
     backup: t.Annotated[
@@ -448,11 +458,7 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
 """,
         ),
     ] = None,
-    filter: t.Annotated[
-        ConstraintFilter | None,
-        clack.Option(help="Include/exclude constraints to edit. [default: edit all]"),
-    ] = None,
-    name: _DeprecatedNameConstraintFilter = None,
+    filter: _ConstraintFilterOptions,
 ) -> None:
     """Remove or relax any dependency version constraints from the `pyproject.toml`.
 
@@ -477,7 +483,6 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
     *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
     ctx = click.get_current_context()
-    filter = coalesce(filter, name, default=ConstraintFilter.DEFAULT)
     warnings = _PlainWarnings()
     pyproject = _find_pyproject_toml(ctx, pyproject)
     lockfile_resolver = _LockfileResolver(
@@ -499,7 +504,7 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
         case other:
             t.assert_never(other)
 
-    edit = FilteredEdit(edit, filter=filter)
+    edit = FilteredEdit(edit, filter=filter.get())
 
     if backup is not None:
         shutil.copy(pyproject, backup)

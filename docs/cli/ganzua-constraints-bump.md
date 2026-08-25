@@ -30,7 +30,7 @@ the one in the current working directory will be used.
 * `--backup PATH`
   Store a backup in this file.
 * `--filter CONSTRAINT-FILTER`
-  Include/exclude constraints to edit. [default: edit all]
+  Include/exclude constraints to operate on. [default: use all]
 * `--help`
   Show this help message and exit.
 

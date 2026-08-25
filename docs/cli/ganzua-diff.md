@@ -21,7 +21,7 @@ ganzua diff HEAD:uv.lock uv.lock
 **Options:**
 
 * `--filter LOCKFILE-FILTER`
-  Include/exclude packages to diff. [default: diff all]
+  Include/exclude packages. [default: use all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]
 * `--[no-]git`

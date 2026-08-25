@@ -23,9 +23,11 @@ def some_command(
 ```
 """
 
+import contextlib
 import dataclasses
 import enum
 import inspect
+import itertools
 import pathlib
 import types
 import typing as t
@@ -35,7 +37,8 @@ import click
 
 from ._filters import ConstraintFilter, LockfileFilter
 
-type TypeForm = type[object] | t.TypeAliasType | None
+type _TypeForm = type[object] | t.TypeAliasType | None
+type _VoidFunction = t.Callable[..., None]
 
 
 class ExtraCommandArgs(t.TypedDict, total=False):
@@ -46,7 +49,6 @@ class ClickParamArgs(t.TypedDict, total=False):
     type: t.Required[click.ParamType]
     help: str
     default: object
-    metavar: str
 
 
 UNSET = inspect.Parameter.empty
@@ -57,8 +59,8 @@ def command(
     *,
     cls: type[click.Command] = click.Command,
     **extra: t.Unpack[ExtraCommandArgs],
-) -> t.Callable[[t.Callable[..., None]], click.Command]:
-    def decorator(f: t.Callable[..., None]) -> click.Command:
+) -> t.Callable[[_VoidFunction], click.Command]:
+    def decorator(f: _VoidFunction) -> click.Command:
         return _infer_command(f, name=name, cls=cls, **extra)
 
     return decorator
@@ -75,7 +77,7 @@ class Option:
     deprecated: str | None = None
     metavar: str | None = None
 
-    def to_click(self, field_name: str, ty: TypeForm, default: object) -> click.Option:
+    def to_click(self, field_name: str, ty: _TypeForm, default: object) -> click.Option:
         name = [
             self.name or f"--{field_name.replace('_', '-')}",
             field_name,
@@ -108,7 +110,7 @@ class Argument:
     type: click.ParamType | None = None
 
     def to_click(
-        self, field_name: str, ty: TypeForm, default: object
+        self, field_name: str, ty: _TypeForm, default: object
     ) -> click.Argument:
         args = ClickParamArgs(type=self.type or _infer_param_type(ty))
         if not (required := default is UNSET):
@@ -118,14 +120,26 @@ class Argument:
 
 
 def _infer_command(
-    f: t.Callable[..., None],
+    f: _VoidFunction,
     name: str | None = None,
     cls: type[click.Command] = click.Command,
     **extra: t.Unpack[ExtraCommandArgs],
 ) -> click.Command:
     # Compare: <https://github.com/pallets/click/blob/8bd8b4a074c55c03b6eb5666edc44a9c43df38a2/src/click/decorators.py#L168>
 
-    params = [_infer_param(p) for p in inspect.signature(f).parameters.values()]
+    params = list[click.Parameter]()
+    reducers = list[_Reducer]()
+    for p in inspect.signature(f).parameters.values():
+        for param_or_reducer in _infer_param(p):
+            if isinstance(param_or_reducer, click.Parameter):
+                params.append(param_or_reducer)
+            else:
+                reducers.append(param_or_reducer)
+
+    def flattened_function(**kwargs: object) -> None:
+        for reducer in reducers:
+            reducer.apply(kwargs)
+        return f(**kwargs)
 
     if name is None:
         name = _infer_command_name(f.__name__)
@@ -134,7 +148,7 @@ def _infer_command(
     prolog, _, epilog = doc.partition("\n<!-- options -->\n")
     cmd = cls(
         name=name,
-        callback=f,
+        callback=flattened_function,
         help=prolog.strip() or None,
         params=params,
         epilog=epilog.strip() or None,
@@ -149,21 +163,54 @@ def _infer_command_name(name: str) -> str:
     return name.removesuffix("-command")
 
 
-def _infer_param(param: inspect.Parameter) -> click.Parameter:
-    ty, annotations = _expand_annotations(param.annotation)
+@dataclasses.dataclass
+class _Reducer:
+    dest: str
+    inputs: t.Sequence[str]
+    op: t.Callable[..., object]
+
+    def apply(self, kwargs: dict[str, object]) -> None:
+        # Pick out all known parameter names.
+        # Nonexistent input kwargs may be OK due to defaults (thus: suppress KeyError).
+        # Don't validate that ourselves, instead the op() may raise a TypeError.
+        self = self
+        inner_kwargs = {}
+        for name in self.inputs:
+            with contextlib.suppress(KeyError):
+                inner_kwargs[name] = kwargs.pop(name)
+            kwargs[self.dest] = self.op(**inner_kwargs)
+
+
+def _infer_param(
+    param: inspect.Parameter | dataclasses.Field,
+) -> t.Iterable[click.Parameter | _Reducer]:
+    match param:
+        case inspect.Parameter():
+            ty, annotations = _expand_annotations(param.annotation)
+        case dataclasses.Field() if not isinstance(param.type, str):
+            ty, annotations = _expand_annotations(param.type)
+        case _:  # pragma: no cover
+            raise NotImplementedError(f"{param=}")
+
     for ann in annotations:
         match ann:
             case click.Parameter():
-                return ann
+                return [ann]
             case Argument() | Option():
-                return ann.to_click(param.name, ty, param.default)
+                return [ann.to_click(param.name, ty, param.default)]
             case _:  # pragma: no cover # ignore any other annotations
                 pass
+
+    # Flatten dataclasses into the function signature.
+    if isinstance(ty, type) and dataclasses.is_dataclass(ty):
+        fields = dataclasses.fields(ty)
+        reducer = _Reducer(dest=param.name, inputs=[f.name for f in fields], op=ty)
+        return itertools.chain(*(_infer_param(field) for field in fields), [reducer])
 
     raise NotImplementedError(f"{param=}")
 
 
-def _infer_param_type(ty: TypeForm) -> click.ParamType:
+def _infer_param_type(ty: _TypeForm) -> click.ParamType:
     """Convert a Python type to a Click param.
 
     >>> _infer_param_type(t.Optional[str])
@@ -199,7 +246,7 @@ def _infer_param_type(ty: TypeForm) -> click.ParamType:
     raise NotImplementedError(f"unsupported type form: {ty!r}")
 
 
-def _expand_annotations(ty: TypeForm) -> tuple[TypeForm, list[object]]:
+def _expand_annotations(ty: _TypeForm) -> tuple[_TypeForm, list[object]]:
     annotations: list[object] = []
     while t.get_origin(ty) is t.Annotated:
         ty, *more_annotations = t.get_args(ty)
@@ -207,7 +254,7 @@ def _expand_annotations(ty: TypeForm) -> tuple[TypeForm, list[object]]:
     return ty, annotations
 
 
-def _expand_union_type(ty: TypeForm) -> t.Iterable[TypeForm]:
+def _expand_union_type(ty: _TypeForm) -> t.Iterable[_TypeForm]:
     if t.get_origin(ty) in (types.UnionType, t.Union):
         for variant in t.get_args(ty):
             yield from _expand_union_type(variant)
