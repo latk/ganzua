@@ -180,10 +180,10 @@ def inspect(
 
     *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
-    ctx = click.get_current_context()
-    lockfile_data = _LockfileResolver(
-        ctx=ctx, project_dir=pathlib.Path(), git=git_options.get()
-    ).load_lockfile(lockfile, metavar="LOCKFILE")
+    data = _DataLayer(git=git_options.get())
+    lockfile_data = data.load_lockfile(
+        lockfile, metavar="LOCKFILE", project_dir=pathlib.Path()
+    )
     lockfile_data = filter.filtered_lockfile(lockfile_data)
     output.print_lockfile(lockfile_data)
 
@@ -215,21 +215,17 @@ def diff(
 
     *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
-    ctx = click.get_current_context()
-    lockfile_resolver = _LockfileResolver(
-        ctx=ctx,
-        project_dir=pathlib.Path(),  # unused
-        git=git_options.get(),
-    )
+    data = _DataLayer(git=git_options.get())
+    project_dir = pathlib.Path()  # effectively unused
     diff = ganzua.diff(
         lockfile_by_name(
             filter.filtered_lockfile(
-                (lockfile_resolver.load_lockfile(old, metavar="OLD"))
+                (data.load_lockfile(old, metavar="OLD", project_dir=project_dir))
             )
         ),
         lockfile_by_name(
             filter.filtered_lockfile(
-                (lockfile_resolver.load_lockfile(new, metavar="NEW"))
+                (data.load_lockfile(new, metavar="NEW", project_dir=project_dir))
             )
         ),
     )
@@ -239,91 +235,6 @@ def diff(
 @app.group()
 def constraints() -> None:
     """Work with `pyproject.toml` constraints."""
-
-
-def _find_pyproject_toml(
-    ctx: click.Context, pyproject: pathlib.Path | None
-) -> pathlib.Path:
-    if pyproject is None:
-        project_dir = pathlib.Path()
-    elif pyproject.is_dir():
-        project_dir = pyproject
-    else:
-        return pyproject
-
-    pyproject = project_dir / "pyproject.toml"
-    if not (pyproject.exists() and pyproject.is_file()):
-        ctx.fail("Did not find default `pyproject.toml`.")
-    return pyproject
-
-
-@dataclasses.dataclass(kw_only=True)
-class _LockfileResolver:
-    ctx: click.Context
-    project_dir: pathlib.Path
-    git: Git | None = None
-    note: str | None = None
-
-    def load_lockfile(
-        self, lockfile: pathlib.Path | str | None, *, metavar: str
-    ) -> ganzua.Lockfile:
-        data = self._maybe_read_from_git(lockfile)
-        if data is None:
-            lockfile = self._resolve_lockfile(lockfile, metavar=metavar)
-            data = lockfile.read_text()
-        with error_context(f"while parsing {lockfile}"):
-            return parse_lockfile(data)
-
-    def _maybe_read_from_git(
-        self, path_or_revision: pathlib.Path | str | None
-    ) -> str | None:
-        if not self.git:
-            return None
-        if not isinstance(path_or_revision, str):
-            return None
-        if path_or_revision.startswith(("/", "./", "../")):
-            return None
-        if ":" not in path_or_revision:
-            return None
-        return self.git.read_blob(path_or_revision, mkerr=self.ctx.fail)
-
-    def _resolve_lockfile(
-        self, lockfile: pathlib.Path | str | None, *, metavar: str
-    ) -> pathlib.Path:
-
-        if lockfile is None:
-            return self._find_lockfile_in_dir(self.project_dir, metavar=metavar)
-
-        lockfile = pathlib.Path(lockfile)
-        if lockfile.is_dir():
-            return self._find_lockfile_in_dir(lockfile, metavar=metavar)
-
-        if not lockfile.exists():
-            msg = f"{metavar}: Path `{lockfile}` does not exist."
-            if self.note:
-                msg += f"\nNote: {self.note}"
-            self.ctx.fail(msg)
-
-        return lockfile
-
-    def _find_lockfile_in_dir(
-        self, project_dir: pathlib.Path, *, metavar: str
-    ) -> pathlib.Path:
-        candidates = [
-            project_dir / "uv.lock",
-            project_dir / "poetry.lock",
-            project_dir / "pylock.toml",
-        ]
-        match [f for f in candidates if f.exists()]:
-            case [exactly_one]:
-                return exactly_one
-            case existing_lockfiles:
-                msg = f"Could not infer `{metavar}` for `{project_dir}`."
-                for f in existing_lockfiles:
-                    msg += f"\nNote: Candidate lockfile: {shlex.quote(str(f))}"
-                if self.note:
-                    msg += f"\nNote: {self.note}"
-                self.ctx.fail(msg)
 
 
 @constraints.command("inspect")
@@ -344,8 +255,8 @@ def constraints_inspect(
 
     *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
-    ctx = click.get_current_context()
-    pyproject = _find_pyproject_toml(ctx, pyproject)
+    data = _DataLayer(git=None)
+    pyproject = data.find_pyproject_toml(pyproject)
 
     with error_context(f"while parsing {pyproject}"):
         doc = toml.RefRoot.parse(pyproject.read_text())
@@ -396,11 +307,11 @@ Where to load versions from. Inferred if possible.
 
     *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
-    ctx = click.get_current_context()
     warnings = _PlainWarnings()
-    pyproject = _find_pyproject_toml(ctx, pyproject)
-    locked = _LockfileResolver(ctx=ctx, project_dir=pyproject.parent).load_lockfile(
-        lockfile, metavar="--lockfile"
+    data = _DataLayer(git=None)
+    pyproject = data.find_pyproject_toml(pyproject)
+    locked = data.load_lockfile(
+        lockfile, metavar="--lockfile", project_dir=pyproject.parent
     )
 
     if backup is not None:
@@ -411,7 +322,7 @@ Where to load versions from. Inferred if possible.
         warn_multiple_versions=warnings.warn_multiple_candidate_versions,
     )
     edit = FilteredEdit(edit, filter=filter.get())
-    with _toml_edit_scope(pyproject) as doc:
+    with data.edit_toml(pyproject, metavar="PYPROJECT") as doc:
         ganzua.edit_pyproject(doc, edit)
 
 
@@ -478,21 +389,19 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
 
     *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
-    ctx = click.get_current_context()
     warnings = _PlainWarnings()
-    pyproject = _find_pyproject_toml(ctx, pyproject)
-    lockfile_resolver = _LockfileResolver(
-        ctx=ctx,
-        project_dir=pyproject.parent,
-        note="Using `--to=minimum` requires a `--lockfile`.",
-    )
+    data = _DataLayer(git=None)
+    pyproject = data.find_pyproject_toml(pyproject)
 
     edit: ganzua.EditRequirement
     match to:
         case ConstraintResetGoal.NONE:
             edit = ganzua.UnconstrainRequirement()
         case ConstraintResetGoal.MINIMUM:
-            locked = lockfile_resolver.load_lockfile(lockfile, metavar="--lockfile")
+            with error_context("Using `--to=minimum` requires a `--lockfile`."):
+                locked = data.load_lockfile(
+                    lockfile, metavar="--lockfile", project_dir=pyproject.parent
+                )
             edit = ganzua.SetMinimumRequirement(
                 lockfile_by_name(locked),
                 warnings.warn_multiple_candidate_versions,
@@ -505,22 +414,8 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
     if backup is not None:
         shutil.copy(pyproject, backup)
 
-    with _toml_edit_scope(pyproject) as doc:
+    with data.edit_toml(pyproject, metavar="PYPROJECT") as doc:
         ganzua.edit_pyproject(doc, edit)
-
-
-@contextlib.contextmanager
-def _toml_edit_scope(path: pathlib.Path) -> t.Generator[toml.Ref, None, None]:
-    """Load the TOML file and write it back afterwards."""
-    with error_context(f"while parsing {path}"):
-        old_contents = path.read_text()
-        doc = toml.RefRoot.parse(old_contents)
-
-    yield doc
-
-    new_contents = doc.dumps()
-    if new_contents != old_contents:
-        path.write_text(new_contents)
 
 
 @app.command()
@@ -561,3 +456,107 @@ class _PlainWarnings:
         versions_str = ", ".join(str(v) for v in versions)
         msg = f"package `{package}` has multiple candidate versions: {versions_str}"
         self.warn(msg)
+
+
+_BlobName = t.NewType("_BlobName", str)
+
+
+@dataclasses.dataclass(kw_only=True)
+class _DataLayer:
+    """Joint filesystem/Git access."""
+
+    git: Git | None
+
+    def read(self, resource: pathlib.Path | _BlobName, *, metavar: str) -> str:
+        match resource:
+            case pathlib.Path() as path:
+                try:
+                    return path.read_text()
+                except FileNotFoundError:
+                    msg = f"{metavar}: File `{path}` does not exist."
+                    raise clack.UsageError(msg) from None
+            case str() as blob_name:
+                if self.git is None:  # pragma: no cover
+                    msg = f"{metavar}: Cannot read `{blob_name}` because Git support was disabled."
+                    raise clack.UsageError(msg)
+                return self.git.read_blob(blob_name, mkerr=clack.UsageError)
+            case other:
+                t.assert_never(other)
+
+    @contextlib.contextmanager
+    def edit_toml(
+        self, path: pathlib.Path, *, metavar: str
+    ) -> t.Generator[toml.Ref, None, None]:
+        """Load the TOML file and write it back afterwards."""
+        old_contents = self.read(path, metavar=metavar)
+        with error_context(f"while parsing {path}"):
+            doc = toml.RefRoot.parse(old_contents)
+
+        yield doc
+
+        new_contents = doc.dumps()
+        if new_contents != old_contents:
+            path.write_text(new_contents)
+
+    def find_pyproject_toml(self, pyproject: pathlib.Path | None) -> pathlib.Path:
+        if pyproject is None:
+            project_dir = pathlib.Path()
+        elif pyproject.is_dir():
+            project_dir = pyproject
+        else:
+            return pyproject
+
+        pyproject = project_dir / "pyproject.toml"
+        if not (pyproject.exists() and pyproject.is_file()):
+            raise clack.UsageError("Did not find default `pyproject.toml`.")
+        return pyproject
+
+    def load_lockfile(
+        self, lockfile: str | None, *, metavar: str, project_dir: pathlib.Path
+    ) -> ganzua.Lockfile:
+        resource = self.find_lockfile(
+            lockfile, metavar=metavar, project_dir=project_dir
+        )
+        data = self.read(resource, metavar=metavar)
+        with error_context(f"while parsing {lockfile}"):
+            return parse_lockfile(data)
+
+    def find_lockfile(
+        self, path_or_revision: str | None, *, metavar: str, project_dir: pathlib.Path
+    ) -> pathlib.Path | _BlobName:
+        if path_or_revision is None:
+            return self.find_lockfile_in_dir(project_dir, metavar=metavar)
+
+        if not self.git:
+            pass
+        elif path_or_revision.startswith(("/", "./", "../")):
+            pass
+        elif ":" not in path_or_revision:
+            pass
+        else:
+            return _BlobName(path_or_revision)
+
+        lockfile = pathlib.Path(path_or_revision)
+        if lockfile.is_dir():
+            return self.find_lockfile_in_dir(lockfile, metavar=metavar)
+
+        return lockfile
+
+    def find_lockfile_in_dir(
+        self, project_dir: pathlib.Path, *, metavar: str
+    ) -> pathlib.Path:
+        candidates = [
+            project_dir / "uv.lock",
+            project_dir / "poetry.lock",
+            project_dir / "pylock.toml",
+        ]
+        match [f for f in candidates if f.exists()]:
+            case [exactly_one]:
+                return exactly_one
+            case existing_lockfiles:
+                err = clack.UsageError(
+                    f"Could not infer `{metavar}` for `{project_dir}`."
+                )
+                for f in existing_lockfiles:
+                    err.add_note(f"Candidate lockfile: {shlex.quote(str(f))}")
+                raise err

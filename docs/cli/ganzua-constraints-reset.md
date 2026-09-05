@@ -570,7 +570,7 @@ If a nonexistent lockfile is passed explicitly to `--lockfile`, we'll get an err
 Usage: ganzua constraints reset [OPTIONS] [PYPROJECT]
 Try 'ganzua constraints reset --help' for help.
 
-Error: --lockfile: Path `nonexistent` does not exist.
+Error: --lockfile: File `nonexistent` does not exist.
 Note: Using `--to=minimum` requires a `--lockfile`.
 [command exited with status 2]
 ```

@@ -213,6 +213,20 @@ In this case, Ganzua will use the pseudo-version `0+undefined`:
 
 </details>
 
+Unknown file paths produce an error:
+
+<details><summary><code>$ ganzua inspect $EXAMPLE/unknown</code></summary>
+
+```
+Usage: ganzua inspect [OPTIONS] [LOCKFILE]
+Try 'ganzua inspect --help' for help.
+
+Error: LOCKFILE: File `${EXAMPLE}/unknown` does not exist.
+[command exited with status 2]
+```
+
+</details>
+
 ### Split versions
 
 It is possible for a project to have multiple conflicting requirements, e.g. for different Python versions, extras, or groups:

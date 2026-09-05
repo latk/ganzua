@@ -119,6 +119,10 @@ class Argument:
         return click.Argument([field_name], **args, required=required)
 
 
+class UsageError(Exception):
+    pass
+
+
 def _infer_command(
     f: _VoidFunction,
     name: str | None = None,
@@ -137,9 +141,18 @@ def _infer_command(
                 reducers.append(param_or_reducer)
 
     def flattened_function(**kwargs: object) -> None:
-        for reducer in reducers:
-            reducer.apply(kwargs)
-        return f(**kwargs)
+        ctx = click.get_current_context()
+        try:
+            for reducer in reducers:
+                reducer.apply(kwargs)
+            return f(**kwargs)
+        except UsageError as err:
+            msg = str(err)
+            match getattr(err, "__notes__", None):
+                case [*notes]:
+                    for note in notes:
+                        msg += f"\nNote: {note}"
+            raise click.UsageError(msg, ctx) from None
 
     if name is None:
         name = _infer_command_name(f.__name__)

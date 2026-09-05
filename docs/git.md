@@ -166,7 +166,7 @@ $ env -C $EXAMPLE ganzua inspect HEAD:uv.lock --no-git
 Usage: ganzua inspect [OPTIONS] [LOCKFILE]
 Try 'ganzua inspect --help' for help.
 
-Error: LOCKFILE: Path `HEAD:uv.lock` does not exist.
+Error: LOCKFILE: File `HEAD:uv.lock` does not exist.
 [command exited with status 2]
 ```
 
