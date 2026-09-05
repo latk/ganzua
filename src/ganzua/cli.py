@@ -6,7 +6,6 @@ import enum
 import pathlib
 import shlex
 import shutil
-import tempfile
 import typing as t
 
 import click
@@ -22,7 +21,7 @@ from ._cli_help import App
 from ._edit_requirement import FilteredEdit
 from ._filters import ConstraintFilter, LockfileFilter
 from ._git import Git
-from ._lockfile import lockfile_by_name
+from ._lockfile import lockfile_by_name, parse_lockfile
 from ._markdown import MarkdownRenderer, md_from_requirements
 from ._markdown_from_json_schema import md_from_schema
 from ._utils import coalesce, error_context
@@ -268,28 +267,25 @@ class _LockfileResolver:
     def load_lockfile(
         self, lockfile: pathlib.Path | str | None, *, metavar: str
     ) -> ganzua.Lockfile:
-        data = self._maybe_load_from_git(lockfile)
+        data = self._maybe_read_from_git(lockfile)
         if data is None:
-            data = ganzua.lockfile_from(
-                self._resolve_lockfile(lockfile, metavar=metavar)
-            )
-        return data
+            lockfile = self._resolve_lockfile(lockfile, metavar=metavar)
+            data = lockfile.read_text()
+        with error_context(f"while parsing {lockfile}"):
+            return parse_lockfile(data)
 
-    def _maybe_load_from_git(
-        self, revision: pathlib.Path | str | None
-    ) -> ganzua.Lockfile | None:
+    def _maybe_read_from_git(
+        self, path_or_revision: pathlib.Path | str | None
+    ) -> str | None:
         if not self.git:
             return None
-        if not isinstance(revision, str):
+        if not isinstance(path_or_revision, str):
             return None
-        if revision.startswith(("/", "./", "../")):
+        if path_or_revision.startswith(("/", "./", "../")):
             return None
-        if ":" not in revision:
+        if ":" not in path_or_revision:
             return None
-        # TODO parse directly, without tempfile
-        temp = self.ctx.with_resource(tempfile.NamedTemporaryFile())  # noqa: SIM115
-        self.git.extract_blob(revision, dest=temp, mkerr=self.ctx.fail)
-        return ganzua.lockfile_from(pathlib.Path(temp.name), name=revision)
+        return self.git.read_blob(path_or_revision, mkerr=self.ctx.fail)
 
     def _resolve_lockfile(
         self, lockfile: pathlib.Path | str | None, *, metavar: str

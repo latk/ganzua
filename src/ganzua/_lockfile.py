@@ -1,5 +1,3 @@
-import importlib.resources.abc
-import pathlib
 import tomllib
 import typing as t
 from dataclasses import dataclass
@@ -8,9 +6,6 @@ import pydantic
 import yarl
 
 from ._package_source import Source, SourceDirect, SourceRegistry
-from ._utils import error_context
-
-type PathLike = pathlib.Path | importlib.resources.abc.Traversable
 
 UNDEFINED_VERSION = "0+undefined"
 """Use this version when a locked package has no version.
@@ -47,42 +42,39 @@ class Lockfile(t.TypedDict):
 LockfileByName = t.NewType("LockfileByName", dict[str, list[LockedPackage]])
 
 
-def lockfile_from(path: PathLike, *, name: PathLike | str | None = None) -> Lockfile:
-    with error_context(f"while parsing {name or path}"):
-        input_lockfile = _ANY_LOCKFILE_SCHEMA.validate_python(
-            tomllib.loads(path.read_text())
-        )
+def parse_lockfile(content: str) -> Lockfile:
+    input_lockfile = _ANY_LOCKFILE_SCHEMA.validate_python(tomllib.loads(content))
 
-        match input_lockfile:
-            case UvLockfileV1(package=uv_packages):
-                packages = [
-                    LockedPackage(
-                        name=p["name"],
-                        version=p.get("version", UNDEFINED_VERSION),
-                        source=_map_uv_source(p["source"]),
-                    )
-                    for p in uv_packages
-                ]
-            case PoetryLockfileV2(package=poetry_packages):
-                packages = [
-                    LockedPackage(
-                        name=p["name"],
-                        version=p["version"],
-                        source=_map_poetry_source(p.get("source")),
-                    )
-                    for p in poetry_packages
-                ]
-            case PylockV1(packages=pylock_packages):
-                packages = [
-                    LockedPackage(
-                        name=p["name"],
-                        version=p.get("version", UNDEFINED_VERSION),
-                        source=_map_pylock_source(p),
-                    )
-                    for p in pylock_packages
-                ]
-            case other:
-                t.assert_never(other)
+    match input_lockfile:
+        case UvLockfileV1(package=uv_packages):
+            packages = [
+                LockedPackage(
+                    name=p["name"],
+                    version=p.get("version", UNDEFINED_VERSION),
+                    source=_map_uv_source(p["source"]),
+                )
+                for p in uv_packages
+            ]
+        case PoetryLockfileV2(package=poetry_packages):
+            packages = [
+                LockedPackage(
+                    name=p["name"],
+                    version=p["version"],
+                    source=_map_poetry_source(p.get("source")),
+                )
+                for p in poetry_packages
+            ]
+        case PylockV1(packages=pylock_packages):
+            packages = [
+                LockedPackage(
+                    name=p["name"],
+                    version=p.get("version", UNDEFINED_VERSION),
+                    source=_map_pylock_source(p),
+                )
+                for p in pylock_packages
+            ]
+        case other:
+            t.assert_never(other)
 
     return Lockfile(packages=sorted(packages, key=lambda p: (p["name"], p["version"])))
 

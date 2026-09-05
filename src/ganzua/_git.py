@@ -39,18 +39,24 @@ class Git:
     predictable_commit: bool = False
     predictable_config: bool = False
 
-    def extract_blob(
+    def read_blob(
         self,
         blob_name: str,
         *,
-        dest: t.IO[bytes],
         mkerr: t.Callable[[str], Exception | t.Never],
-    ) -> None:
-        result = self.run(["cat-file", "blob", blob_name], stdout=dest, check=False)
+    ) -> str:
+        result = subprocess.run(
+            [self.exe, "cat-file", "blob", blob_name],
+            stdout=subprocess.PIPE,
+            text=True,
+            check=False,
+            env=self._effective_env(),
+        )
         if result.returncode:
             msg = f"Could not read file from Git history: `{blob_name}`"
             msg += f"\nNote: Command `{shlex.join(result.args)}` exited with status {result.returncode}"
             raise mkerr(msg)
+        return result.stdout
 
     def run(
         self, command: t.Sequence[str], **kwargs: t.Unpack[RunArgs]

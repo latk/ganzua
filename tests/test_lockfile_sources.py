@@ -10,13 +10,19 @@ from ganzua._doctest import (
 )
 from ganzua._markdown import md_from_source
 from ganzua._package_source import Source, SourceDirect, SourceRegistry
+from ganzua._utils import error_context
 
 from . import resources
 from .helpers import write_file
 
 
+def _lockfile_from(path: pathlib.Path) -> ganzua.Lockfile:
+    with error_context(f"while parsing {path}"):
+        return ganzua.parse_lockfile(path.read_text())
+
+
 def test_can_load_sources_poetry() -> None:
-    parsed = ganzua.lockfile_from(resources.SOURCES_POETRY_LOCKFILE)
+    parsed = _lockfile_from(resources.SOURCES_POETRY_LOCKFILE)
     assert parsed == snapshot(
         {
             "packages": [
@@ -105,7 +111,7 @@ type = "some-unknown-source-type"
 
 
 def test_can_load_sources_uv() -> None:
-    parsed = ganzua.lockfile_from(resources.SOURCES_UV_LOCKFILE)
+    parsed = _lockfile_from(resources.SOURCES_UV_LOCKFILE)
     assert parsed == snapshot(
         {
             "packages": [
@@ -159,7 +165,7 @@ def test_can_load_sources_uv() -> None:
 
 
 def test_can_load_sources_pylock() -> None:
-    parsed = ganzua.lockfile_from(
+    parsed = _lockfile_from(
         resources.SOURCES_UV_LOCKFILE.parent / "pylock.exported.toml"
     )
     assert parsed == snapshot(
@@ -292,7 +298,7 @@ def _assert_parse_poetry_source(
         data=example_poetry_lockfile({"source_toml": package_source_toml}),
     )
 
-    parsed = ganzua.lockfile_from(lockfile)
+    parsed = _lockfile_from(lockfile)
     assert parsed == {
         "packages": [
             {
@@ -317,7 +323,7 @@ def _assert_parse_uv_source(
         data=example_uv_lockfile({"source_toml": package_source_toml}),
     )
 
-    parsed = ganzua.lockfile_from(lockfile)
+    parsed = _lockfile_from(lockfile)
     assert parsed == {
         "packages": [
             {
@@ -342,7 +348,7 @@ def _assert_parse_pylock_source(
         data=example_pylock_lockfile({"source_toml": package_source_toml}),
     )
 
-    parsed = ganzua.lockfile_from(lockfile)
+    parsed = _lockfile_from(lockfile)
     assert parsed == {
         "packages": [
             {
