@@ -21,7 +21,7 @@ def error_context(ctx: str) -> t.Generator[None, None, None]:
         raise
 
 
-def coalesce[T](*values: T | None, default: T) -> T:
+def coalesce[T, D](*values: T | None, default: D) -> T | D:
     """Return the first non-null value, or the default.
 
     Examples:

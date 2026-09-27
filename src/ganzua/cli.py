@@ -118,20 +118,16 @@ class _ConstraintFilterOptions:
 
 @dataclasses.dataclass
 class _GitOptions:
-    git: t.Annotated[
-        bool,
-        clack.Option(
-            "--git/--no-git",
-            help="Whether to interpret lockfile paths as gitrevisions. [default: enabled]",
-        ),
-    ] = True
+    no_git: t.Annotated[
+        bool, clack.Option(help="Disable Git functionality. [default: enabled]")
+    ] = False
     git_executable: t.Annotated[
         str,
         clack.Option(help="How to invoke Git. [default: git]", metavar="EXECUTABLE"),
     ] = "git"
 
     def get(self) -> Git | None:
-        if not self.git:
+        if self.no_git:
             return None
         return Git(self.git_executable)
 
@@ -189,12 +185,24 @@ def inspect(
 
 
 @app.command()
-def diff(
+def diff(  # noqa: PLR0913  # too-many-arguments
     *,
-    old: t.Annotated[str, clack.Argument()],
-    new: t.Annotated[str, clack.Argument()],
+    old: t.Annotated[str | None, clack.Argument()] = None,
+    new: t.Annotated[str | None, clack.Argument()] = None,
     filter: _LockfileFilterOptions,
     output: _LockfileOutputOptions,
+    git: t.Annotated[
+        str | None,
+        clack.Option(
+            metavar="COMMIT",
+            help="""\
+Git commit to use for the diff. [default: INDEX]
+
+May be a single `<old>` revision, or a `<old>...<new>` range.
+In addition to `gitrevision` syntax, may use `INDEX` to name staged files.
+""",
+        ),
+    ] = None,
     git_options: _GitOptions,
 ) -> None:
     """Compare two lockfiles.
@@ -203,7 +211,7 @@ def diff(
 
     * file: use that path as the lockfile (e.g. `uv.lock` or `poetry.lock`)
     * directory: look for a lockfile in that directory
-    * gitrevision: a `<commit>:<path>` identifying a lockfile in the Git history
+    * git blob: a `<commit>:<path>` identifying a lockfile in the Git history
 
     Here's an example of using the Git feature to show non-committed changes in a lockfile:
 
@@ -211,23 +219,43 @@ def diff(
     ganzua diff HEAD:uv.lock uv.lock
     ```
 
+    Depending on whether `--git`, `OLD`, and `NEW` are present,
+    Lockfile data may be loaded from the Git history.
+
+    * `ganzua diff <lockfile> <lockfile>` compares two lockfiles,
+      each of which may be a file, directory, or Git blob as described above.
+    * `ganzua diff [<path>]` compares `INDEX:<path> <path>`
+    * `ganzua diff --git=<old> [<path>]` compares `<old>:<path> <path>`
+    * `ganzua diff --git=<old>...<new> [<path>]` compares `<old>:<path> <new>:<path>`
+
+    If the `<path>` is absent, the lockfile path is located in the current directory,
+    as if `.` had been passed.
+    If an explicit `--git` option is passed, the positional argument must be a path,
+    not a git blob.
+
     <!-- options -->
 
     *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
     data = _DataLayer(git=git_options.get())
-    project_dir = pathlib.Path()  # effectively unused
+    project_dir = pathlib.Path()
+
+    if old is None or new is None:  # 0-argument and 1-argument case: Git comparison
+        old_data, new_data = data.load_lockfile_diff(
+            pathlib.Path(coalesce(old, new, default=project_dir)),
+            rev=git,
+            metavar_old="OLD",
+            metavar_new="NEW",
+        )
+    elif git:
+        raise clack.UsageError("Cannot use `--git` if both OLD and NEW were given")
+    else:  # 2-argument case: arguments are already paths/blobs
+        old_data = data.load_lockfile(old, metavar="OLD", project_dir=project_dir)
+        new_data = data.load_lockfile(new, metavar="NEW", project_dir=project_dir)
+
     diff = ganzua.diff(
-        lockfile_by_name(
-            filter.filtered_lockfile(
-                (data.load_lockfile(old, metavar="OLD", project_dir=project_dir))
-            )
-        ),
-        lockfile_by_name(
-            filter.filtered_lockfile(
-                (data.load_lockfile(new, metavar="NEW", project_dir=project_dir))
-            )
-        ),
+        lockfile_by_name(filter.filtered_lockfile(old_data)),
+        lockfile_by_name(filter.filtered_lockfile(new_data)),
     )
     output.print_diff(diff)
 
@@ -476,9 +504,13 @@ class _DataLayer:
                     msg = f"{metavar}: File `{path}` does not exist."
                     raise clack.UsageError(msg) from None
             case str() as blob_name:
-                if self.git is None:  # pragma: no cover
+                if self.git is None:
                     msg = f"{metavar}: Cannot read `{blob_name}` because Git support was disabled."
                     raise clack.UsageError(msg)
+                # We support `INDEX:path` as a more explicit alternative
+                # to the actual gitrevision syntax `:path`.
+                if blob_name.startswith("INDEX:"):
+                    blob_name = _BlobName(blob_name.removeprefix("INDEX"))
                 return self.git.read_blob(blob_name, mkerr=clack.UsageError)
             case other:
                 t.assert_never(other)
@@ -521,6 +553,30 @@ class _DataLayer:
         with error_context(f"while parsing {lockfile}"):
             return parse_lockfile(data)
 
+    def load_lockfile_diff(
+        self, path: pathlib.Path, *, rev: str | None, metavar_old: str, metavar_new: str
+    ) -> tuple[ganzua.Lockfile, ganzua.Lockfile]:
+        if path.is_dir():
+            path = self.find_lockfile_in_dir(path, metavar=metavar_new)
+
+        old_rev, new_rev = _split_commit_range(rev)
+
+        if old_rev is None:
+            old = self.read(_BlobName(f"INDEX:{path}"), metavar=metavar_old)
+        else:
+            old = self.read(_BlobName(f"{old_rev}:{path}"), metavar=metavar_old)
+
+        if new_rev is None:
+            new = self.read(path, metavar=metavar_new)
+        else:
+            new = self.read(_BlobName(f"{new_rev}:{path}"), metavar=metavar_new)
+
+        with error_context(f"while parsing {old}"):
+            lockfile_old = parse_lockfile(old)
+        with error_context(f"while parsing {new}"):
+            lockfile_new = parse_lockfile(new)
+        return lockfile_old, lockfile_new
+
     def find_lockfile(
         self, path_or_revision: str | None, *, metavar: str, project_dir: pathlib.Path
     ) -> pathlib.Path | _BlobName:
@@ -560,3 +616,13 @@ class _DataLayer:
                 for f in existing_lockfiles:
                     err.add_note(f"Candidate lockfile: {shlex.quote(str(f))}")
                 raise err
+
+
+def _split_commit_range(rev: str | None) -> tuple[str | None, str | None]:
+    """Parse `--git=<old>` or `--git=<old>...<new>`."""
+    if rev is None:
+        return None, None
+    old, sep, new = rev.partition("...")
+    if sep:
+        return old or "HEAD", new or "HEAD"
+    return old, None

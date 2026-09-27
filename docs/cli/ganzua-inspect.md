@@ -21,8 +21,8 @@ the one in the current working directory will be used.
   Include/exclude packages. [default: use all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]
-* `--[no-]git`
-  Whether to interpret lockfile paths as gitrevisions. [default: enabled]
+* `--no-git`
+  Disable Git functionality. [default: enabled]
 * `--git-executable EXECUTABLE`
   How to invoke Git. [default: git]
 * `--help`

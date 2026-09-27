@@ -144,10 +144,18 @@ all of these git object names are equivalent in this scenario:
 
 </details>
 
-We can compare a lockfile across Git revisions:
+We can compare a file on disk against a Git revision.
+All of these commands are equivalent:
 
-```console
-$ env -C $EXAMPLE ganzua diff HEAD:uv.lock uv.lock --format=markdown
+<!-- doctest: compare output -->
+* `$ env -C $EXAMPLE ganzua diff HEAD:uv.lock uv.lock --format=markdown`
+* `$ env -C $EXAMPLE ganzua diff --git HEAD uv.lock --format=markdown`
+* `$ env -C $EXAMPLE ganzua diff uv.lock --format=markdown`
+* `$ env -C $EXAMPLE ganzua diff --format=markdown`
+
+<details><summary>output for the above commands</summary>
+
+```
 2 changed packages (1 added, 1 updated)
 
 | package           | old      | new    | notes |
@@ -157,6 +165,8 @@ $ env -C $EXAMPLE ganzua diff HEAD:uv.lock uv.lock --format=markdown
 
 * (M) major change
 ```
+
+</details>
 
 Git mode can be disabled.
 Passing a Git object name will then produce an error because no such file can be found:

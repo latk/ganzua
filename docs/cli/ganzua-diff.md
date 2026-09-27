@@ -2,7 +2,7 @@
 
 <!-- command output: ganzua help diff --markdown --markdown-links={slug}.md -->
 
-Usage: `ganzua diff [OPTIONS] OLD NEW`
+Usage: `ganzua diff [OPTIONS] [OLD] [NEW]`
 
 Compare two lockfiles.
 
@@ -10,7 +10,7 @@ The `OLD` and `NEW` arguments can be any of the following:
 
 * file: use that path as the lockfile (e.g. `uv.lock` or `poetry.lock`)
 * directory: look for a lockfile in that directory
-* gitrevision: a `<commit>:<path>` identifying a lockfile in the Git history
+* git blob: a `<commit>:<path>` identifying a lockfile in the Git history
 
 Here's an example of using the Git feature to show non-committed changes in a lockfile:
 
@@ -18,14 +18,33 @@ Here's an example of using the Git feature to show non-committed changes in a lo
 ganzua diff HEAD:uv.lock uv.lock
 ```
 
+Depending on whether `--git`, `OLD`, and `NEW` are present,
+Lockfile data may be loaded from the Git history.
+
+* `ganzua diff <lockfile> <lockfile>` compares two lockfiles,
+  each of which may be a file, directory, or Git blob as described above.
+* `ganzua diff [<path>]` compares `INDEX:<path> <path>`
+* `ganzua diff --git=<old> [<path>]` compares `<old>:<path> <path>`
+* `ganzua diff --git=<old>...<new> [<path>]` compares `<old>:<path> <new>:<path>`
+
+If the `<path>` is absent, the lockfile path is located in the current directory,
+as if `.` had been passed.
+If an explicit `--git` option is passed, the positional argument must be a path,
+not a git blob.
+
 **Options:**
 
 * `--filter LOCKFILE-FILTER`
   Include/exclude packages. [default: use all]
 * `--format [json|markdown]`
   Choose the output format, e.g. Markdown. [default: json]
-* `--[no-]git`
-  Whether to interpret lockfile paths as gitrevisions. [default: enabled]
+* `--git COMMIT`
+  Git commit to use for the diff. [default: INDEX]
+
+  May be a single `<old>` revision, or a `<old>...<new>` range.
+  In addition to `gitrevision` syntax, may use `INDEX` to name staged files.
+* `--no-git`
+  Disable Git functionality. [default: enabled]
 * `--git-executable EXECUTABLE`
   How to invoke Git. [default: git]
 * `--help`
@@ -36,9 +55,9 @@ ganzua diff HEAD:uv.lock uv.lock
 <!-- command output end -->
 
 
-## Examples
+## Output format <a name="examples"></a>
 
-Can show JSON diffs:
+The `ganzua diff` command shows the package changes as JSON by default:
 
 <details><summary><code>$ ganzua diff corpus/old-uv-project corpus/new-uv-project</code></summary>
 
@@ -80,7 +99,7 @@ Can show JSON diffs:
 
 </details>
 
-Can also show the diff as Markdown:
+We can opt in to the Markdown format for the diff, which will show a table:
 
 <details><summary><code>$ ganzua diff corpus/old-uv-project corpus/new-uv-project --format=markdown</code></summary>
 
@@ -206,6 +225,12 @@ The Markdown output omits the table:
 
 </details>
 
+## Diff arguments
+
+A `ganzua diff` is always computed between two lockfiles or two versions of a lockfile.
+This section describes the case that we want to compare two lockfiles in different locations.
+The next section then discusses [Git support](#git-support).
+
 The input paths may point to directories or lockfiles.
 The following invocations are all equivalent:
 
@@ -256,6 +281,329 @@ The following invocations are all equivalent:
 
 </details>
 
+## Git support
+
+<!-- doctest: clean example -->
+
+A `ganzua diff` can compare lockfiles across Git versions.
+For further details, see [Git](../git.md).
+
+Note that there are two distinct invocation styles:
+
+* 2 arguments: may be paths or git blob names of the form `<revision>:<path>`.
+* 0 or 1 arguments: the argument must be a path (defaults to `.`), but we may use the `--git` argument to define Git versions.
+
+<details><summary>setting up an example Git repo</summary>
+
+```console
+$ git -C $EXAMPLE init .
+Initialized empty Git repository in ${EXAMPLE}/.git/
+```
+
+Adding an initial lockfile and committing:
+
+<!-- doctest: create uv lockfile $EXAMPLE/uv.lock -->
+
+| name    | version |
+|---------|---------|
+| initial | 1.2.3   |
+
+```console
+$ git -C $EXAMPLE add uv.lock
+$ git -C $EXAMPLE commit -m 'initial commit'
+[main (root-commit) 0803229] initial commit
+ 1 file changed, 8 insertions(+)
+ create mode 100644 uv.lock
+```
+
+Editing the lockfile and committing:
+
+<!-- doctest: create uv lockfile $EXAMPLE/uv.lock -->
+
+| name    | version |
+|---------|---------|
+| initial | 1.2.3   |
+| head    | 2.3.4   |
+
+```console
+$ git -C $EXAMPLE add uv.lock
+$ git -C $EXAMPLE commit -m 'creating the HEAD commit'
+[main 6185494] creating the HEAD commit
+ 1 file changed, 5 insertions(+)
+```
+
+Editing the lockfile and staging (adding to the index) – but not committing:
+
+<!-- doctest: create uv lockfile $EXAMPLE/uv.lock -->
+
+| name    | version |
+|---------|---------|
+| initial | 1.2.3   |
+| head    | 2.3.4   |
+| staged  | 3.4.5   |
+
+```console
+$ git -C $EXAMPLE add uv.lock
+```
+
+Editing the lockfile yet again, without staging:
+
+<!-- doctest: create uv lockfile $EXAMPLE/uv.lock -->
+
+| name    | version |
+|---------|---------|
+| initial | 1.2.3   |
+| head    | 2.3.4   |
+| staged  | 3.4.5   |
+| dirty   | 0.0.0   |
+
+</details>
+
+By default, a `ganzua diff` will compare the worktree to the index, just like `git diff`.
+All of these invocations are equivalent:
+
+<!-- doctest: compare output -->
+
+* `$ env -C $EXAMPLE ganzua diff`
+* `$ env -C $EXAMPLE ganzua diff .`
+* `$ env -C $EXAMPLE ganzua diff uv.lock`
+* `$ env -C $EXAMPLE ganzua diff INDEX:uv.lock .`
+* `$ env -C $EXAMPLE ganzua diff INDEX:uv.lock uv.lock`
+* `$ env -C $EXAMPLE ganzua diff --git=INDEX`
+* `$ env -C $EXAMPLE ganzua diff --git=INDEX .`
+
+<details><summary>output for the above commands</summary>
+
+```json
+{
+  "stat": {
+    "total": 1,
+    "added": 1,
+    "removed": 0,
+    "updated": 0
+  },
+  "packages": [
+    {
+      "name": "dirty",
+      "old": null,
+      "new": {
+        "name": "dirty",
+        "version": "0.0.0",
+        "source": "pypi"
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+We can also compare the working tree to the HEAD commit (`@`),
+for example with any of the following commands:
+
+<!-- doctest: compare output -->
+* `$ env -C $EXAMPLE ganzua diff HEAD:uv.lock .`
+* `$ env -C $EXAMPLE ganzua diff HEAD:uv.lock uv.lock`
+* `$ env -C $EXAMPLE ganzua diff --git=HEAD`
+* `$ env -C $EXAMPLE ganzua diff --git=HEAD uv.lock`
+* `$ env -C $EXAMPLE ganzua diff @:uv.lock .`
+* `$ env -C $EXAMPLE ganzua diff --git=@`
+
+<details><summary>output for the above commands</summary>
+
+```json
+{
+  "stat": {
+    "total": 2,
+    "added": 2,
+    "removed": 0,
+    "updated": 0
+  },
+  "packages": [
+    {
+      "name": "dirty",
+      "old": null,
+      "new": {
+        "name": "dirty",
+        "version": "0.0.0",
+        "source": "pypi"
+      }
+    },
+    {
+      "name": "staged",
+      "old": null,
+      "new": {
+        "name": "staged",
+        "version": "3.4.5",
+        "source": "pypi"
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+We can compare two Git commits, which we'll name `HEAD^` and `HEAD` here.
+In a `...` range, an empty side is interpreted as `HEAD`.
+
+<!-- doctest: compare output -->
+* `$ env -C $EXAMPLE ganzua diff HEAD^:uv.lock HEAD:uv.lock`
+* `$ env -C $EXAMPLE ganzua diff --git=HEAD^...HEAD`
+* `$ env -C $EXAMPLE ganzua diff --git=HEAD^...`
+* `$ env -C $EXAMPLE ganzua diff --git=HEAD^... uv.lock`
+
+<details><summary>output for the above commands</summary>
+
+```json
+{
+  "stat": {
+    "total": 1,
+    "added": 1,
+    "removed": 0,
+    "updated": 0
+  },
+  "packages": [
+    {
+      "name": "head",
+      "old": null,
+      "new": {
+        "name": "head",
+        "version": "2.3.4",
+        "source": "pypi"
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+Finally, we can compare commits to the staged files (index).
+Any of these are equivalent:
+
+<!-- doctest: compare output -->
+* `$ env -C $EXAMPLE ganzua diff HEAD^:uv.lock INDEX:uv.lock`
+* `$ env -C $EXAMPLE ganzua diff --git=HEAD^...INDEX`
+
+<details><summary>output for the above commands</summary>
+
+```json
+{
+  "stat": {
+    "total": 2,
+    "added": 2,
+    "removed": 0,
+    "updated": 0
+  },
+  "packages": [
+    {
+      "name": "head",
+      "old": null,
+      "new": {
+        "name": "head",
+        "version": "2.3.4",
+        "source": "pypi"
+      }
+    },
+    {
+      "name": "staged",
+      "old": null,
+      "new": {
+        "name": "staged",
+        "version": "3.4.5",
+        "source": "pypi"
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+Examples of some errors:
+
+<details><summary>The two diff modes cannot be mixed.</summary>
+
+```console
+$ env -C $EXAMPLE ganzua diff --git=HEAD uv.lock uv.lock
+Usage: ganzua diff [OPTIONS] [OLD] [NEW]
+Try 'ganzua diff --help' for help.
+
+Error: Cannot use `--git` if both OLD and NEW were given
+[command exited with status 2]
+```
+
+```console
+$ env -C $EXAMPLE ganzua diff --git=HEAD INDEX:uv.lock
+Usage: ganzua diff [OPTIONS] [OLD] [NEW]
+Try 'ganzua diff --help' for help.
+
+Error: Could not read file from Git history: `HEAD:INDEX:uv.lock`
+Note: Command `git cat-file blob HEAD:INDEX:uv.lock` exited with status 128
+[command exited with status 2]
+```
+
+```console
+$ env -C $EXAMPLE ganzua diff --git=INDEX HEAD:uv.lock
+Usage: ganzua diff [OPTIONS] [OLD] [NEW]
+Try 'ganzua diff --help' for help.
+
+Error: Could not read file from Git history: `:HEAD:uv.lock`
+Note: Command `git cat-file blob :HEAD:uv.lock` exited with status 128
+[command exited with status 2]
+```
+
+```console
+$ env -C $EXAMPLE ganzua diff HEAD:uv.lock
+Usage: ganzua diff [OPTIONS] [OLD] [NEW]
+Try 'ganzua diff --help' for help.
+
+Error: Could not read file from Git history: `:HEAD:uv.lock`
+Note: Command `git cat-file blob :HEAD:uv.lock` exited with status 128
+[command exited with status 2]
+```
+
+```console
+$ env -C $EXAMPLE ganzua diff --git=HEAD uv.lock INDEX:uv.lock
+Usage: ganzua diff [OPTIONS] [OLD] [NEW]
+Try 'ganzua diff --help' for help.
+
+Error: Cannot use `--git` if both OLD and NEW were given
+[command exited with status 2]
+```
+
+</details>
+
+
+<details><summary>Git mode can be disabled explicitly.</summary>
+
+Under the `--no-git` mode, arguments are interpreted as ordinary paths.
+
+```console
+$ env -C $EXAMPLE ganzua diff --no-git HEAD:uv.lock uv.lock
+Usage: ganzua diff [OPTIONS] [OLD] [NEW]
+Try 'ganzua diff --help' for help.
+
+Error: OLD: File `HEAD:uv.lock` does not exist.
+[command exited with status 2]
+```
+
+Under the `--no-git` mode, explicitly using the `--git` option causes an error.
+
+```console
+$ env -C $EXAMPLE ganzua diff --no-git --git=HEAD
+Usage: ganzua diff [OPTIONS] [OLD] [NEW]
+Try 'ganzua diff --help' for help.
+
+Error: OLD: Cannot read `HEAD:uv.lock` because Git support was disabled.
+[command exited with status 2]
+```
+
+</details>
+
+## Filters
+
 Can filter the packages to be diffed by name.
 For more details, see the [filter manual](../filters.md).
 Filtering was added in Ganzua 0.4.0.
@@ -281,6 +629,8 @@ Filtering was added in Ganzua 0.4.0.
 ```
 
 </details>
+
+## Other examples
 
 Hidden features:
 
