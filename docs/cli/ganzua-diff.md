@@ -47,6 +47,10 @@ not a git blob.
   Disable Git functionality. [default: enabled]
 * `--git-executable EXECUTABLE`
   How to invoke Git. [default: git]
+* `--[no-]pypi-metadata`
+  Look up PyPI metadata for locked packages. [default: off]
+
+  This will add warnings for yanked or vulnerable packages.
 * `--help`
   Show this help message and exit.
 
@@ -630,6 +634,13 @@ Filtering was added in Ganzua 0.4.0.
 
 </details>
 
+## PyPI metadata
+
+Using the `--pypi-metadata` flag will load package metadata from PyPI,
+which can be used to audit for known-vulnerable or yanked packages,
+and will also show project URLs in the JSON output.
+See the [PyPI metadata](../pypi-metadata.md) feature reference for examples and further details.
+
 ## Other examples
 
 Hidden features:
@@ -679,8 +690,17 @@ Download: [schema.diff.json](schema.diff.json)
   Name of the package being diffed.
 
   *Added in Ganzua 0.4.0:* previously, the package name was implicit.
-* **`old`**: [LockedPackage](#type.LockedPackage) | null
-* **`new`**: [LockedPackage](#type.LockedPackage) | null
+* **`old`**: [LockedPackageNoMeta](#type.LockedPackageNoMeta) | null
+* **`new`**: [LockedPackageNoMeta](#type.LockedPackageNoMeta) | null
+* **`pypi_metadata`**?: [PyPIMetadata](#type.PyPIMetadata)\
+  PyPI metadata for the `new` version, if any.
+
+  This field will only be populated if
+  metadata was explicitly requested via `--pypi-metadata`,
+  the package seems to have been installed from PyPI,
+  and PyPI successfully provided metadata for the new version.
+
+  *Added in Ganzua NEXT*.
 * **`is_major_change`**?: bool\
   True if there was a major version change.
 
@@ -690,8 +710,18 @@ Download: [schema.diff.json](schema.diff.json)
   True if the version was downgraded.
 * **`is_source_change`**?: bool\
   True if the package source changed.
+* **`is_yanked`**?: bool\
+  True if the new version was yanked (per `pypi_metadata`).
 
-### type `LockedPackage` {#type.LockedPackage}
+  *Added in Ganzua NEXT*.
+* **`is_vulnerable`**?: bool\
+  True if the new version has a known vulnerability (per `pypi_metadata`).
+
+  For the purposes of this flag, withdrawn vulnerabilities are ignored.
+
+  *Added in Ganzua NEXT*.
+
+### type `LockedPackageNoMeta` {#type.LockedPackageNoMeta}
 
 **Properties:**
 
@@ -721,5 +751,47 @@ The package is sourced from a specific URL or path, e.g. a Git repo or workspace
   URL or path to the package (directory or archive).
 * **`subdirectory`**?: string | null\
   Only allowed if the source points to an archive file.
+
+### type `PyPIMetadata` {#type.PyPIMetadata}
+
+Extra PyPI metadata that relates to a specific package version.
+
+*Added in Ganzua NEXT*.
+
+**Properties:**
+
+* **`yanked`**?: string\
+  If this package version was yanked, the reason given.
+
+  If no reason was given, a yanked package will use an empty string here.
+* **`vulnerabilities`**?: array([Vulnerability](#type.Vulnerability))\
+  If this package version has vulnerabilities, details on those.
+* **`project_urls`**?: mapping(string → string)\
+  The project URLs declared in the package metadata (label → url).
+
+  Well-known labels will have been replaced by their canonical name,
+  e.g. `What's New?` will be replaced by `changelog`.
+
+  Specifications:
+  * <https://packaging.python.org/en/latest/specifications/core-metadata/#project-url-multiple-use>
+  * <https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-project-urls>
+
+### type `Vulnerability` {#type.Vulnerability}
+
+Information about a known vulnerability for a specific package version.
+
+Matches the [PyPI JSON API](https://docs.pypi.org/api/json/#known-vulnerabilities) exactly,
+which in turn is based on the [Open Source Vulnerability format](https://ossf.github.io/osv-schema/).
+
+**Properties:**
+
+* **`id`**: string
+* **`source`**: string
+* **`link`**?: string | null
+* **`aliases`**?: array(string) | null
+* **`details`**?: string | null
+* **`summary`**?: string | null
+* **`fixed_in`**?: array(string) | null
+* **`withdrawn`**?: string | null
 
 <!-- command output end -->

@@ -1,10 +1,12 @@
 import re
+import textwrap
 import typing as t
 from dataclasses import dataclass
 
 from ._diff import Diff, DiffEntry
-from ._lockfile import LockedPackage, Lockfile
+from ._lockfile import LockedPackageNoMeta, Lockfile
 from ._package_source import Source, SourceDirect, SourceRegistry
+from ._pypi_metadata import PyPIMetadata, Vulnerability
 from ._requirement import Requirement, Requirements
 
 
@@ -15,10 +17,27 @@ class MarkdownRenderer:
     def md_from_lockfile(self, lockfile: Lockfile) -> str:
         """Summarize the Lockfile as a Markdown table."""
         packages = sorted(lockfile["packages"], key=lambda p: (p["name"], p["version"]))
-        return table(
-            ("package", "version"),
-            [(self._name_for_locked_package(p), p["version"]) for p in packages],
-        )
+        notes = _NotesRegistry({})
+        rows = [
+            (
+                self._name_for_locked_package(p),
+                p["version"],
+                list(self._pick_pypi_metadata_notes(p.get("pypi_metadata", {}), notes)),
+            )
+            for p in packages
+        ]
+        sections: list[str] = [
+            table(
+                ("package", "version", "notes"),
+                [
+                    (name, version, _resolved_notes(note_refs))
+                    for (name, version, note_refs) in rows
+                ],
+                collapsible_cols=("notes",),
+            )
+        ]
+        sections.extend(notes.to_md_list())
+        return "\n\n".join(sections)
 
     def md_from_diff(self, diff: Diff) -> str:
         """Summarize the Diff as a Markdown table."""
@@ -29,57 +48,102 @@ class MarkdownRenderer:
         if diff.stat.total <= 0:
             return summary
 
-        table = _DiffTable(rows=[], footnotes=_NotesRegistry({}))
-        for data in diff.packages:
-            self._add_to_diff_table(table, data)
+        notes = _NotesRegistry({})
+        rows = [self._diff_row_from_entry(data, notes) for data in diff.packages]
 
         sections: list[str] = [summary]
-        sections.extend(table.render())
+        sections.append(
+            table(
+                ("package", "old", "new", "notes"),
+                [
+                    (row.package, row.old, row.new, _resolved_notes(row.notes))
+                    for row in sorted(rows)
+                ],
+                collapsible_cols=("notes",),
+            )
+        )
+        sections.extend(notes.to_md_list())
 
         return "\n\n".join(sections)
 
-    def _add_to_diff_table(self, table: "_DiffTable", data: DiffEntry) -> None:
-        def pick_version(p: LockedPackage | None) -> str:
+    def _diff_row_from_entry(
+        self, data: DiffEntry, notes: "_NotesRegistry"
+    ) -> "_MdDiffRow":
+        def pick_version(p: LockedPackageNoMeta | None) -> str:
             if p is None:
                 return "-"
             return p["version"]
 
-        def pick_footnotes(data: DiffEntry) -> t.Iterable[_NoteRef]:
-            if data.is_major_change:
-                yield table.footnotes.register("M", "major change")
-            if data.is_downgrade:
-                yield table.footnotes.register("D", "downgrade")
-            if data.is_source_change:
-                if data.old is None or data.new is None:  # pragma: no cover
-                    raise AssertionError(f"unexpected source change: {data}")
-
-                old_source = md_from_source(data.old["source"])
-                new_source = md_from_source(data.new["source"])
-                yield table.footnotes.register(
-                    "S", f"source changed from {old_source} to {new_source}"
-                )
-
-        if data.new is not None:
-            name = self._name_for_locked_package(data.new)
+        if data["new"] is not None:
+            name = self._name_for_locked_package(data["new"])
         else:
-            name = data.name
+            name = data["name"]
 
-        table.rows.append(
-            _MdDiffRow(
-                name,
-                pick_version(data.old),
-                pick_version(data.new),
-                list(pick_footnotes(data)),
-            )
+        return _MdDiffRow(
+            name,
+            pick_version(data["old"]),
+            pick_version(data["new"]),
+            list(self._pick_diff_notes(data, notes)),
         )
 
-    def _name_for_locked_package(self, p: LockedPackage) -> str:
+    def _pick_diff_notes(
+        self, data: DiffEntry, notes: "_NotesRegistry"
+    ) -> t.Iterable["_NoteRef"]:
+        if data.get("is_major_change"):
+            yield notes.register("M", "major change")
+        if data.get("is_downgrade"):
+            yield notes.register("D", "downgrade")
+        if data.get("is_source_change"):
+            if data["old"] is None or data["new"] is None:  # pragma: no cover
+                raise AssertionError(f"unexpected source change: {data}")
+
+            old_source = md_from_source(data["old"]["source"])
+            new_source = md_from_source(data["new"]["source"])
+            yield notes.register(
+                "S", f"source changed from {old_source} to {new_source}"
+            )
+        yield from self._pick_pypi_metadata_notes(data.get("pypi_metadata", {}), notes)
+
+    def _pick_pypi_metadata_notes(
+        self, pypi_metadata: PyPIMetadata, notes: "_NotesRegistry"
+    ) -> t.Iterable["_NoteRef"]:
+        # corresponds to `is_yanked` flag
+        if (yanked := pypi_metadata.get("yanked")) is not None:
+            yield notes.register("Y", f"yanked: {yanked}")
+
+        # corresponds to `is_vulnerable` flag, but also shows withdrawn vulns
+        for vuln in pypi_metadata.get("vulnerabilities", ()):
+            yield notes.register("V", self.md_from_vuln(vuln))
+
+    def _name_for_locked_package(self, p: LockedPackageNoMeta) -> str:
         name = p["name"]
         if not self.show_links:
             return name
         if p["source"] not in ("pypi", "default"):
             return name
         return f"[{name}](https://pypi.org/p/{name})"
+
+    def md_from_vuln(self, vuln: Vulnerability) -> str:
+        title = _escape_inline(vuln["id"])
+        if link := vuln.get("link"):
+            title = f"[{title}]({link})"
+        if vuln.get("withdrawn"):
+            title = f"{title} (WITHDRAWN)"
+        if summary := vuln.get("summary"):  # guaranteed by OSV to be plaintext
+            title = f"{title} {_escape_inline(summary)}"
+        parts: list[str] = [title]
+        if details := vuln.get("details"):
+            # The details are guaranteed by OSV to be CommonMark.
+            # HTML sanitization is out of scope for Ganzua,
+            # so we'll have to trust that the vulnerability details are not themselves malicious.
+            parts.append("  <details><summary>Details</summary>")
+            parts.append(textwrap.indent(details, prefix="  "))
+            parts.append("  </details>")
+        if aliases := vuln.get("aliases"):
+            parts.append(f"  Aliases: {', '.join(map(_escape_inline, aliases))}")
+        if fixed_in := vuln.get("fixed_in"):
+            parts.append(f"  Fixed in: {', '.join(map(_escape_inline, fixed_in))}")
+        return "\n\n".join(parts)
 
 
 class _MdDiffRow(t.NamedTuple):
@@ -88,8 +152,9 @@ class _MdDiffRow(t.NamedTuple):
     new: str
     notes: t.Sequence["_NoteRef"]
 
-    def render_notes(self) -> str:
-        return " ".join(n.resolved_id() for n in self.notes)
+
+def _resolved_notes(notes: t.Sequence["_NoteRef"]) -> str:
+    return " ".join(n.resolved_id() for n in notes)
 
 
 @dataclass
@@ -112,6 +177,13 @@ class _NotesRegistry:
             for index, msg in enumerate(msgs):
                 yield _NoteRef(self, category=category, index=index), msg
 
+    def to_md_list(self) -> t.Iterable[str]:
+        notes = "\n".join(
+            f"* {ref.resolved_id()} {message}" for ref, message in self.items()
+        )
+        if notes:
+            yield notes
+
 
 @dataclass
 class _NoteRef:
@@ -124,27 +196,6 @@ class _NoteRef:
         if len(msgs) == 1:
             return f"({self.category})"
         return f"({self.category}{self.index + 1})"
-
-
-@dataclass
-class _DiffTable:
-    rows: list[_MdDiffRow]
-    footnotes: _NotesRegistry
-
-    def render(self) -> t.Iterable[str]:
-        yield table(
-            ("package", "old", "new", "notes"),
-            [
-                (row.package, row.old, row.new, row.render_notes())
-                for row in sorted(self.rows)
-            ],
-            collapsible_cols=("notes",),
-        )
-        if footnotes := "\n".join(
-            f"* {ref.resolved_id()} {message}"
-            for ref, message in self.footnotes.items()
-        ):
-            yield footnotes
 
 
 def md_from_source(source: Source) -> str:
@@ -296,3 +347,17 @@ def quote_code(code: str) -> str:
         delim = "`" * (backticks + 1)
         return f"{delim} {code} {delim}"
     return f"`{code}`"
+
+
+def _escape_inline(text: str) -> str:
+    r"""Escape the given text so that it renders in Markdown as plain text.
+
+    * fold all whitespace
+    * escape ASCII punctuation relating to inline markup
+
+    >>> print(_escape_inline(" <foo> \n\t [`bar`] *baz* _qux_ &amp; "))
+    \<foo> \[\`bar\`\] \*baz\* \_qux\_ \&amp;
+    """
+    text = re.sub(r"\s+", " ", text).strip()  # fold whitespace
+    # based on: https://spec.commonmark.org/0.31.2/#backslash-escapes
+    return re.sub(r"([\[\]<&*_`\\])", r"\\\1", text)

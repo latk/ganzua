@@ -6,6 +6,7 @@ import pydantic
 import yarl
 
 from ._package_source import Source, SourceDirect, SourceRegistry
+from ._pypi_metadata import PyPIMetadata
 
 UNDEFINED_VERSION = "0+undefined"
 """Use this version when a locked package has no version.
@@ -16,7 +17,8 @@ that use a dynamic version, see <https://github.com/latk/ganzua/issues/4>.
 """
 
 
-class LockedPackage(t.TypedDict):
+class LockedPackageNoMeta(t.TypedDict):
+    # Keep common fields in sync with LockedPackage!
     name: str
     """Name of the package.
 
@@ -25,6 +27,44 @@ class LockedPackage(t.TypedDict):
 
     version: str
     source: Source
+
+
+class LockedPackage(t.TypedDict):
+    # Keep common fields in sync with LockedPackageNoMeta!
+    # Must repeat common fields so that Pydantic `use_attribute_docstrings` works.
+    name: str
+    """Name of the package.
+
+    *Added in Ganzua 0.4.0:* previously, the package name was implicit.
+    """
+
+    version: str
+    source: Source
+
+    pypi_metadata: t.NotRequired[PyPIMetadata]
+    """PyPI metadata for the locked package, if any.
+
+    This field will only be populated if
+    metadata was explicitly requested via `--pypi-metadata`,
+    the package seems to have been installed from PyPI,
+    and PyPI successfully provided metadata for the new version.
+
+    *Added in Ganzua NEXT*.
+    """
+
+    is_yanked: t.NotRequired[bool]
+    """True if the locked package was yanked (per `pypi_metadata`).
+
+    *Added in Ganzua NEXT*.
+    """
+
+    is_vulnerable: t.NotRequired[bool]
+    """True if the locked package has a known vulnerability (per `pypi_metadata`).
+
+    For the purposes of this flag, withdrawn vulnerabilities are ignored.
+
+    *Added in Ganzua NEXT*.
+    """
 
 
 @pydantic.with_config(use_attribute_docstrings=True)

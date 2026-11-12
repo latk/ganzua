@@ -9,8 +9,10 @@ import shutil
 import typing as t
 
 import click
+import httpx2
 import pydantic
 import rich
+import yarl
 from packaging.version import Version
 
 import ganzua
@@ -24,6 +26,7 @@ from ._git import Git
 from ._lockfile import lockfile_by_name, parse_lockfile
 from ._markdown import MarkdownRenderer, md_from_requirements
 from ._markdown_from_json_schema import md_from_schema
+from ._pypi_metadata import PyPIMetadataLoader
 from ._utils import coalesce, error_context
 
 app = App(
@@ -133,6 +136,45 @@ class _GitOptions:
 
 
 @dataclasses.dataclass
+class _PyPIMetadataOptions:
+    pypi_metadata: t.Annotated[
+        bool,
+        clack.Option(
+            name="--pypi-metadata/--no-pypi-metadata",
+            help="""\
+Look up PyPI metadata for locked packages. [default: off]
+
+This will add warnings for yanked or vulnerable packages.
+""",
+        ),
+    ] = False
+    pypi_metadata_url: t.Annotated[yarl.URL, clack.Option(help=None)] = yarl.URL(
+        "https://pypi.org"
+    )
+
+    def get(self) -> PyPIMetadataLoader | None:
+        if not self.pypi_metadata:
+            return None
+        # TODO add rate limiting
+        # TODO add caching
+        # TODO add user agent
+        return PyPIMetadataLoader(
+            base_url=self.pypi_metadata_url,
+            client=httpx2.Client(),
+            log_error=self.log_error,
+        )
+
+    def log_error(
+        self, res: httpx2.Response, err: pydantic.ValidationError | None
+    ) -> None:
+        parts = ["WARNING: PyPI metadata request failed:"]
+        parts.append(f"{res.status_code} {res.request.method} {res.request.url}")
+        if err is not None:  # pragma: no cover  # verified manually
+            parts.append(str(err))
+        click.echo(" ".join(parts), err=True)
+
+
+@dataclasses.dataclass
 class _LockfileOutputOptions:
     format: _OutputFormatOption = OutputFormat.JSON
     md_links: t.Annotated[bool, clack.Option(help=None)] = False
@@ -160,6 +202,7 @@ def inspect(
     filter: _LockfileFilterOptions,
     output: _LockfileOutputOptions,
     git_options: _GitOptions,
+    pypi_metadata_options: _PyPIMetadataOptions,
 ) -> None:
     """Inspect a lockfile.
 
@@ -177,10 +220,13 @@ def inspect(
     *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
     data = _DataLayer(git=git_options.get())
+    pypi_metadata = pypi_metadata_options.get()
     lockfile_data = data.load_lockfile(
         lockfile, metavar="LOCKFILE", project_dir=pathlib.Path()
     )
     lockfile_data = filter.filtered_lockfile(lockfile_data)
+    if pypi_metadata:
+        pypi_metadata.enrich_lockfile(lockfile_data)
     output.print_lockfile(lockfile_data)
 
 
@@ -204,6 +250,7 @@ In addition to `gitrevision` syntax, may use `INDEX` to name staged files.
         ),
     ] = None,
     git_options: _GitOptions,
+    pypi_metadata_options: _PyPIMetadataOptions,
 ) -> None:
     """Compare two lockfiles.
 
@@ -238,6 +285,7 @@ In addition to `gitrevision` syntax, may use `INDEX` to name staged files.
     *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
     """
     data = _DataLayer(git=git_options.get())
+    pypi_metadata = pypi_metadata_options.get()
     project_dir = pathlib.Path()
 
     if old is None or new is None:  # 0-argument and 1-argument case: Git comparison
@@ -257,6 +305,10 @@ In addition to `gitrevision` syntax, may use `INDEX` to name staged files.
         lockfile_by_name(filter.filtered_lockfile(old_data)),
         lockfile_by_name(filter.filtered_lockfile(new_data)),
     )
+
+    if pypi_metadata:
+        pypi_metadata.enrich_diff(diff)
+
     output.print_diff(diff)
 
 

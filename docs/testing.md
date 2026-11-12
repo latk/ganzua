@@ -91,6 +91,20 @@ Resulting in a replaced Markdown fragment:
 > ```
 > ``````
 
+Similar to snapshots, network interactions are recorded.
+This is needed for testing the [PyPI Metadata](./pypi-metadata.md) feature,
+without having to connect to external servers during the test.
+Ganzua uses the [VCR.py][] and [pytest-recording][] libraries for recording network interactions.
+By default, new network requests will fail.
+To allow new network interactions to be recorded,
+use `just test --record-mode=…`
+with modes of `new_episodes` to allow new interactions to be recorded,
+`all` to update all interactions,
+or `rewrite` to re-record all interactions (like `all`, but drops unused interactions).
+
+[VCR.py]: https://vcrpy.readthedocs.io/en/latest/
+[pytest-recording]: https://github.com/kiwicom/pytest-recording
+
 ## Recognized Markdown patterns
 
 This section documents the available Markdown patterns
@@ -668,6 +682,39 @@ Some docstring explaining what this type does.
 ```
 
 </div>
+
+### Fault injection
+
+Set a new fault injection state for all subsequent commands.
+The fault injection state is a JSON object, see the schema below.
+All fields are optional.
+Setting the state to an empty object disables all fault injection.
+
+<div class=doctest-example>
+
+```md,doctest-example
+<!-- doctest: fault injection {"pypi_metadata_invalid_response": true} -->
+... some command here
+<!-- doctest: fault injection {} -->
+```
+```md,doctest-output
+<!-- doctest: fault injection {"pypi_metadata_invalid_response": true} -->
+... some command here
+<!-- doctest: fault injection {} -->
+```
+
+</div>
+
+<!-- doctest: json schema to validate ganzua._fault_injection:State -->
+
+Faults that may be injected during doctests.
+
+**Properties:**
+
+* **`pypi_metadata_invalid_response`**?: `true`\
+  Inject a JSON body that will cause validation errors while parsing a PyPI metadata response.
+
+<!-- doctest: json schema end -->
 
 ## Supported shell commands
 

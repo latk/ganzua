@@ -15,8 +15,9 @@ classifiers = [
 requires-python = ">=3.12"
 dependencies = [
     "click>=8.4.2",
+    "httpx2>=2.16.0",
     "packaging>=26.2",
-    "pydantic>=2.13.4",
+    "pydantic>=2.14.3",
     "rich>=15.0.0",
     "tomlkit>=0.15.0",
     "typing-extensions>=4.16.0",
@@ -39,8 +40,9 @@ build-backend = "hatchling.build"
 dev = [
     "dirty-equals>=0.11",
     "inline-snapshot>=0.34.2",
-    "mypy>=2.1.0",
+    "mypy>=2.4.0",
     "pytest-cov>=7.1.0",
+    "pytest-recording>=0.14.1",
     "pytest>=9.1.1",
     "ruff>=0.15.20",
 ]

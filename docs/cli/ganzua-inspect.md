@@ -25,6 +25,10 @@ the one in the current working directory will be used.
   Disable Git functionality. [default: enabled]
 * `--git-executable EXECUTABLE`
   How to invoke Git. [default: git]
+* `--[no-]pypi-metadata`
+  Look up PyPI metadata for locked packages. [default: off]
+
+  This will add warnings for yanked or vulnerable packages.
 * `--help`
   Show this help message and exit.
 
@@ -367,6 +371,12 @@ $ ganzua inspect $EXAMPLE --format=markdown --md-links
 
 </details>
 
+### PyPI metadata
+
+Using the `--pypi-metadata` flag will load package metadata from PyPI,
+which can be used to audit for known-vulnerable or yanked packages,
+and will also show project URLs in the JSON output.
+See the [PyPI metadata](../pypi-metadata.md) feature reference for examples and further details.
 
 ## JSON Schema
 
@@ -394,6 +404,25 @@ Download: [schema.inspect.json](schema.inspect.json)
   *Added in Ganzua 0.4.0:* previously, the package name was implicit.
 * **`version`**: string
 * **`source`**: `pypi` | `default` | `other` | [SourceRegistry](#type.SourceRegistry) | [SourceDirect](#type.SourceDirect)
+* **`pypi_metadata`**?: [PyPIMetadata](#type.PyPIMetadata)\
+  PyPI metadata for the locked package, if any.
+
+  This field will only be populated if
+  metadata was explicitly requested via `--pypi-metadata`,
+  the package seems to have been installed from PyPI,
+  and PyPI successfully provided metadata for the new version.
+
+  *Added in Ganzua NEXT*.
+* **`is_yanked`**?: bool\
+  True if the locked package was yanked (per `pypi_metadata`).
+
+  *Added in Ganzua NEXT*.
+* **`is_vulnerable`**?: bool\
+  True if the locked package has a known vulnerability (per `pypi_metadata`).
+
+  For the purposes of this flag, withdrawn vulnerabilities are ignored.
+
+  *Added in Ganzua NEXT*.
 
 ### type `SourceRegistry` {#type.SourceRegistry}
 
@@ -414,5 +443,47 @@ The package is sourced from a specific URL or path, e.g. a Git repo or workspace
   URL or path to the package (directory or archive).
 * **`subdirectory`**?: string | null\
   Only allowed if the source points to an archive file.
+
+### type `PyPIMetadata` {#type.PyPIMetadata}
+
+Extra PyPI metadata that relates to a specific package version.
+
+*Added in Ganzua NEXT*.
+
+**Properties:**
+
+* **`yanked`**?: string\
+  If this package version was yanked, the reason given.
+
+  If no reason was given, a yanked package will use an empty string here.
+* **`vulnerabilities`**?: array([Vulnerability](#type.Vulnerability))\
+  If this package version has vulnerabilities, details on those.
+* **`project_urls`**?: mapping(string → string)\
+  The project URLs declared in the package metadata (label → url).
+
+  Well-known labels will have been replaced by their canonical name,
+  e.g. `What's New?` will be replaced by `changelog`.
+
+  Specifications:
+  * <https://packaging.python.org/en/latest/specifications/core-metadata/#project-url-multiple-use>
+  * <https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-project-urls>
+
+### type `Vulnerability` {#type.Vulnerability}
+
+Information about a known vulnerability for a specific package version.
+
+Matches the [PyPI JSON API](https://docs.pypi.org/api/json/#known-vulnerabilities) exactly,
+which in turn is based on the [Open Source Vulnerability format](https://ossf.github.io/osv-schema/).
+
+**Properties:**
+
+* **`id`**: string
+* **`source`**: string
+* **`link`**?: string | null
+* **`aliases`**?: array(string) | null
+* **`details`**?: string | null
+* **`summary`**?: string | null
+* **`fixed_in`**?: array(string) | null
+* **`withdrawn`**?: string | null
 
 <!-- command output end -->

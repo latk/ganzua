@@ -5,43 +5,58 @@ from dataclasses import dataclass
 import pydantic
 from packaging.version import InvalidVersion, Version
 
-from ._lockfile import LockedPackage, LockfileByName
-
-
-def _is_falsey(value: object) -> bool:
-    return not value
+from ._lockfile import LockedPackage, LockedPackageNoMeta, LockfileByName
+from ._pypi_metadata import PyPIMetadata
 
 
 @pydantic.with_config(use_attribute_docstrings=True)
-@dataclass(kw_only=True)
-class DiffEntry:
+class DiffEntry(t.TypedDict):
     name: str
     """Name of the package being diffed.
 
     *Added in Ganzua 0.4.0:* previously, the package name was implicit.
     """
 
-    old: LockedPackage | None
-    new: LockedPackage | None
+    old: LockedPackageNoMeta | None
+    new: LockedPackageNoMeta | None
 
-    is_major_change: t.Annotated[
-        bool, pydantic.Field(default=False, exclude_if=_is_falsey)
-    ]
+    pypi_metadata: t.NotRequired[PyPIMetadata]
+    """PyPI metadata for the `new` version, if any.
+
+    This field will only be populated if
+    metadata was explicitly requested via `--pypi-metadata`,
+    the package seems to have been installed from PyPI,
+    and PyPI successfully provided metadata for the new version.
+
+    *Added in Ganzua NEXT*.
+    """
+
+    is_major_change: t.NotRequired[bool]
     """True if there was a major version change.
 
     This doesn't literally mean "the SemVer-major version component changed",
     but is intended to highlight version changes that are likely to have breakage.
     """
 
-    is_downgrade: t.Annotated[
-        bool, pydantic.Field(default=False, exclude_if=_is_falsey)
-    ]
+    is_downgrade: t.NotRequired[bool]
     """True if the version was downgraded."""
 
-    is_source_change: t.Annotated[
-        bool, pydantic.Field(default=False, exclude_if=_is_falsey)
-    ]
+    is_source_change: t.NotRequired[bool]
     """True if the package source changed."""
+
+    is_yanked: t.NotRequired[bool]
+    """True if the new version was yanked (per `pypi_metadata`).
+
+    *Added in Ganzua NEXT*.
+    """
+
+    is_vulnerable: t.NotRequired[bool]
+    """True if the new version has a known vulnerability (per `pypi_metadata`).
+
+    For the purposes of this flag, withdrawn vulnerabilities are ignored.
+
+    *Added in Ganzua NEXT*.
+    """
 
 
 @dataclass(kw_only=True)
@@ -71,14 +86,18 @@ def diff(old: LockfileByName, new: LockfileByName) -> Diff:
         ):
             the_diff.packages.append(entry)
             the_diff.stat.total += 1
-            the_diff.stat.added += entry.old is None
-            the_diff.stat.removed += entry.new is None
-            the_diff.stat.updated += entry.old is not None and entry.new is not None
+            the_diff.stat.added += entry["old"] is None
+            the_diff.stat.removed += entry["new"] is None
+            the_diff.stat.updated += (
+                entry["old"] is not None and entry["new"] is not None
+            )
     return the_diff
 
 
 def _package_diff(
-    *, old: t.Sequence[LockedPackage], new: t.Sequence[LockedPackage]
+    *,
+    old: t.Sequence[LockedPackage],
+    new: t.Sequence[LockedPackage],
 ) -> t.Iterator[DiffEntry]:
     """Show differences between packages of the same name."""
     name = (old or new)[0]["name"]  # we know at least one side is non-empty
@@ -92,14 +111,14 @@ def _package_diff(
     # all other packages will count as modified.
     # In the future, it might be possible to pair up packages more cleverly.
     for old_p, new_p in itertools.zip_longest(old_uniq, new_uniq, fillvalue=None):
-        yield DiffEntry(
-            name=name,
-            old=old_p,
-            new=new_p,
-            is_major_change=_is_major_change(old_p, new_p),
-            is_downgrade=_is_downgrade(old_p, new_p),
-            is_source_change=_is_source_change(old_p, new_p),
-        )
+        entry = DiffEntry(name=name, old=old_p, new=new_p)
+        if _is_major_change(old_p, new_p):
+            entry["is_major_change"] = True
+        if _is_downgrade(old_p, new_p):
+            entry["is_downgrade"] = True
+        if _is_source_change(old_p, new_p):
+            entry["is_source_change"] = True
+        yield entry
 
 
 def _is_major_change(old: LockedPackage | None, new: LockedPackage | None) -> bool:

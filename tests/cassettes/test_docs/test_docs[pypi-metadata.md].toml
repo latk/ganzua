@@ -1,0 +1,465 @@
+version = 1
+
+[[interactions]]
+[interactions.request]
+method = "GET"
+uri = "https://pypi.org/pypi/pluggy/1.6.0/json"
+body = ""
+
+[interactions.request.headers]
+host = ["pypi.org"]
+accept-encoding = ["gzip, deflate"]
+connection = ["keep-alive"]
+user-agent = ["python-httpx2/2.16.0"]
+accept = ["application/json"]
+
+[interactions.response.status]
+code = 200
+message = "OK"
+
+[interactions.response.headers]
+content-length = ["5757"]
+etag = ["\"bHAHu8wPD4oyQVz3q9sm3g\""]
+referrer-policy = ["origin-when-cross-origin"]
+cache-control = ["max-age=900, public"]
+content-type = ["application/json"]
+date = ["Thu, 12 Nov 2026 11:52:34 GMT"]
+vary = ["Accept-Encoding"]
+
+[interactions.response.body]
+string = '''{
+  "info": {
+    "author": null,
+    "author_email": "REDACTED",
+    "bugtrack_url": null,
+    "classifiers": [
+      "Development Status :: 6 - Mature",
+      "Intended Audience :: Developers",
+      "License :: OSI Approved :: MIT License",
+      "Operating System :: MacOS :: MacOS X",
+      "Operating System :: Microsoft :: Windows",
+      "Operating System :: POSIX",
+      "Programming Language :: Python :: 3",
+      "Programming Language :: Python :: 3 :: Only",
+      "Programming Language :: Python :: 3.10",
+      "Programming Language :: Python :: 3.11",
+      "Programming Language :: Python :: 3.12",
+      "Programming Language :: Python :: 3.13",
+      "Programming Language :: Python :: 3.9",
+      "Programming Language :: Python :: Implementation :: CPython",
+      "Programming Language :: Python :: Implementation :: PyPy",
+      "Topic :: Software Development :: Libraries",
+      "Topic :: Software Development :: Testing",
+      "Topic :: Utilities"
+    ],
+    "description": "====================================================\npluggy - A minimalist production ready plugin system\n====================================================\n\n|pypi| |conda-forge| |versions| |github-actions| |gitter| |black| |codecov|\n\nThis is the core framework used by the `pytest`_, `tox`_, and `devpi`_ projects.\n\nPlease `read the docs`_ to learn more!\n\nA definitive example\n====================\n.. code-block:: python\n\n    import pluggy\n\n    hookspec = pluggy.HookspecMarker(\"myproject\")\n    hookimpl = pluggy.HookimplMarker(\"myproject\")\n\n\n    class MySpec:\n        \"\"\"A hook specification namespace.\"\"\"\n\n        @hookspec\n        def myhook(self, arg1, arg2):\n            \"\"\"My special little hook that you can customize.\"\"\"\n\n\n    class Plugin_1:\n        \"\"\"A hook implementation namespace.\"\"\"\n\n        @hookimpl\n        def myhook(self, arg1, arg2):\n            print(\"inside Plugin_1.myhook()\")\n            return arg1 + arg2\n\n\n    class Plugin_2:\n        \"\"\"A 2nd hook implementation namespace.\"\"\"\n\n        @hookimpl\n        def myhook(self, arg1, arg2):\n            print(\"inside Plugin_2.myhook()\")\n            return arg1 - arg2\n\n\n    # create a manager and add the spec\n    pm = pluggy.PluginManager(\"myproject\")\n    pm.add_hookspecs(MySpec)\n\n    # register plugins\n    pm.register(Plugin_1())\n    pm.register(Plugin_2())\n\n    # call our ``myhook`` hook\n    results = pm.hook.myhook(arg1=1, arg2=2)\n    print(results)\n\n\nRunning this directly gets us::\n\n    $ python docs/examples/toy-example.py\n    inside Plugin_2.myhook()\n    inside Plugin_1.myhook()\n    [-1, 3]\n\n\n.. badges\n\n.. |pypi| image:: https://img.shields.io/pypi/v/pluggy.svg\n    :target: https://pypi.org/pypi/pluggy\n\n.. |versions| image:: https://img.shields.io/pypi/pyversions/pluggy.svg\n    :target: https://pypi.org/pypi/pluggy\n\n.. |github-actions| image:: https://github.com/pytest-dev/pluggy/workflows/main/badge.svg\n    :target: https://github.com/pytest-dev/pluggy/actions\n\n.. |conda-forge| image:: https://img.shields.io/conda/vn/conda-forge/pluggy.svg\n    :target: https://anaconda.org/conda-forge/pytest\n\n.. |gitter| image:: https://badges.gitter.im/pytest-dev/pluggy.svg\n    :alt: Join the chat at https://gitter.im/pytest-dev/pluggy\n    :target: https://gitter.im/pytest-dev/pluggy?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge\n\n.. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg\n    :target: https://github.com/ambv/black\n\n.. |codecov| image:: https://codecov.io/gh/pytest-dev/pluggy/branch/master/graph/badge.svg\n    :target: https://codecov.io/gh/pytest-dev/pluggy\n    :alt: Code coverage Status\n\n.. links\n.. _pytest:\n    http://pytest.org\n.. _tox:\n    https://tox.readthedocs.org\n.. _devpi:\n    http://doc.devpi.net\n.. _read the docs:\n   https://pluggy.readthedocs.io/en/latest/\n\n\nSupport pluggy\n--------------\n\n`Open Collective`_ is an online funding platform for open and transparent communities.\nIt provides tools to raise money and share your finances in full transparency.\n\nIt is the platform of choice for individuals and companies that want to make one-time or\nmonthly donations directly to the project.\n\n``pluggy`` is part of the ``pytest-dev`` project, see more details in the `pytest collective`_.\n\n.. _Open Collective: https://opencollective.com\n.. _pytest collective: https://opencollective.com/pytest\n",
+    "description_content_type": "text/x-rst",
+    "docs_url": null,
+    "download_url": null,
+    "downloads": {
+      "last_day": -1,
+      "last_month": -1,
+      "last_week": -1
+    },
+    "dynamic": [
+      "License-File"
+    ],
+    "home_page": null,
+    "keywords": null,
+    "license": "MIT",
+    "license_expression": null,
+    "license_files": [
+      "LICENSE"
+    ],
+    "maintainer": null,
+    "maintainer_email": null,
+    "name": "pluggy",
+    "package_url": "https://pypi.org/project/pluggy/",
+    "platform": null,
+    "project_url": "https://pypi.org/project/pluggy/",
+    "project_urls": null,
+    "provides_extra": [
+      "dev",
+      "testing"
+    ],
+    "release_url": "https://pypi.org/project/pluggy/1.6.0/",
+    "requires_dist": [
+      "pre-commit; extra == \"dev\"",
+      "tox; extra == \"dev\"",
+      "pytest; extra == \"testing\"",
+      "pytest-benchmark; extra == \"testing\"",
+      "coverage; extra == \"testing\""
+    ],
+    "requires_python": ">=3.9",
+    "summary": "plugin and hook calling mechanisms for python",
+    "version": "1.6.0",
+    "yanked": false,
+    "yanked_reason": null
+  },
+  "last_serial": 42267252,
+  "ownership": {},
+  "urls": [
+    "... ignored ..."
+  ],
+  "vulnerabilities": []
+}'''
+
+[[interactions]]
+[interactions.request]
+method = "GET"
+uri = "https://pypi.org/pypi/typing-extensions/4.16.0/json"
+body = ""
+
+[interactions.request.headers]
+host = ["pypi.org"]
+accept-encoding = ["gzip, deflate"]
+connection = ["keep-alive"]
+user-agent = ["python-httpx2/2.16.0"]
+accept = ["application/json"]
+
+[interactions.response.status]
+code = 200
+message = "OK"
+
+[interactions.response.headers]
+content-length = ["4150"]
+content-type = ["application/json"]
+referrer-policy = ["origin-when-cross-origin"]
+cache-control = ["max-age=900, public"]
+etag = ["\"1+LJRQCylO/9iWatnmVMBw\""]
+date = ["Thu, 12 Nov 2026 11:52:34 GMT"]
+vary = ["Accept-Encoding"]
+
+[interactions.response.body]
+string = '''{
+  "info": {
+    "author": null,
+    "author_email": "REDACTED",
+    "bugtrack_url": null,
+    "classifiers": [
+      "Development Status :: 5 - Production/Stable",
+      "Environment :: Console",
+      "Intended Audience :: Developers",
+      "Operating System :: OS Independent",
+      "Programming Language :: Python :: 3",
+      "Programming Language :: Python :: 3 :: Only",
+      "Programming Language :: Python :: 3.10",
+      "Programming Language :: Python :: 3.11",
+      "Programming Language :: Python :: 3.12",
+      "Programming Language :: Python :: 3.13",
+      "Programming Language :: Python :: 3.14",
+      "Programming Language :: Python :: 3.15",
+      "Programming Language :: Python :: 3.9",
+      "Topic :: Software Development"
+    ],
+    "description": "# Typing Extensions\n\n[![Chat at https://gitter.im/python/typing](https://badges.gitter.im/python/typing.svg)](https://gitter.im/python/typing)\n\n[Documentation](https://typing-extensions.readthedocs.io/en/latest/#) \u2013\n[PyPI](https://pypi.org/project/typing-extensions/)\n\n## Overview\n\nThe `typing_extensions` module serves two related purposes:\n\n- Enable use of new type system features on older Python versions. For example,\n  `typing.TypeGuard` is new in Python 3.10, but `typing_extensions` allows\n  users on previous Python versions to use it too.\n- Enable experimentation with new type system PEPs before they are accepted and\n  added to the `typing` module.\n\n`typing_extensions` is treated specially by static type checkers such as\nmypy and pyright. Objects defined in `typing_extensions` are treated the same\nway as equivalent forms in `typing`.\n\n`typing_extensions` uses\n[Semantic Versioning](https://semver.org/). The\nmajor version will be incremented only for backwards-incompatible changes.\nTherefore, it's safe to depend\non `typing_extensions` like this: `typing_extensions ~=x.y`,\nwhere `x.y` is the first version that includes all features you need.\n[This](https://packaging.python.org/en/latest/specifications/version-specifiers/#compatible-release)\nis equivalent to `typing_extensions >=x.y, <(x+1)`. Do not depend on `~= x.y.z`\nunless you really know what you're doing; that defeats the purpose of\nsemantic versioning.\n\n## Included items\n\nSee [the documentation](https://typing-extensions.readthedocs.io/en/latest/#) for a\ncomplete listing of module contents.\n\n## Contributing\n\nSee [CONTRIBUTING.md](https://github.com/python/typing_extensions/blob/main/CONTRIBUTING.md)\nfor how to contribute to `typing_extensions`.\n\n",
+    "description_content_type": "text/markdown",
+    "docs_url": null,
+    "download_url": null,
+    "downloads": {
+      "last_day": -1,
+      "last_month": -1,
+      "last_week": -1
+    },
+    "dynamic": null,
+    "home_page": null,
+    "keywords": "annotations, backport, checker, checking, function, hinting, hints, type, typechecking, typehinting, typehints, typing",
+    "license": null,
+    "license_expression": "PSF-2.0",
+    "license_files": [
+      "LICENSE"
+    ],
+    "maintainer": null,
+    "maintainer_email": null,
+    "name": "typing-extensions",
+    "package_url": "https://pypi.org/project/typing-extensions/",
+    "platform": null,
+    "project_url": "https://pypi.org/project/typing-extensions/",
+    "project_urls": {
+      "Bug Tracker": "https://github.com/python/typing_extensions/issues",
+      "Changes": "https://github.com/python/typing_extensions/blob/main/CHANGELOG.md",
+      "Documentation": "https://typing-extensions.readthedocs.io/",
+      "Home": "https://github.com/python/typing_extensions",
+      "Q & A": "https://github.com/python/typing/discussions",
+      "Repository": "https://github.com/python/typing_extensions"
+    },
+    "provides_extra": null,
+    "release_url": "https://pypi.org/project/typing-extensions/4.16.0/",
+    "requires_dist": null,
+    "requires_python": ">=3.9",
+    "summary": "Backported and Experimental Type Hints for Python 3.9+",
+    "version": "4.16.0",
+    "yanked": false,
+    "yanked_reason": null
+  },
+  "last_serial": 38587266,
+  "ownership": {},
+  "urls": [
+    "... ignored ..."
+  ],
+  "vulnerabilities": []
+}'''
+
+[[interactions]]
+[interactions.request]
+method = "GET"
+uri = "https://pypi.org/pypi/pydantic-core/2.41.3/json"
+body = ""
+
+[interactions.request.headers]
+host = ["pypi.org"]
+accept-encoding = ["gzip, deflate"]
+connection = ["keep-alive"]
+user-agent = ["python-httpx2/2.16.0"]
+accept = ["application/json"]
+
+[interactions.response.status]
+code = 200
+message = "OK"
+
+[interactions.response.headers]
+content-length = ["8056"]
+referrer-policy = ["origin-when-cross-origin"]
+content-type = ["application/json"]
+etag = ["\"+1rtYFMblYU/qKa4cTzKTA\""]
+cache-control = ["max-age=900, public"]
+date = ["Thu, 12 Nov 2026 11:52:34 GMT"]
+vary = ["Accept-Encoding"]
+
+[interactions.response.body]
+string = '''{
+  "info": {
+    "author": null,
+    "author_email": "REDACTED",
+    "bugtrack_url": null,
+    "classifiers": [
+      "Development Status :: 3 - Alpha",
+      "Framework :: Pydantic",
+      "Intended Audience :: Developers",
+      "Intended Audience :: Information Technology",
+      "Operating System :: MacOS",
+      "Operating System :: Microsoft :: Windows",
+      "Operating System :: POSIX :: Linux",
+      "Programming Language :: Python",
+      "Programming Language :: Python :: 3",
+      "Programming Language :: Python :: 3 :: Only",
+      "Programming Language :: Python :: 3.10",
+      "Programming Language :: Python :: 3.11",
+      "Programming Language :: Python :: 3.12",
+      "Programming Language :: Python :: 3.13",
+      "Programming Language :: Python :: 3.14",
+      "Programming Language :: Python :: 3.9",
+      "Programming Language :: Python :: Implementation :: CPython",
+      "Programming Language :: Python :: Implementation :: GraalPy",
+      "Programming Language :: Python :: Implementation :: PyPy",
+      "Programming Language :: Rust",
+      "Typing :: Typed"
+    ],
+    "description": "# pydantic-core\n\n[![CI](https://github.com/pydantic/pydantic-core/workflows/ci/badge.svg?event=push)](https://github.com/pydantic/pydantic-core/actions?query=event%3Apush+branch%3Amain+workflow%3Aci)\n[![Coverage](https://codecov.io/gh/pydantic/pydantic-core/branch/main/graph/badge.svg)](https://codecov.io/gh/pydantic/pydantic-core)\n[![pypi](https://img.shields.io/pypi/v/pydantic-core.svg)](https://pypi.python.org/pypi/pydantic-core)\n[![versions](https://img.shields.io/pypi/pyversions/pydantic-core.svg)](https://github.com/pydantic/pydantic-core)\n[![license](https://img.shields.io/github/license/pydantic/pydantic-core.svg)](https://github.com/pydantic/pydantic-core/blob/main/LICENSE)\n\nThis package provides the core functionality for [pydantic](https://docs.pydantic.dev) validation and serialization.\n\nPydantic-core is currently around 17x faster than pydantic V1.\nSee [`tests/benchmarks/`](./tests/benchmarks/) for details.\n\n## Example of direct usage\n\n_NOTE: You should not need to use pydantic-core directly; instead, use pydantic, which in turn uses pydantic-core._\n\n```py\nfrom pydantic_core import SchemaValidator, ValidationError\n\n\nv = SchemaValidator(\n    {\n        'type': 'typed-dict',\n        'fields': {\n            'name': {\n                'type': 'typed-dict-field',\n                'schema': {\n                    'type': 'str',\n                },\n            },\n            'age': {\n                'type': 'typed-dict-field',\n                'schema': {\n                    'type': 'int',\n                    'ge': 18,\n                },\n            },\n            'is_developer': {\n                'type': 'typed-dict-field',\n                'schema': {\n                    'type': 'default',\n                    'schema': {'type': 'bool'},\n                    'default': True,\n                },\n            },\n        },\n    }\n)\n\nr1 = v.validate_python({'name': 'Samuel', 'age': 35})\nassert r1 == {'name': 'Samuel', 'age': 35, 'is_developer': True}\n\n# pydantic-core can also validate JSON directly\nr2 = v.validate_json('{\"name\": \"Samuel\", \"age\": 35}')\nassert r1 == r2\n\ntry:\n    v.validate_python({'name': 'Samuel', 'age': 11})\nexcept ValidationError as e:\n    print(e)\n    \"\"\"\n    1 validation error for model\n    age\n      Input should be greater than or equal to 18\n      [type=greater_than_equal, context={ge: 18}, input_value=11, input_type=int]\n    \"\"\"\n```\n\n## Getting Started\n\n### Prerequisites\n\nYou'll need:\n1. **[Rust](https://rustup.rs/)** - Rust stable (or nightly for coverage)\n2. **[uv](https://docs.astral.sh/uv/getting-started/installation/)** - Fast Python package manager (will install Python 3.9+ automatically)\n3. **[git](https://git-scm.com/)** - For version control\n4. **[make](https://www.gnu.org/software/make/)** - For running development commands (or use `nmake` on Windows)\n\n### Quick Start\n\n```bash\n# Clone the repository (or from your fork)\ngit clone git@github.com:pydantic/pydantic-core.git\ncd pydantic-core\n\n# Install all dependencies using uv, setup pre-commit hooks, and build the development version\nmake install\n```\n\nVerify your installation by running:\n\n```bash\nmake\n```\n\nThis runs a full development cycle: formatting, building, linting, and testing\n\n### Development Commands\n\nRun `make help` to see all available commands, or use these common ones:\n\n```bash\nmake build-dev    # to build the package during development\nmake build-prod   # to perform an optimised build for benchmarking\nmake test         # to run the tests\nmake testcov      # to run the tests and generate a coverage report\nmake lint         # to run the linter\nmake format       # to format python and rust code\nmake all          # to run to run build-dev + format + lint + test\n```\n\n### Useful Resources\n\n* [`python/pydantic_core/_pydantic_core.pyi`](./python/pydantic_core/_pydantic_core.pyi) - Python API types\n* [`python/pydantic_core/core_schema.py`](./python/pydantic_core/core_schema.py) - Core schema definitions\n* [`tests/`](./tests) - Comprehensive usage examples\n\n## Profiling\n\nIt's possible to profile the code using the [`flamegraph` utility from `flamegraph-rs`](https://github.com/flamegraph-rs/flamegraph). (Tested on Linux.) You can install this with `cargo install flamegraph`.\n\nRun `make build-profiling` to install a release build with debugging symbols included (needed for profiling).\n\nOnce that is built, you can profile pytest benchmarks with (e.g.):\n\n```bash\nflamegraph -- pytest tests/benchmarks/test_micro_benchmarks.py -k test_list_of_ints_core_py --benchmark-enable\n```\nThe `flamegraph` command will produce an interactive SVG at `flamegraph.svg`.\n\n## Releasing\n\n1. Bump package version locally. Do not just edit `Cargo.toml` on Github, you need both `Cargo.toml` and `Cargo.lock` to be updated.\n2. Make a PR for the version bump and merge it.\n3. Go to https://github.com/pydantic/pydantic-core/releases and click \"Draft a new release\"\n4. In the \"Choose a tag\" dropdown enter the new tag `v<the.new.version>` and select \"Create new tag on publish\" when the option appears.\n5. Enter the release title in the form \"v<the.new.version> <YYYY-MM-DD>\"\n6. Click Generate release notes button\n7. Click Publish release\n8. Go to https://github.com/pydantic/pydantic-core/actions and ensure that all build for release are done successfully.\n9. Go to https://pypi.org/project/pydantic-core/ and ensure that the latest release is published.\n10. Done \ud83c\udf89\n\n",
+    "description_content_type": "text/markdown; charset=UTF-8; variant=GFM",
+    "docs_url": null,
+    "download_url": null,
+    "downloads": {
+      "last_day": -1,
+      "last_month": -1,
+      "last_week": -1
+    },
+    "dynamic": null,
+    "home_page": "https://github.com/pydantic/pydantic-core",
+    "keywords": null,
+    "license": null,
+    "license_expression": "MIT",
+    "license_files": [
+      "LICENSE"
+    ],
+    "maintainer": null,
+    "maintainer_email": null,
+    "name": "pydantic_core",
+    "package_url": "https://pypi.org/project/pydantic_core/",
+    "platform": null,
+    "project_url": "https://pypi.org/project/pydantic_core/",
+    "project_urls": {
+      "Funding": "https://github.com/sponsors/samuelcolvin",
+      "Homepage": "https://github.com/pydantic/pydantic-core",
+      "Source": "https://github.com/pydantic/pydantic-core"
+    },
+    "provides_extra": null,
+    "release_url": "https://pypi.org/project/pydantic_core/2.41.3/",
+    "requires_dist": [
+      "typing-extensions>=4.14.1"
+    ],
+    "requires_python": ">=3.9",
+    "summary": "Core functionality for Pydantic validation and serialization",
+    "version": "2.41.3",
+    "yanked": true,
+    "yanked_reason": "corrupted wheel got uploaded"
+  },
+  "last_serial": 43233759,
+  "ownership": {},
+  "urls": [
+    "... ignored ..."
+  ],
+  "vulnerabilities": []
+}'''
+
+[[interactions]]
+[interactions.request]
+method = "GET"
+uri = "https://pypi.org/pypi/certifi/2026.7.22/json"
+body = ""
+
+[interactions.request.headers]
+host = ["pypi.org"]
+accept-encoding = ["gzip, deflate"]
+connection = ["keep-alive"]
+user-agent = ["python-httpx2/2.16.0"]
+accept = ["application/json"]
+
+[interactions.response.status]
+code = 200
+message = "OK"
+
+[interactions.response.headers]
+content-length = ["5580"]
+content-type = ["application/json"]
+etag = ["\"JxPUxV4sn4I/znV5Yf1RMw\""]
+cache-control = ["max-age=900, public"]
+referrer-policy = ["origin-when-cross-origin"]
+date = ["Thu, 12 Nov 2026 11:52:34 GMT"]
+vary = ["Accept-Encoding"]
+
+[interactions.response.body]
+string = '''{
+  "info": {
+    "author": "REDACTED",
+    "author_email": "REDACTED",
+    "bugtrack_url": null,
+    "classifiers": [
+      "Development Status :: 5 - Production/Stable",
+      "Intended Audience :: Developers",
+      "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+      "Natural Language :: English",
+      "Programming Language :: Python",
+      "Programming Language :: Python :: 3",
+      "Programming Language :: Python :: 3 :: Only",
+      "Programming Language :: Python :: 3.10",
+      "Programming Language :: Python :: 3.11",
+      "Programming Language :: Python :: 3.12",
+      "Programming Language :: Python :: 3.13",
+      "Programming Language :: Python :: 3.14",
+      "Programming Language :: Python :: 3.7",
+      "Programming Language :: Python :: 3.8",
+      "Programming Language :: Python :: 3.9"
+    ],
+    "description": "Certifi: Python SSL Certificates\n================================\n\nCertifi provides Mozilla's carefully curated collection of Root Certificates for\nvalidating the trustworthiness of SSL certificates while verifying the identity\nof TLS hosts. It has been extracted from the `Requests`_ project.\n\nInstallation\n------------\n\n``certifi`` is available on PyPI. Simply install it with ``pip``::\n\n    $ pip install certifi\n\nUsage\n-----\n\nTo reference the installed certificate authority (CA) bundle, you can use the\nbuilt-in function::\n\n    >>> import certifi\n\n    >>> certifi.where()\n    '/usr/local/lib/python3.7/site-packages/certifi/cacert.pem'\n\nOr from the command line::\n\n    $ python -m certifi\n    /usr/local/lib/python3.7/site-packages/certifi/cacert.pem\n\nEnjoy!\n\n.. _`Requests`: https://requests.readthedocs.io/en/latest/\n\nAddition/Removal of Certificates\n--------------------------------\n\nCertifi does not support any addition/removal or other modification of the\nCA trust store content. This project is intended to provide a reliable and\nhighly portable root of trust to python deployments. Look to upstream projects\nfor methods to use alternate trust.\n",
+    "description_content_type": null,
+    "docs_url": null,
+    "download_url": null,
+    "downloads": {
+      "last_day": -1,
+      "last_month": -1,
+      "last_week": -1
+    },
+    "dynamic": [
+      "Author",
+      "Author-Email",
+      "Classifier",
+      "Description",
+      "Home-Page",
+      "License",
+      "License-File",
+      "Project-Url",
+      "Requires-Python",
+      "Summary"
+    ],
+    "home_page": "https://github.com/certifi/python-certifi",
+    "keywords": null,
+    "license": "MPL-2.0",
+    "license_expression": null,
+    "license_files": [
+      "LICENSE"
+    ],
+    "maintainer": null,
+    "maintainer_email": null,
+    "name": "certifi",
+    "package_url": "https://pypi.org/project/certifi/",
+    "platform": null,
+    "project_url": "https://pypi.org/project/certifi/",
+    "project_urls": {
+      "Homepage": "https://github.com/certifi/python-certifi",
+      "Source": "https://github.com/certifi/python-certifi"
+    },
+    "provides_extra": null,
+    "release_url": "https://pypi.org/project/certifi/2026.7.22/",
+    "requires_dist": null,
+    "requires_python": ">=3.7",
+    "summary": "Python package for providing Mozilla's CA Bundle.",
+    "version": "2026.7.22",
+    "yanked": false,
+    "yanked_reason": null
+  },
+  "last_serial": 42639290,
+  "ownership": {},
+  "urls": [
+    "... ignored ..."
+  ],
+  "vulnerabilities": [
+    {
+      "aliases": [
+        "PYSEC-2026-4320"
+      ],
+      "details": "Certifi versions before 2026.10.18 include the `emSign ECC Root CA - G3` root certificate in their bundled CA store. Eight eMudhra intermediate CA certificates that chain to this root have compromised private keys and the CA has revoked them. \n\nAn attacker with one of the compromised keys can issue valid-looking certificates for any hostname. If the attacker is also on-path, they can intercept or modify TLS traffic from clients that trust the certifi bundle. Examples include `requests`, `urllib3` and `pip`, and the Python.org macOS installer.\n\nCertifi 2026.10.18 removed all emSign roots from the bundle. Certifi 2026.10.19 restored the emSign roots that are not affected. Upgrade to 2026.10.19 or later, and rebuild container images that vendor certifi.",
+      "fixed_in": [
+        "2026.10.18"
+      ],
+      "id": "GHSA-6q48-6c7w-9gw2",
+      "link": "https://osv.dev/vulnerability/GHSA-6q48-6c7w-9gw2",
+      "source": "osv",
+      "summary": null,
+      "withdrawn": null
+    },
+    {
+      "aliases": [
+        "GHSA-6q48-6c7w-9gw2"
+      ],
+      "details": "Certifi versions before 2026.10.18 include the `emSign ECC Root CA - G3` root certificate in their bundled CA store. Eight eMudhra intermediate CA certificates that chain to this root have compromised private keys and the CA has revoked them. \n\nAn attacker with one of the compromised keys can issue valid-looking certificates for any hostname. If the attacker is also on-path, they can intercept or modify TLS traffic from clients that trust the certifi bundle. Examples include `requests`, `urllib3` and `pip`, and the Python.org macOS installer.\n\nCertifi 2026.10.18 removed all emSign roots from the bundle. Certifi 2026.10.19 restored the emSign roots that are not affected. Upgrade to 2026.10.19 or later, and rebuild container images that vendor certifi.",
+      "fixed_in": [
+        "2026.10.18"
+      ],
+      "id": "PYSEC-2026-4320",
+      "link": "https://osv.dev/vulnerability/PYSEC-2026-4320",
+      "source": "osv",
+      "summary": null,
+      "withdrawn": null
+    }
+  ]
+}'''
+
+[[interactions]]
+[interactions.request]
+method = "GET"
+uri = "https://pypi.org/pypi/sys/3.15/json"
+body = ""
+
+[interactions.request.headers]
+host = ["pypi.org"]
+accept-encoding = ["gzip, deflate"]
+connection = ["keep-alive"]
+user-agent = ["python-httpx2/2.16.0"]
+accept = ["application/json"]
+
+[interactions.response.status]
+code = 404
+message = "Not Found"
+
+[interactions.response.headers]
+content-length = ["28"]
+referrer-policy = ["origin-when-cross-origin"]
+content-type = ["application/json"]
+date = ["Thu, 12 Nov 2026 12:50:39 GMT"]
+vary = ["Accept-Encoding"]
+
+[interactions.response.body]
+string = '''{
+  "message": "Not Found"
+}'''

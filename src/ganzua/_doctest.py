@@ -16,7 +16,9 @@ import typing as t
 from dataclasses import dataclass
 
 import pydantic
+import typing_extensions
 
+from . import _fault_injection as fault_injection
 from . import _markdown as md
 from ._edit_requirement import UpdateRequirement
 from ._git import Git
@@ -80,7 +82,12 @@ class Runner:
     This is implemented as a single-pass parser that processes line by line.
     """
 
-    def __init__(self, iter: "_Input", example_dir: pathlib.Path) -> None:
+    def __init__(
+        self,
+        iter: "_Input",
+        example_dir: pathlib.Path,
+        active_faults: fault_injection.State,
+    ) -> None:
         self.input = iter
         self.executed_doctest_commands: int = 0
         self.ganzua = app.testrunner()
@@ -97,24 +104,29 @@ class Runner:
             DoctestCompareOutput(),
             DoctestCleanExample(),
             CreateLockfile(),
+            FaultInjectionDirective(active_faults),
         ]
 
     @classmethod
-    def run(cls, path: pathlib.Path) -> str:
+    def run(cls, path: "pathlib.Path | _Input") -> str:
         """Entrypoint intended for real use."""
-        input = _Input.new_from_lines(path.read_text().rstrip().splitlines(), path=path)
-        with tempfile.TemporaryDirectory() as example_dir:
-            runner = cls(input, pathlib.Path(example_dir))
+        if isinstance(path, _Input):
+            input = path
+        else:
+            input = _Input.new_from_lines(
+                path.read_text().rstrip().splitlines(), path=path
+            )
+        with (
+            tempfile.TemporaryDirectory() as example_dir,
+            fault_injection.scope() as active_faults,
+        ):
+            runner = cls(input, pathlib.Path(example_dir), active_faults)
             return "\n".join(runner.process_all_lines())
 
     @classmethod
     def run_example(cls, *lines: str) -> str:
         """Entrypoint intended for doctests."""
-        input = _Input.new_from_lines(lines, path="example")
-        with tempfile.TemporaryDirectory() as example_dir:
-            runner = cls(input, pathlib.Path(example_dir))
-            output = list(runner.process_all_lines())
-            return "\n".join(output).strip()
+        return cls.run(_Input.new_from_lines(lines, path="example")).strip()
 
     @classmethod
     def run_table_example[T](cls, *lines: str, model: type[T]) -> list[T]:
@@ -289,6 +301,11 @@ class Runner:
         if sniff_type and output.startswith(("{", "[")):
             type = "json"
         output = self._unexpand_variables(output)
+        output = re.sub(  # make Pydantic error messages more stable
+            r"https://errors\.pydantic\.dev/[0-9.]+/v/",
+            r"https://errors.pydantic.dev/latest/v/",
+            output,
+        )
         if returncode and not raise_for_error:
             output += f"\n[command exited with status {returncode}]"
         if exception is not None:
@@ -611,6 +628,8 @@ class JsonSchemaDirective(DoctestSyntax):
         value: object = importlib.import_module(module)
         for attr in attr_path.split("."):
             value = getattr(value, attr)
+        # At this point, the `value` should have resolved to some type that has a schema.
+        value = t.cast(typing_extensions.TypeForm, value)
 
         # Check whether we can provide a custom config.
         # <https://pydantic.dev/docs/validation/latest/api/pydantic/type_adapter/#pydantic.type_adapter.TypeAdapter.__init__(config)>
@@ -974,6 +993,31 @@ class DoctestExample(DoctestSyntax):
                 pass
             return True
         return False
+
+
+@dataclasses.dataclass
+class FaultInjectionDirective(DoctestSyntax):
+    START: t.ClassVar = re.compile(r"<!-- doctest: fault injection (\{.*?\}) -->")
+
+    active_faults: fault_injection.State
+
+    @t.override
+    def process(
+        self, _runner: "Runner", line: _ParsedLine[re.Match[str]], /
+    ) -> t.Iterator[str]:
+        (new_faults_json,) = line.data.groups()
+        new_faults = pydantic.TypeAdapter(fault_injection.State).validate_json(
+            new_faults_json, strict=True
+        )
+
+        # Mutate the active faults in-place.
+        # Mypy doesn't recognize the `clear()` method on TypedDicts,
+        # but here it is safe because all keys are optional.
+        # This is the equivalent to the list operation `old[:] = new`.
+        t.cast(dict, self.active_faults).clear()
+        self.active_faults.update(new_faults)
+
+        yield line
 
 
 class ExamplePackage(t.TypedDict, total=False):

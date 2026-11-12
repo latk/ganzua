@@ -26,6 +26,7 @@
 * [Filters](filters.md)
 * [File formats](file-formats.md)
 * [Git](git.md)
+* [PyPI metadata](pypi-metadata.md)
 
 ---
 

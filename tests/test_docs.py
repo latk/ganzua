@@ -14,6 +14,8 @@ from . import resources
 
 _GANZUA_VERSION = importlib.metadata.version("ganzua")
 
+pytestmark = pytest.mark.vcr
+
 
 def test_readme() -> None:
     """Test to ensure that the README is up to date.

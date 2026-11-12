@@ -34,6 +34,7 @@ import typing as t
 from dataclasses import dataclass
 
 import click
+import yarl
 
 from ._filters import ConstraintFilter, LockfileFilter
 
@@ -76,6 +77,10 @@ class Option:
     type: click.ParamType | None = None
     deprecated: str | None = None
     metavar: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.help:
+            self.help = self.help.rstrip()
 
     def to_click(self, field_name: str, ty: _TypeForm, default: object) -> click.Option:
         name = [
@@ -249,6 +254,8 @@ def _infer_param_type(ty: _TypeForm) -> click.ParamType:
         return ty.PARAM_TYPE
     if ty is pathlib.Path:
         return click.Path(path_type=pathlib.Path)
+    if ty is yarl.URL:
+        return _YarlParamType()
 
     if isinstance(ty, type) and issubclass(ty, enum.Enum):
         return click.Choice(ty, case_sensitive=False)
@@ -275,3 +282,50 @@ def _expand_union_type(ty: _TypeForm) -> t.Iterable[_TypeForm]:
 
     yield ty
     return
+
+
+class _YarlParamType(click.ParamType[yarl.URL]):
+    """Adapt the YARL URL parser for Click.
+
+    Basic examples:
+
+    >>> p = _YarlParamType()
+    >>> p.convert("https://example.com", None, None)
+    URL('https://example.com')
+    >>> p.convert(yarl.URL("https://example.com"), None, None)
+    URL('https://example.com')
+
+    Examples of errors:
+
+    >>> p.convert(None, None, None)
+    Traceback (most recent call last):
+    click.exceptions.BadParameter: url must be a string: None
+
+    >>> p.convert("ftp://example.com", None, None)
+    Traceback (most recent call last):
+    click.exceptions.BadParameter: url must use `http:` or `https:` scheme: 'ftp://example.com'
+
+    >>> p.convert("https:./relative", None, None)
+    Traceback (most recent call last):
+    click.exceptions.BadParameter: url must be absolute: 'https:./relative'
+    """
+
+    name = "url"
+
+    @t.override
+    def convert(
+        self, value: object, param: click.Parameter | None, ctx: click.Context | None
+    ) -> yarl.URL:
+        if isinstance(value, yarl.URL):
+            url = value
+        elif isinstance(value, str):
+            url = yarl.URL(value)
+        else:
+            self.fail(f"url must be a string: {value!r}", param, ctx)
+
+        if url.scheme not in ("http", "https"):
+            self.fail(f"url must use `http:` or `https:` scheme: {value!r}", param, ctx)
+        if not url.absolute:
+            self.fail(f"url must be absolute: {value!r}", param, ctx)
+
+        return url

@@ -20,7 +20,9 @@ def md_from_schema(schema: pydantic.JsonValue) -> str:
     return "\n".join(renderer.md_from_root_recursive(resolver.resolve(schema))).strip()
 
 
-type _SchemaType = _SchemaObject | _SchemaUnion | _SchemaArray | _SchemaPrimitive
+type _SchemaType = (
+    _SchemaObject | _SchemaUnion | _SchemaArray | _SchemaDict | _SchemaPrimitive
+)
 
 
 @dataclass(eq=False)
@@ -51,6 +53,12 @@ class _SchemaArray:
 
 
 @dataclass(eq=False)
+class _SchemaDict:
+    keys: _SchemaType
+    values: _SchemaType
+
+
+@dataclass(eq=False)
 class _SchemaPrimitive:
     name: str
 
@@ -62,12 +70,19 @@ class _Resolver:
 
     ref_cache: dict[str, _SchemaType] = dataclasses.field(default_factory=dict)
 
-    def resolve(  # noqa: C901 # complexity
+    def resolve(  # noqa: C901,PLR0911 # complexity, too-many-return-statements
         self, spec: pydantic.JsonValue
     ) -> _SchemaType:
         match spec:
             case {"$ref": str(ptr)}:
                 return self._resolve_ptr_cached(ptr)
+            case {"type": "object", "additionalProperties": values, **other} if not (
+                other.keys() - ("title", "description")
+            ):
+                return _SchemaDict(
+                    keys=self.resolve({"type": "string"}),
+                    values=self.resolve(values),
+                )
             case {"type": "object"}:
                 return self._resolve_object(spec)
             case {"anyOf": [*variants]} if variants:
@@ -251,6 +266,10 @@ class _Renderer:
             case _SchemaArray():
                 item_md = self.md_from_type_reference(spec.items)
                 return f"array({item_md})"
+            case _SchemaDict():
+                key_md = self.md_from_type_reference(spec.keys)
+                value_md = self.md_from_type_reference(spec.values)
+                return f"mapping({key_md} → {value_md})"
             case _SchemaPrimitive():
                 return spec.name
             case _:
