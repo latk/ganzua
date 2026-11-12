@@ -45,8 +45,6 @@ not a git blob.
   In addition to `gitrevision` syntax, may use `INDEX` to name staged files.
 * `--no-git`
   Disable Git functionality. [default: enabled]
-* `--git-executable EXECUTABLE`
-  How to invoke Git. [default: git]
 * `--[no-]pypi-metadata`
   Look up PyPI metadata for locked packages. [default: off]
 

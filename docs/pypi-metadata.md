@@ -34,6 +34,8 @@ which may involve re-installing or upgrading Ganzua to upgrade Ganzua's own depe
 Ganzua's PyPI metadata feature might not work in exotic network setups,
 e.g. when proxies or private certificates are involved.
 You may be able to use [`httpx2` environment variables](https://pydantic.dev/docs/httpx2/api/environment_variables/) to configure Ganzua appropriately.
+If you need to connect to the PyPI API via a different domain name,
+you can use the (unstable) `--pypi-metadata-url` option.
 
 **Using metadata safely.**
 When you use the PyPI metadata to make security-relevant decisions,

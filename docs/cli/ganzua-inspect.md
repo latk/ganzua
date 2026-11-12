@@ -23,8 +23,6 @@ the one in the current working directory will be used.
   Choose the output format, e.g. Markdown. [default: json]
 * `--no-git`
   Disable Git functionality. [default: enabled]
-* `--git-executable EXECUTABLE`
-  How to invoke Git. [default: git]
 * `--[no-]pypi-metadata`
   Look up PyPI metadata for locked packages. [default: off]
 

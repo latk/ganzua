@@ -124,10 +124,9 @@ class _GitOptions:
     no_git: t.Annotated[
         bool, clack.Option(help="Disable Git functionality. [default: enabled]")
     ] = False
-    git_executable: t.Annotated[
-        str,
-        clack.Option(help="How to invoke Git. [default: git]", metavar="EXECUTABLE"),
-    ] = "git"
+    git_executable: t.Annotated[str, clack.Option(help=None, metavar="EXECUTABLE")] = (
+        "git"
+    )
 
     def get(self) -> Git | None:
         if self.no_git:

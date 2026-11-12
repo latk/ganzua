@@ -15,7 +15,7 @@ Using the Git feature will invoke the `git` executable.
 Depending on your `PATH`, this may run arbitrary code on your system.
 Make sure that `git` resolves to the expected git client (e.g. by using `which git`).
 
-You can **override the Git executable name** via the `--git-executable` option.
+You can **override the Git executable name** via the (unstable) `--git-executable` option.
 If you use this to provide a path (not just a name),
 this avoids the `PATH` lookup, thus giving you full control.
 
