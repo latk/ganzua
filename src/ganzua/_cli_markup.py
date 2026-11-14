@@ -1,9 +1,9 @@
 """Content that can be printed on a console or as Markdown."""
 
+import dataclasses
 import re
 import textwrap
 import typing as t
-from dataclasses import dataclass
 
 import rich.console
 import rich.style
@@ -26,33 +26,33 @@ type AnyContent = (
 )
 
 
-@dataclass
+@dataclasses.dataclass
 class Usage:
     usage: str
 
 
-@dataclass
+@dataclasses.dataclass
 class HelpHeading:
     text: str
 
 
-@dataclass
+@dataclasses.dataclass
 class SubcommandHeading:
     text: str
 
 
-@dataclass
+@dataclasses.dataclass
 class Markdown:
     content: str
 
 
-@dataclass
+@dataclasses.dataclass
 class Indent:
     content: AnyContent
     pad: int = 4
 
 
-@dataclass
+@dataclasses.dataclass
 class DefinitionListItem:
     key: rich.text.Text
     description: AnyContent
@@ -65,7 +65,7 @@ class DefinitionListItem:
         return cls(rich.text.Text(name, style=_OPT_STYLE), description, xref)
 
 
-@dataclass
+@dataclasses.dataclass
 class DefinitionList:
     """A list that tries to render as a compact table, if space is available.
 
@@ -125,7 +125,7 @@ class DefinitionList:
         yield table
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclasses.dataclass(frozen=True, kw_only=True)
 class ToMarkdownConverter:
     heading_template: str = "### {text}"
     """Used to produce the entire Markdown header line. Placeholders: `{text}`, `{slug}`."""

@@ -1,6 +1,6 @@
+import dataclasses
 import itertools
 import typing as t
-from dataclasses import dataclass
 
 import pydantic
 from packaging.version import InvalidVersion, Version
@@ -59,7 +59,7 @@ class DiffEntry(t.TypedDict):
     """
 
 
-@dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True)
 class DiffStat:
     total: int
     added: int
@@ -67,7 +67,7 @@ class DiffStat:
     updated: int
 
 
-@dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True)
 class Diff:
     stat: DiffStat
     packages: list[DiffEntry]

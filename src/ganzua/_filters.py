@@ -1,8 +1,8 @@
+import dataclasses
 import re
 import string
 import typing as t
 import unicodedata
-from dataclasses import dataclass
 
 import click
 
@@ -10,7 +10,7 @@ from ._lockfile import Lockfile
 from ._requirement import Requirement
 
 
-@dataclass
+@dataclasses.dataclass
 class _FilterParamType[F: ("ConstraintFilter", "LockfileFilter")](click.ParamType):
     name: str
     cls: type[F]
@@ -29,7 +29,7 @@ class _FilterParamType[F: ("ConstraintFilter", "LockfileFilter")](click.ParamTyp
             self.fail(f"{ex}", param, ctx)
 
 
-@dataclass
+@dataclasses.dataclass
 class ConstraintFilter:
     rules: t.Sequence["Rule"]
     has_positive_pattern: bool
@@ -37,7 +37,7 @@ class ConstraintFilter:
     PARAM_TYPE: t.ClassVar[_FilterParamType[t.Any]]  # initialized later
     DEFAULT: t.ClassVar[t.Self]  # initialized later
 
-    @dataclass(kw_only=True)
+    @dataclasses.dataclass(kw_only=True)
     class Rule:
         negated: bool
         name: re.Pattern[str] | None
@@ -79,7 +79,7 @@ class ConstraintFilter:
         return matches
 
 
-@dataclass
+@dataclasses.dataclass
 class LockfileFilter:
     rules: t.Sequence["Rule"]
     has_positive_pattern: bool
@@ -87,7 +87,7 @@ class LockfileFilter:
     PARAM_TYPE: t.ClassVar[_FilterParamType[t.Any]]  # initialized later
     DEFAULT: t.ClassVar[t.Self]  # initialized later
 
-    @dataclass(kw_only=True)
+    @dataclasses.dataclass(kw_only=True)
     class Rule:
         negated: bool
         name: re.Pattern[str]
@@ -128,7 +128,7 @@ LockfileFilter.DEFAULT = LockfileFilter((), has_positive_pattern=False)
 _PATTERN_LITERAL_FRAGMENT = re.compile(r"[a-zA-Z0-9._-]++")
 
 
-@dataclass
+@dataclasses.dataclass
 class _Ptr:
     data: str
     i: int = 0

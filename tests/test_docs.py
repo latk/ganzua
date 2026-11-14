@@ -44,13 +44,15 @@ def test_changelog_mentions_current_version() -> None:
     changelog = resources.CHANGELOG.read_text()
 
     # There is a changelog entry for the current version.
-    version_line_pattern = re.compile(r"^## v([0-9\.]+) \([0-9-]+\) \{#v\1\}$", re.M)
+    version_line_pattern = re.compile(
+        r"^## v([0-9\.]+) \([0-9-]+\) \{#v\1\}$", re.MULTILINE
+    )
     known_versions = [m[1] for m in version_line_pattern.finditer(changelog)]
     assert _GANZUA_VERSION in known_versions
 
     # There is a link to the full diff on GitHub.
     diff_link_pattern = re.compile(
-        r"^Full diff: <https://github.com/latk/ganzua/compare/([^/\n]+)>$", re.M
+        r"^Full diff: <https://github.com/latk/ganzua/compare/([^/\n]+)>$", re.MULTILINE
     )
     known_diffs = [m[1] for m in diff_link_pattern.finditer(changelog)]
     prev_version = known_versions[known_versions.index(_GANZUA_VERSION) + 1]
@@ -64,7 +66,9 @@ def _bump_mentioned_versions(readme: str) -> str:
     version = r"\s* [a-z0-9_.*+!-]+"
     version_one = rf"{version_cmp} {version} \s*"
     version_many = rf"{version_one} (?:, {version_one})*"  # deny trailing comma
-    ganzua_constraint = re.compile(rf"\b ganzua \s* {version_many}", flags=re.X | re.I)
+    ganzua_constraint = re.compile(
+        rf"\b ganzua \s* {version_many}", flags=re.VERBOSE | re.IGNORECASE
+    )
 
     edit = UpdateRequirement(
         lockfile=lockfile_by_name(

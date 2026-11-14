@@ -9,10 +9,10 @@ they will all be printed out interspersed.
 
 import asyncio
 import collections
+import dataclasses
 import shlex
 import sys
-from dataclasses import dataclass
-from typing import Never, Sequence
+import typing as t
 
 BOLD = "\033[1m"
 NORMAL = "\033[0m"
@@ -38,27 +38,27 @@ async def main() -> None:
     sys.exit(min(num_errors, MAX_FAILED_TASKS_EXIT_STATUS))
 
 
-@dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True)
 class _CliOptions:
     shell: bool = False
 
 
-@dataclass
+@dataclasses.dataclass
 class _CliArguments(_CliOptions):
-    template: Sequence[str]
-    params: Sequence[str]
+    template: t.Sequence[str]
+    params: t.Sequence[str]
 
 
 def _warn(msg: str, /) -> None:
     print(msg, file=sys.stderr)
 
 
-def _die(msg: str, /, *, status: int = 17) -> Never:
+def _die(msg: str, /, *, status: int = 17) -> t.Never:
     _warn(msg)
     sys.exit(status)
 
 
-def _parse_cli_arguments(_args: Sequence[str], /, *, name: str) -> _CliArguments:
+def _parse_cli_arguments(_args: t.Sequence[str], /, *, name: str) -> _CliArguments:
     args = collections.deque(_args)
 
     opts = _consume_options(args, name=name)
@@ -100,7 +100,7 @@ def _consume_options(args: collections.deque[str], *, name: str) -> _CliOptions:
 
 def _consume_template(
     args: collections.deque[str], *, opts: _CliOptions
-) -> Sequence[str]:
+) -> t.Sequence[str]:
     template = list[str]()
     while args:
         match args[0]:
@@ -144,7 +144,7 @@ async def _run(*cmd: str, shell: bool) -> asyncio.subprocess.Process:
     return p
 
 
-def _expand_template(*, template: Sequence[str], value: str) -> Sequence[str]:
+def _expand_template(*, template: t.Sequence[str], value: str) -> t.Sequence[str]:
     return tuple(arg.replace("{}", value) for arg in template)
 
 

@@ -44,14 +44,15 @@ NotImplementedError
 
 """
 
+import dataclasses
 import typing as t
-from dataclasses import dataclass
 
 import tomlkit.container
 import tomlkit.items
 
 type Ref = RefRoot | RefTableItem | RefArrayItem | RefNull
 
+# ruff: ignore[UP040]  # don't use `type`, so that isinstance() keeps working
 _TomlDict: t.TypeAlias = (
     tomlkit.container.Container
     | tomlkit.container.OutOfOrderTableProxy
@@ -59,7 +60,7 @@ _TomlDict: t.TypeAlias = (
 )
 
 
-_TomlAny = _TomlDict | tomlkit.items.Item | bool
+type _TomlAny = _TomlDict | tomlkit.items.Item | bool
 
 
 class IRef(t.Protocol):
@@ -104,7 +105,7 @@ class IRef(t.Protocol):
             yield RefTableItem(container=value, key=key)
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class RefRoot(IRef):
     root: _TomlDict
 
@@ -124,7 +125,7 @@ class RefRoot(IRef):
         return tomlkit.dumps(self.value())
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class RefTableItem(IRef):
     container: _TomlDict
     key: str
@@ -140,7 +141,7 @@ class RefTableItem(IRef):
         self.container[self.key] = value
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class RefArrayItem(IRef):
     container: tomlkit.items.Array
     key: int
@@ -156,7 +157,7 @@ class RefArrayItem(IRef):
         self.container[self.key] = value
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class RefNull(IRef):
     @t.override
     def value(self) -> None:

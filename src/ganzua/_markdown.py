@@ -1,7 +1,7 @@
+import dataclasses
 import re
 import textwrap
 import typing as t
-from dataclasses import dataclass
 
 from ._diff import Diff, DiffEntry
 from ._lockfile import LockedPackageNoMeta, Lockfile
@@ -10,7 +10,7 @@ from ._pypi_metadata import PyPIMetadata, Vulnerability
 from ._requirement import Requirement, Requirements
 
 
-@dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True)
 class MarkdownRenderer:
     show_links: bool
 
@@ -157,7 +157,7 @@ def _resolved_notes(notes: t.Sequence["_NoteRef"]) -> str:
     return " ".join(n.resolved_id() for n in notes)
 
 
-@dataclass
+@dataclasses.dataclass
 class _NotesRegistry:
     msgs_by_category: dict[str, list[str]]
 
@@ -185,7 +185,7 @@ class _NotesRegistry:
             yield notes
 
 
-@dataclass
+@dataclasses.dataclass
 class _NoteRef:
     registry: _NotesRegistry
     category: str

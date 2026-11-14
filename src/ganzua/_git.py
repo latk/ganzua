@@ -43,7 +43,7 @@ class Git:
         self,
         blob_name: str,
         *,
-        mkerr: t.Callable[[str], Exception | t.Never],
+        mkerr: t.Callable[[str], Exception],
     ) -> str:
         result = subprocess.run(
             [self.exe, "cat-file", "blob", blob_name],
@@ -61,6 +61,7 @@ class Git:
     def run(
         self, command: t.Sequence[str], **kwargs: t.Unpack[RunArgs]
     ) -> subprocess.CompletedProcess:
+        # ruff: ignore[PLW1510]  # run without explicit check: `check` is a required field in `kwargs: RunArgs`
         return subprocess.run([self.exe, *command], **kwargs, env=self._effective_env())
 
     def _effective_env(self) -> t.Mapping[str, str] | None:

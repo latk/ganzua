@@ -20,15 +20,8 @@ lint:
 
 # automatically fix formatting and some ruff violations
 fix *files='.':
-  #!/usr/bin/env -S uv run bash -euo pipefail
-  explicitly() { echo "{{BOLD}}${@@K}{{NORMAL}}" >&2; "$@"; }
-  explicitly ruff format -- "$@"
-  explicitly ruff check --fix-only --show-fixes -- "$@"
-  if [[ "$*" == "." ]]; then
-    explicitly ./scripts/par.py --shell \
-      'ganzua schema {} >tests/schema.{}.json' \
-      ::: diff inspect constraints-inspect
-  fi
+  ruff format -- "$@"
+  ruff check --fix-only --show-fixes -- "$@"
 
 # check types
 types:

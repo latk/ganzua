@@ -1,5 +1,5 @@
+import dataclasses
 import typing as t
-from dataclasses import dataclass
 
 import packaging.markers
 import packaging.requirements
@@ -21,7 +21,7 @@ def edit_pyproject(pyproject: toml.Ref, mapper: EditRequirement) -> None:
 
 
 @t.final
-@dataclass
+@dataclasses.dataclass
 class _Editor:
     # TODO skip path dependencies?
     # TODO support Poetry-specific fields
@@ -190,7 +190,7 @@ def _dependency_groups_rdeps(dependency_groups_ref: toml.Ref) -> dict[Name, list
         for entry_ref in dependency_groups_ref.table_entries()
     }
 
-    def transitive_includes(start: Name, *, seen: t.Set[Name]) -> t.Iterator[Name]:
+    def transitive_includes(start: Name, *, seen: set[Name]) -> t.Iterator[Name]:
         seen.add(start)
         for direct in direct_includes.get(start, ()):
             if direct in seen:

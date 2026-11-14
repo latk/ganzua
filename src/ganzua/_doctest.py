@@ -13,7 +13,6 @@ import sys
 import tempfile
 import traceback
 import typing as t
-from dataclasses import dataclass
 
 import pydantic
 import typing_extensions
@@ -64,7 +63,7 @@ class _SyntaxError(Exception):
         self.add_note(f"note: around here: {line}")
 
 
-_OutputType: t.TypeAlias = t.Literal["json", "toml"] | None
+type _OutputType = t.Literal["json", "toml"] | None
 
 
 class _OutputWithType(str):
@@ -665,7 +664,7 @@ class JsonSchemaDirective(DoctestSyntax):
         yield self.END
 
     @pydantic.with_config(use_attribute_docstrings=True)
-    @dataclass
+    @dataclasses.dataclass
     class ExampleType:  # used in `testing.md`
         """Some docstring explaining what this type does."""
 
@@ -744,7 +743,7 @@ class CollapsibleOutputBlock(DoctestSyntax):
 class DoctestCheckGanzuaDiffNotes(DoctestSyntax):
     START: t.ClassVar = re.compile("<!-- doctest: check ganzua diff notes -->")
 
-    @dataclass
+    @dataclasses.dataclass
     class Example:
         package: str
         old: str
@@ -789,7 +788,7 @@ class DoctestCheckGanzuaDiffNotes(DoctestSyntax):
 class DoctestCheckGanzuaConstraintsBump(DoctestSyntax):
     START: t.ClassVar = re.compile("<!-- doctest: check ganzua constraints bump -->")
 
-    @dataclass
+    @dataclasses.dataclass
     class Example:
         locked: str
         old: str

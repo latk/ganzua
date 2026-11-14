@@ -58,7 +58,7 @@ include = [
 ]
 
 [tool.ruff.lint]
-select = [
+extend-select = [
   "ANN",  # type annotations
   "ARG",  # unused arguments
   "B",  # bugbear
@@ -69,6 +69,7 @@ select = [
   "F",  # pyflakes
   "G",  # logging
   "I",  # isort
+  "ICN", # import conventions
   "LOG",  # logging
   "N", # naming
   "PERF",
@@ -92,6 +93,13 @@ ignore = [
 ]
 pydocstyle.convention = "google"
 pylint.max-returns = 10
+flake8-import-conventions.banned-from = [
+  "asyncio",
+  "dataclasses",
+  "pydantic",
+  "typing",
+]
+flake8-import-conventions.extend-aliases = { typing = "t" }
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**.py" = ["D100"]

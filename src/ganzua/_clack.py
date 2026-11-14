@@ -31,7 +31,6 @@ import itertools
 import pathlib
 import types
 import typing as t
-from dataclasses import dataclass
 
 import click
 import yarl
@@ -67,7 +66,7 @@ def command(
     return decorator
 
 
-@dataclass
+@dataclasses.dataclass
 class Option:
     """Annotation for named options."""
 
@@ -107,7 +106,7 @@ class Option:
         )
 
 
-@dataclass
+@dataclasses.dataclass
 class Argument:
     """Annotation for positional arguments."""
 
@@ -191,7 +190,6 @@ class _Reducer:
         # Pick out all known parameter names.
         # Nonexistent input kwargs may be OK due to defaults (thus: suppress KeyError).
         # Don't validate that ourselves, instead the op() may raise a TypeError.
-        self = self
         inner_kwargs = {}
         for name in self.inputs:
             with contextlib.suppress(KeyError):

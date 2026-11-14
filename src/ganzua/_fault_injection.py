@@ -17,7 +17,7 @@ _ACTIVE_FAULTS = contextvars.ContextVar[State]("_ACTIVE_FAULTS")
 
 
 @contextlib.contextmanager
-def scope() -> t.Generator[State, None, None]:
+def scope() -> t.Generator[State]:
     state = State()
     token = _ACTIVE_FAULTS.set(state)
     try:

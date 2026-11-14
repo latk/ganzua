@@ -1,6 +1,6 @@
+import dataclasses
 import re
 import typing as t
-from dataclasses import dataclass
 
 import pydantic
 from packaging.markers import Marker
@@ -8,7 +8,7 @@ from packaging.requirements import Requirement as Pep508Requirement
 from pydantic_core import core_schema
 
 
-@dataclass
+@dataclasses.dataclass
 class FromToString:
     """Pydantic annotation to serialize the contents as a string."""
 

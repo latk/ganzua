@@ -1,8 +1,8 @@
 import contextlib
+import dataclasses
 import inspect
 import os
 import typing as t
-from dataclasses import dataclass
 
 import click
 import rich
@@ -12,7 +12,7 @@ from . import _clack as clack
 from . import _cli_markup as markup
 
 if t.TYPE_CHECKING:
-    import click.testing
+    import click.testing  # ruff: ignore[TC004]  # false positive
     import pydantic
 
 
@@ -141,11 +141,11 @@ class App:
         return AppTestRunner(self)
 
 
-AppTestCliArg: t.TypeAlias = str | os.PathLike[str]
+type AppTestCliArg = str | os.PathLike[str]
 
 
 @t.final
-@dataclass
+@dataclasses.dataclass
 class AppTestRunner:
     """Invoke the app in a testing context."""
 
@@ -212,7 +212,7 @@ def _print_rich_command_help(ctx: click.Context) -> None:
     rich.print(markup.as_rich(content))
 
 
-@dataclass
+@dataclasses.dataclass
 class _HelpFormatter:
     command_list_style: t.Literal["top", "tree", "flat"]
     """Whether command lists should be nested.
@@ -383,7 +383,7 @@ def _command_short_help(command: click.Command) -> markup.Markdown:
 @contextlib.contextmanager
 def _subcommand_context(
     *subcommand: str, help_ctx: click.Context
-) -> t.Iterator[click.Context]:
+) -> t.Generator[click.Context]:
     """Navigate to the correct subcommand and enter its context."""
     ctx = help_ctx.find_root()
 

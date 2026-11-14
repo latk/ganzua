@@ -3,10 +3,8 @@ import dataclasses
 import json
 import textwrap
 import typing as t
-from dataclasses import dataclass
 
 import pydantic
-from typing_extensions import TypeIs
 
 
 class SchemaNotSupportedError(ValueError):
@@ -25,14 +23,14 @@ type _SchemaType = (
 )
 
 
-@dataclass(eq=False)
+@dataclasses.dataclass(eq=False)
 class _SchemaObject:
     name: str | None
     description: str | None
     properties: "list[_SchemaProperty]"
 
 
-@dataclass(eq=False)
+@dataclasses.dataclass(eq=False)
 class _SchemaProperty:
     name: str
     type: _SchemaType
@@ -40,30 +38,30 @@ class _SchemaProperty:
     description: str | None
 
 
-@dataclass(eq=False)
+@dataclasses.dataclass(eq=False)
 class _SchemaUnion:
     name: str | None
     description: str | None
     variants: list[_SchemaType]
 
 
-@dataclass(eq=False)
+@dataclasses.dataclass(eq=False)
 class _SchemaArray:
     items: _SchemaType
 
 
-@dataclass(eq=False)
+@dataclasses.dataclass(eq=False)
 class _SchemaDict:
     keys: _SchemaType
     values: _SchemaType
 
 
-@dataclass(eq=False)
+@dataclasses.dataclass(eq=False)
 class _SchemaPrimitive:
     name: str
 
 
-@dataclass
+@dataclasses.dataclass
 class _Resolver:
     root: pydantic.JsonValue
     """The top-level JSON Schema object, needed for resolving refs."""
@@ -159,7 +157,7 @@ class _Resolver:
         )
 
 
-@dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True)
 class _Renderer:
     heading_level: int
 
@@ -170,7 +168,7 @@ class _Renderer:
     @contextlib.contextmanager
     def _capture_new_referenced_types(
         self, stack: list[_SchemaObject]
-    ) -> t.Generator[None, None, None]:
+    ) -> t.Generator[None]:
         try:
             yield
         finally:
@@ -276,7 +274,9 @@ class _Renderer:
                 raise SchemaNotSupportedError(spec)
 
 
-def _all_are_strings(value: t.Sequence[pydantic.JsonValue]) -> TypeIs[t.Sequence[str]]:
+def _all_are_strings(
+    value: t.Sequence[pydantic.JsonValue],
+) -> t.TypeIs[t.Sequence[str]]:
     return all(isinstance(x, str) for x in value)
 
 

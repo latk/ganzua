@@ -43,9 +43,6 @@ Ganzua is licensed under the Apache-2.0 license.
 )
 
 
-type _Jsonish = t.Mapping[str, t.Any]
-
-
 class OutputFormat(enum.Enum):
     """Different output formats available for structured data."""
 
@@ -73,7 +70,7 @@ class OutputFormat(enum.Enum):
                 t.assert_never(other)
 
 
-_OutputFormatOption: t.TypeAlias = t.Annotated[
+_OutputFormatOption = t.Annotated[
     OutputFormat,
     clack.Option(help="Choose the output format, e.g. Markdown. [default: json]"),
 ]
@@ -147,6 +144,8 @@ This will add warnings for yanked or vulnerable packages.
 """,
         ),
     ] = False
+
+    # ruff: ignore[RUF009]  # function-call-in-dataclass-default-argument: yarl.URL() is immutable
     pypi_metadata_url: t.Annotated[yarl.URL, clack.Option(help=None)] = yarl.URL(
         "https://pypi.org"
     )
@@ -567,9 +566,7 @@ class _DataLayer:
                 t.assert_never(other)
 
     @contextlib.contextmanager
-    def edit_toml(
-        self, path: pathlib.Path, *, metavar: str
-    ) -> t.Generator[toml.Ref, None, None]:
+    def edit_toml(self, path: pathlib.Path, *, metavar: str) -> t.Generator[toml.Ref]:
         """Load the TOML file and write it back afterwards."""
         old_contents = self.read(path, metavar=metavar)
         with error_context(f"while parsing {path}"):

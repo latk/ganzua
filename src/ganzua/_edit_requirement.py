@@ -1,6 +1,5 @@
 import dataclasses
 import typing as t
-from dataclasses import dataclass
 
 from packaging.specifiers import Specifier, SpecifierSet
 from packaging.utils import canonicalize_version
@@ -15,7 +14,7 @@ class EditRequirement(t.Protocol):
     def apply(self, req: RequirementWithKind) -> None: ...
 
 
-@dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True)
 class UpdateRequirement(EditRequirement):
     """Update a requirement constraint to match the locked version."""
 
@@ -61,7 +60,7 @@ class UpdateRequirement(EditRequirement):
                 t.assert_never(other)
 
 
-@dataclass
+@dataclasses.dataclass
 class UnconstrainRequirement(EditRequirement):
     """Remove any constraints from the requirement."""
 
@@ -76,7 +75,7 @@ class UnconstrainRequirement(EditRequirement):
                 t.assert_never(other)
 
 
-@dataclass
+@dataclasses.dataclass
 class SetMinimumRequirement(EditRequirement):
     """Set the constraints to the minimum locked version."""
 
@@ -103,7 +102,7 @@ class SetMinimumRequirement(EditRequirement):
         req["specifier"] = f">={target_version}"
 
 
-@dataclass
+@dataclasses.dataclass
 class CollectRequirement(EditRequirement):
     """Collect all requirements into an array, without changing them."""
 
@@ -114,7 +113,7 @@ class CollectRequirement(EditRequirement):
         self.reqs.append(req)
 
 
-@dataclass
+@dataclasses.dataclass
 class FilteredEdit(EditRequirement):
     """Decorator that only applies the inner edit to matching requirements."""
 

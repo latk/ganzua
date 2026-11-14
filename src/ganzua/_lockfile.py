@@ -1,6 +1,6 @@
+import dataclasses
 import tomllib
 import typing as t
-from dataclasses import dataclass
 
 import pydantic
 import yarl
@@ -160,7 +160,7 @@ class UvLockfileV1Package(t.TypedDict):
     Uv provides this information for *every* package."""
 
 
-@dataclass
+@dataclasses.dataclass
 class UvLockfileV1:
     """The uv lockfile format (v1).
 
@@ -226,7 +226,7 @@ Ganzua requires the presence of this field, but does not validate the contents i
 )
 
 
-@dataclass
+@dataclasses.dataclass
 class PoetryLockfileV2:
     """The Poetry lockfile format (v2).
 
@@ -308,7 +308,7 @@ class PylockV1Package(t.TypedDict, total=False):
 @pydantic.with_config(
     alias_generator=lambda name: name.replace("_", "-"), use_attribute_docstrings=True
 )
-@dataclass
+@dataclasses.dataclass
 class PylockV1:
     """Relevant parts of the `pylock.toml` file format.
 

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """Install tools for the current platform: mdbook, lychee."""
 
 import pathlib
