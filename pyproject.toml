@@ -14,14 +14,14 @@ classifiers = [
 ]
 requires-python = ">=3.13"  # also update justfile (multitest), .github/workflows/{release,test}.yaml
 dependencies = [
-    "click>=8.4.2",
+    "click>=8.5.1",
     "httpx2>=2.16.0",
-    "packaging>=26.2",
+    "packaging>=26.3",
     "pydantic>=2.14.3",
     "rich>=15.0.0",
-    "tomlkit>=0.15.0",
+    "tomlkit>=0.15.2",
     "typing-extensions>=4.16.0",
-    "yarl>=1.24.2",
+    "yarl>=1.25.1",
 ]
 
 [project.scripts]
@@ -39,12 +39,12 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "dirty-equals>=0.11",
-    "inline-snapshot>=0.34.2",
-    "mypy>=2.4.0",
+    "inline-snapshot>=0.36.2",
+    "mypy>=2.4.1",
     "pytest-cov>=7.1.0",
     "pytest-recording>=0.14.1",
-    "pytest>=9.1.1",
-    "ruff>=0.15.20",
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
 ]
 
 [tool.uv.workspace]
