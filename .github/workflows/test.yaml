@@ -12,10 +12,10 @@ jobs:
     name: Test (Python ${{ matrix.python-version }})
     permissions:
       contents: read
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       matrix:
-        python-version: ['3.12', '3.13', '3.14']
+        python-version: ['3.13', '3.14', '3.15']
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
@@ -30,8 +30,8 @@ jobs:
       - run: just -v docs
       - run: just -v dist
 
-      - uses: actions/upload-pages-artifact@v5.0.0
-        if: matrix.python-version == '3.12'
+      - uses: actions/upload-pages-artifact@v5.0.1
+        if: matrix.python-version == '3.13'
         with:
           path: dist/docs/
 

@@ -42,6 +42,7 @@ Fixes:
 Other:
 
 * docs: added “file formats” section
+* support Python 3.15, drop support for Python 3.12
 
 Full diff: <https://github.com/latk/ganzua/compare/v0.4.0...HEAD>
 

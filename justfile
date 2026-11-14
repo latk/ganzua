@@ -38,6 +38,14 @@ types:
 test *args:
   pytest --cov=ganzua --cov=tests "$@"
 
+# run tests under multiple Python versions
+multitest *args:
+  #!/usr/bin/env bash
+  set -xeuo pipefail
+  uv run --isolated --python=3.13 pytest "$@"
+  uv run --isolated --python=3.14 pytest "$@"
+  uv run --isolated --python=3.15 pytest "$@"
+
 # build wheel/sdist
 dist:
     #!/usr/bin/env -S bash -euo pipefail
