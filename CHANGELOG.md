@@ -30,19 +30,50 @@ Breaking changes:
 
 New features:
 
-* (<https://github.com/latk/ganzua/issues/8>) Support `pylock.toml` files as an input format in addition to `uv.lock` and `poetry.lock`.
-* (<https://github.com/latk/ganzua/issues/6>) Support `group:*` and `extra:*` qualifiers in constraint filters.
-* (<https://github.com/latk/ganzua/issues/16>) Support reading lockfiles from Git history
-* (<https://github.com/latk/ganzua/issues/15>) Support fetching metadata from PyPI:
-  vulnerability warnings, changelog links.
-  This allows `ganzua inspect --pypi-metadata` to provide basic `pip-audit` style functionality.
+* **New `pylock.toml` input format** (<https://github.com/latk/ganzua/issues/8>).
+  The [PEP-751 `pylock.toml` format](https://packaging.python.org/en/latest/specifications/pylock-toml/) is seeing increasing adoption,
+  e.g. by pip 26.x.
+  Now, Ganzua can read this lockfile format as well,
+  in addition to `uv.lock` and `poetry.lock`.
+  Docs: [File formats » Lockfiles](https://ganzua.latk.de/file-formats.html#lockfiles).
+
+* **Group and extras filters** (<https://github.com/latk/ganzua/issues/6>).
+  The `ganzua constraints *` commands can now use an extended filter syntax to filter not only by package name, but also by where the a constraint appears in a `pyproject.toml` file.
+  For example, `--filter=group:dev` limits the command to dev-dependencies (`dependency-groups.dev`),
+  and `--filter '!group:*, !extra:*'` limits the command to the main package dependencies (no extras, no groups).
+  Docs: [Filters » Constraint rule examples](https://ganzua.latk.de/filters.html#constraint-rule-examples).
+
+* **Git support** (<https://github.com/latk/ganzua/issues/16>).
+  Ganzua can now read lockfiles from the Git history,
+  which greatly simplifies typical `ganzua inspect` and `ganzua diff` usecases.
+  In addition to file paths,
+  positional arguments can now be Git blob names, e.g. `HEAD:uv.lock`.
+  The `--git` argument can be used to name a Git commit or range.
+  Examples:
+
+  | command                         | explanation                                   |
+  |---------------------------------|-----------------------------------------------|
+  | `ganzua diff`                   | show unstaged lockfile changes                |
+  | `ganzua diff --git=origin/main` | show lockfile changes relative to some branch |
+  | `ganzua inspect v0.4.0:uv.lock` | inspect the lockfile as it was at that tag    |
+
+  Docs: [Git](https://ganzua.latk.de/git.html), `man gitrevisions`.
+
+* **PyPI metadata** (<https://github.com/latk/ganzua/issues/15>).
+  When given the `--pypi-metadata` option,
+  `ganzua inspect` and `ganzua diff` will fetch information about the shown packages from PyPI.
+  This will show known vulnerabilites, and whether the package version was yanked
+  (somewhat similar to `pip-audit`).
+  JSON mode will also show project URLs, e.g. a `changelog` link (if declared by the package authors).
+  Docs: [PyPI metadata](https://ganzua.latk.de/pypi-metadata.html).
 
 Fixes:
 
 Other:
 
-* docs: added “file formats” section
 * support Python 3.15, drop support for Python 3.12
+* docs: added “file formats” section
+* internal: rewrite CLI parameter handling
 
 Full diff: <https://github.com/latk/ganzua/compare/v0.4.0...HEAD>
 

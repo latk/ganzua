@@ -210,7 +210,7 @@ In particular, there's no support for `requirements.txt`.
 **Ganzua strives to be complete, compliant, and correct.**
 Ganzua is 0% AI and 100% human expertise, informed by reading the relevant PEPs, docs, and the source code of relevant tools.
 The tool is thoroughly tested with 100% branch coverage, and has seen extensive use in large-scale real-world projects.
-Ganzua is intentionally stupid and avoids dangerous stuff like editing lockfiles or interacting with Git.
+Ganzua is intentionally stupid and avoids dangerous stuff like editing lockfiles or modifying Git repos.
 
 **Ganzua is designed for scripting.**
 All subcommands are designed for JSON output first, with output that conforms to a stable schema.
