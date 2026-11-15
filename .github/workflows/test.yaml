@@ -30,7 +30,7 @@ jobs:
       - run: just -v docs
       - run: just -v dist
 
-      - uses: actions/upload-pages-artifact@v5.0.1
+      - uses: actions/upload-pages-artifact@v5.0.0
         if: matrix.python-version == '3.13'
         with:
           path: dist/docs/
@@ -48,5 +48,5 @@ jobs:
       id-token: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/deploy-pages@v5.0.0
+      - uses: actions/deploy-pages@v5.0.1
         id: deployment
