@@ -22,7 +22,7 @@ Full diff: <https://github.com/latk/ganzua/compare/{last_release}...HEAD>
 
 -->
 
-## Unreleased
+## v0.5.0 (2026-11-15) {#v0.5.0}
 
 Breaking changes:
 
@@ -67,15 +67,13 @@ New features:
   JSON mode will also show project URLs, e.g. a `changelog` link (if declared by the package authors).
   Docs: [PyPI metadata](https://ganzua.latk.de/pypi-metadata.html).
 
-Fixes:
-
 Other:
 
 * support Python 3.15, drop support for Python 3.12
 * docs: added “file formats” section
 * internal: rewrite CLI parameter handling
 
-Full diff: <https://github.com/latk/ganzua/compare/v0.4.0...HEAD>
+Full diff: <https://github.com/latk/ganzua/compare/v0.4.0...v0.5.0>
 
 
 ## v0.4.0 (2026-04-11) {#v0.4.0}

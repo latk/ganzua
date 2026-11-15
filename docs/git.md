@@ -4,10 +4,10 @@ Ganzua can read files from the Git history, which is especially useful for diffs
 Support varies by subcommand:
 
 * [`ganzua inspect`](cli/ganzua-inspect.md) (`LOCKFILE`)\
-  Added in *Ganzua NEXT*.
+  Added in *Ganzua 0.5.0*.
 
 * [`ganzua diff`](cli/ganzua-diff.md) (`OLD`, `NEW`)\
-  Added in *Ganzua NEXT*.
+  Added in *Ganzua 0.5.0*.
 
 ## Security
 

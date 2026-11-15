@@ -49,13 +49,13 @@ class LockedPackage(t.TypedDict):
     the package seems to have been installed from PyPI,
     and PyPI successfully provided metadata for the new version.
 
-    *Added in Ganzua NEXT*.
+    *Added in Ganzua 0.5.0*.
     """
 
     is_yanked: t.NotRequired[bool]
     """True if the locked package was yanked (per `pypi_metadata`).
 
-    *Added in Ganzua NEXT*.
+    *Added in Ganzua 0.5.0*.
     """
 
     is_vulnerable: t.NotRequired[bool]
@@ -63,7 +63,7 @@ class LockedPackage(t.TypedDict):
 
     For the purposes of this flag, withdrawn vulnerabilities are ignored.
 
-    *Added in Ganzua NEXT*.
+    *Added in Ganzua 0.5.0*.
     """
 
 

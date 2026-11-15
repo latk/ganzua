@@ -28,7 +28,7 @@ class DiffEntry(t.TypedDict):
     the package seems to have been installed from PyPI,
     and PyPI successfully provided metadata for the new version.
 
-    *Added in Ganzua NEXT*.
+    *Added in Ganzua 0.5.0*.
     """
 
     is_major_change: t.NotRequired[bool]
@@ -47,7 +47,7 @@ class DiffEntry(t.TypedDict):
     is_yanked: t.NotRequired[bool]
     """True if the new version was yanked (per `pypi_metadata`).
 
-    *Added in Ganzua NEXT*.
+    *Added in Ganzua 0.5.0*.
     """
 
     is_vulnerable: t.NotRequired[bool]
@@ -55,7 +55,7 @@ class DiffEntry(t.TypedDict):
 
     For the purposes of this flag, withdrawn vulnerabilities are ignored.
 
-    *Added in Ganzua NEXT*.
+    *Added in Ganzua 0.5.0*.
     """
 
 

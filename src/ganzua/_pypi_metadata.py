@@ -16,7 +16,7 @@ if t.TYPE_CHECKING:
 class PyPIMetadata(t.TypedDict):
     """Extra PyPI metadata that relates to a specific package version.
 
-    *Added in Ganzua NEXT*.
+    *Added in Ganzua 0.5.0*.
     """
 
     yanked: t.NotRequired[str]

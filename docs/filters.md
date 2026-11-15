@@ -5,23 +5,23 @@ Which filters are supported depends on the exact subcommand.
 
 * [`ganzua inspect`](cli/ganzua-inspect.md) (`--filter`)\
   Select which locked packages are shown in the output.\
-  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua NEXT*.
+  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua 0.5.0*.
 
 * [`ganzua diff`](cli/ganzua-diff.md) (`--filter`)\
   Select which locked packages are included in the diff.\
-  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua NEXT*.
+  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua 0.5.0*.
 
 * [`ganzua constraints inspect`](cli/ganzua-constraints-inspect.md) (`--filter`)\
   Select which constraints are shown in the output.\
-  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua NEXT*.
+  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua 0.5.0*.
 
 * [`ganzua constraints bump`](cli/ganzua-constraints-bump.md) (`--filter`)\
   Select which constraints are edited.\
-  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua NEXT*.
+  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua 0.5.0*.
 
 * [`ganzua constraints reset`](cli/ganzua-constraints-reset.md) (`--filter`)\
   Select which constraints are edited.\
-  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua NEXT*.
+  Added as `--name` in *Ganzua 0.4.0*, renamed to `--filter` in *Ganzua 0.5.0*.
 
 The following sections describe
 the [syntax of filters](#syntax),

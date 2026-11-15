@@ -215,7 +215,7 @@ def inspect(
 
     <!-- options -->
 
-    *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
+    *Changed in Ganzua 0.5.0:* renamed `--name` to `--filter`.
     """
     data = _DataLayer(git=git_options.get())
     pypi_metadata = pypi_metadata_options.get()
@@ -280,7 +280,7 @@ In addition to `gitrevision` syntax, may use `INDEX` to name staged files.
 
     <!-- options -->
 
-    *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
+    *Changed in Ganzua 0.5.0:* renamed `--name` to `--filter`.
     """
     data = _DataLayer(git=git_options.get())
     pypi_metadata = pypi_metadata_options.get()
@@ -331,7 +331,7 @@ def constraints_inspect(
 
     <!-- options -->
 
-    *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
+    *Changed in Ganzua 0.5.0:* renamed `--name` to `--filter`.
     """
     data = _DataLayer(git=None)
     pyproject = data.find_pyproject_toml(pyproject)
@@ -383,7 +383,7 @@ Where to load versions from. Inferred if possible.
 
     <!-- options -->
 
-    *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
+    *Changed in Ganzua 0.5.0:* renamed `--name` to `--filter`.
     """
     warnings = _PlainWarnings()
     data = _DataLayer(git=None)
@@ -465,7 +465,7 @@ Where to load current versions from (for `--to=minimum`). Inferred if possible.
 
     <!-- options -->
 
-    *Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
+    *Changed in Ganzua 0.5.0:* renamed `--name` to `--filter`.
     """
     warnings = _PlainWarnings()
     data = _DataLayer(git=None)

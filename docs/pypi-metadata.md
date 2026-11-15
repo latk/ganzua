@@ -6,11 +6,11 @@ Support varies by subcommand:
 
 * [`ganzua inspect`](cli/ganzua-inspect.md) (`--pypi-metadata`)\
   Enrich locked packages with metadata from PyPI.\
-  Added in *Ganzua NEXT*.
+  Added in *Ganzua 0.5.0*.
 
 * [`ganzua diff`](cli/ganzua-diff.md) (`--pypi-metadata`)\
   Enrich `new` packages with metadata from PyPI.\
-  Added in *Ganzua NEXT*.
+  Added in *Ganzua 0.5.0*.
 
 ## Security
 

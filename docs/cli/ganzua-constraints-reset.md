@@ -40,7 +40,7 @@ the one in the current working directory will be used.
 * `--help`
   Show this help message and exit.
 
-*Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
+*Changed in Ganzua 0.5.0:* renamed `--name` to `--filter`.
 
 <!-- command output end -->
 
@@ -621,7 +621,7 @@ Can use filters to only reset certain constraints.
 Read the [filter manual](../filters.md) for further details on how filters work.
 
 *Added in Ganzua 0.4.0:* `--name` filters.\
-*Changed in Ganzua NEXT*: renamed to `--filter`, added support for filter qualifiers.
+*Changed in Ganzua 0.5.0*: renamed to `--filter`, added support for filter qualifiers.
 
 Let's set up a fresh example project.
 

@@ -32,15 +32,15 @@
         },
         "pypi_metadata": {
           "$ref": "#/$defs/PyPIMetadata",
-          "description": "PyPI metadata for the locked package, if any.\n\nThis field will only be populated if\nmetadata was explicitly requested via `--pypi-metadata`,\nthe package seems to have been installed from PyPI,\nand PyPI successfully provided metadata for the new version.\n\n*Added in Ganzua NEXT*."
+          "description": "PyPI metadata for the locked package, if any.\n\nThis field will only be populated if\nmetadata was explicitly requested via `--pypi-metadata`,\nthe package seems to have been installed from PyPI,\nand PyPI successfully provided metadata for the new version.\n\n*Added in Ganzua 0.5.0*."
         },
         "is_yanked": {
-          "description": "True if the locked package was yanked (per `pypi_metadata`).\n\n*Added in Ganzua NEXT*.",
+          "description": "True if the locked package was yanked (per `pypi_metadata`).\n\n*Added in Ganzua 0.5.0*.",
           "title": "Is Yanked",
           "type": "boolean"
         },
         "is_vulnerable": {
-          "description": "True if the locked package has a known vulnerability (per `pypi_metadata`).\n\nFor the purposes of this flag, withdrawn vulnerabilities are ignored.\n\n*Added in Ganzua NEXT*.",
+          "description": "True if the locked package has a known vulnerability (per `pypi_metadata`).\n\nFor the purposes of this flag, withdrawn vulnerabilities are ignored.\n\n*Added in Ganzua 0.5.0*.",
           "title": "Is Vulnerable",
           "type": "boolean"
         }
@@ -54,7 +54,7 @@
       "type": "object"
     },
     "PyPIMetadata": {
-      "description": "Extra PyPI metadata that relates to a specific package version.\n\n*Added in Ganzua NEXT*.",
+      "description": "Extra PyPI metadata that relates to a specific package version.\n\n*Added in Ganzua 0.5.0*.",
       "properties": {
         "yanked": {
           "description": "If this package version was yanked, the reason given.\n\nIf no reason was given, a yanked package will use an empty string here.",

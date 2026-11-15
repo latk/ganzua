@@ -20,7 +20,7 @@ the one in the current working directory will be used.
 * `--help`
   Show this help message and exit.
 
-*Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
+*Changed in Ganzua 0.5.0:* renamed `--name` to `--filter`.
 
 <!-- command output end -->
 
@@ -124,7 +124,7 @@ e.g. by package name.
 For further details on filters, read the [filters manual](../filters.md).
 
 *Added in Ganzua 0.4.0*: `--name` filters.\
-*Changed in Ganzua NEXT*: renamed to `--filter`, added support for filter qualifiers.
+*Changed in Ganzua 0.5.0*: renamed to `--filter`, added support for filter qualifiers.
 
 <details><summary><code>$ ganzua constraints inspect corpus/poetry-multiple-groups --format=markdown --filter='!annotated*'</code></summary>
 

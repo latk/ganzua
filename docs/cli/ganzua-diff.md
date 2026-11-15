@@ -52,7 +52,7 @@ not a git blob.
 * `--help`
   Show this help message and exit.
 
-*Changed in Ganzua NEXT:* renamed `--name` to `--filter`.
+*Changed in Ganzua 0.5.0:* renamed `--name` to `--filter`.
 
 <!-- command output end -->
 
@@ -698,7 +698,7 @@ Download: [schema.diff.json](schema.diff.json)
   the package seems to have been installed from PyPI,
   and PyPI successfully provided metadata for the new version.
 
-  *Added in Ganzua NEXT*.
+  *Added in Ganzua 0.5.0*.
 * **`is_major_change`**?: bool\
   True if there was a major version change.
 
@@ -711,13 +711,13 @@ Download: [schema.diff.json](schema.diff.json)
 * **`is_yanked`**?: bool\
   True if the new version was yanked (per `pypi_metadata`).
 
-  *Added in Ganzua NEXT*.
+  *Added in Ganzua 0.5.0*.
 * **`is_vulnerable`**?: bool\
   True if the new version has a known vulnerability (per `pypi_metadata`).
 
   For the purposes of this flag, withdrawn vulnerabilities are ignored.
 
-  *Added in Ganzua NEXT*.
+  *Added in Ganzua 0.5.0*.
 
 ### type `LockedPackageNoMeta` {#type.LockedPackageNoMeta}
 
@@ -754,7 +754,7 @@ The package is sourced from a specific URL or path, e.g. a Git repo or workspace
 
 Extra PyPI metadata that relates to a specific package version.
 
-*Added in Ganzua NEXT*.
+*Added in Ganzua 0.5.0*.
 
 **Properties:**
 
